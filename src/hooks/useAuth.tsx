@@ -3,10 +3,11 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { User } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+// Use fallback values for development
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key';
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface AuthContextType {
   user: User | null;
@@ -24,6 +25,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Only initialize Supabase if proper credentials are available
+    if (supabaseUrl === 'https://placeholder.supabase.co') {
+      console.warn('Supabase not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+      setLoading(false);
+      return;
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -42,6 +50,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signUp = async (email: string, password: string, userData: any) => {
+    if (supabaseUrl === 'https://placeholder.supabase.co') {
+      throw new Error('Supabase not configured');
+    }
+    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -53,6 +65,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signIn = async (email: string, password: string) => {
+    if (supabaseUrl === 'https://placeholder.supabase.co') {
+      throw new Error('Supabase not configured');
+    }
+    
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -61,6 +77,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
+    if (supabaseUrl === 'https://placeholder.supabase.co') {
+      return;
+    }
+    
     await supabase.auth.signOut();
   };
 

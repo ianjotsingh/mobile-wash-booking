@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -168,11 +169,25 @@ const CompanyRegistration = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="companyName">Company Name *</Label>
-                  <Input id="companyName" placeholder="Your Company Name" className="mt-2" />
+                  <Input 
+                    id="companyName" 
+                    placeholder="Your Company Name" 
+                    className="mt-2"
+                    value={formData.companyName}
+                    onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+                    required
+                  />
                 </div>
                 <div>
                   <Label htmlFor="ownerName">Owner/Manager Name *</Label>
-                  <Input id="ownerName" placeholder="Your Full Name" className="mt-2" />
+                  <Input 
+                    id="ownerName" 
+                    placeholder="Your Full Name" 
+                    className="mt-2"
+                    value={formData.ownerName}
+                    onChange={(e) => setFormData({...formData, ownerName: e.target.value})}
+                    required
+                  />
                 </div>
               </div>
             </div>
@@ -185,14 +200,30 @@ const CompanyRegistration = () => {
                   <Label htmlFor="email">Email Address *</Label>
                   <div className="relative mt-2">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input id="email" type="email" placeholder="company@example.com" className="pl-10" />
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      placeholder="company@example.com" 
+                      className="pl-10"
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      required
+                    />
                   </div>
                 </div>
                 <div>
                   <Label htmlFor="phone">Phone Number *</Label>
                   <div className="relative mt-2">
                     <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input id="phone" type="tel" placeholder="+1 (555) 123-4567" className="pl-10" />
+                    <Input 
+                      id="phone" 
+                      type="tel" 
+                      placeholder="+91 98765 43210" 
+                      className="pl-10"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      required
+                    />
                   </div>
                 </div>
               </div>
@@ -203,16 +234,37 @@ const CompanyRegistration = () => {
               <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Business Address</h3>
               <div>
                 <Label htmlFor="address">Street Address *</Label>
-                <Input id="address" placeholder="1234 Main Street" className="mt-2" />
+                <Input 
+                  id="address" 
+                  placeholder="1234 Main Street" 
+                  className="mt-2"
+                  value={formData.address}
+                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  required
+                />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="city">City *</Label>
-                  <Input id="city" placeholder="City" className="mt-2" />
+                  <Input 
+                    id="city" 
+                    placeholder="City" 
+                    className="mt-2"
+                    value={formData.city}
+                    onChange={(e) => setFormData({...formData, city: e.target.value})}
+                    required
+                  />
                 </div>
                 <div>
                   <Label htmlFor="zipCode">ZIP Code *</Label>
-                  <Input id="zipCode" placeholder="12345" className="mt-2" />
+                  <Input 
+                    id="zipCode" 
+                    placeholder="400001" 
+                    className="mt-2"
+                    value={formData.zipCode}
+                    onChange={(e) => setFormData({...formData, zipCode: e.target.value})}
+                    required
+                  />
                 </div>
               </div>
             </div>
@@ -227,11 +279,17 @@ const CompanyRegistration = () => {
                   placeholder="Tell us about your company, experience, and what makes you special..."
                   className="mt-2"
                   rows={4}
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
                 />
               </div>
               <div>
                 <Label htmlFor="experience">Years of Experience</Label>
-                <select className="w-full mt-2 p-3 border border-gray-300 rounded-md">
+                <select 
+                  className="w-full mt-2 p-3 border border-gray-300 rounded-md"
+                  value={formData.experience}
+                  onChange={(e) => setFormData({...formData, experience: e.target.value})}
+                >
                   <option value="">Select experience level</option>
                   <option value="0-1">0-1 years</option>
                   <option value="1-3">1-3 years</option>
@@ -251,7 +309,7 @@ const CompanyRegistration = () => {
                     <Checkbox 
                       id={service} 
                       checked={formData.services.includes(service)}
-                      onCheckedChange={(checked) => handleServiceChange(service, checked)}
+                      onCheckedChange={(checked) => handleServiceChange(service, checked as boolean)}
                     />
                     <Label htmlFor={service} className="text-sm">{service}</Label>
                   </div>
@@ -265,7 +323,7 @@ const CompanyRegistration = () => {
                 <Checkbox 
                   id="terms" 
                   checked={formData.agreedToTerms}
-                  onCheckedChange={(checked) => setFormData({...formData, agreedToTerms: !!checked})}
+                  onCheckedChange={(checked) => setFormData({...formData, agreedToTerms: checked as boolean})}
                 />
                 <Label htmlFor="terms" className="text-sm text-gray-600 leading-relaxed">
                   I agree to the <a href="#" className="text-blue-600 hover:underline">Terms of Service</a> and 
