@@ -9,7 +9,7 @@ const Index = () => {
     {
       title: "Basic Wash",
       description: "Essential exterior cleaning",
-      price: "$29",
+      price: "₹299",
       duration: "30 mins",
       features: [
         "Exterior wash & rinse",
@@ -21,7 +21,7 @@ const Index = () => {
     {
       title: "Premium Wash",
       description: "Complete interior & exterior",
-      price: "$59",
+      price: "₹599",
       duration: "60 mins",
       popular: true,
       features: [
@@ -35,7 +35,7 @@ const Index = () => {
     {
       title: "Full Detailing",
       description: "Professional detailing service",
-      price: "$129",
+      price: "₹1,299",
       duration: "2-3 hours",
       features: [
         "Everything in Premium",
