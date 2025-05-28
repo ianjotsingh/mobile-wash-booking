@@ -7,11 +7,28 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { MapPin, Calendar as CalendarIcon, Clock, Car } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import AuthModal from './AuthModal';
 
 const BookingFlow = () => {
   const [step, setStep] = useState(1);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState('');
+  const [bookingData, setBookingData] = useState({
+    address: '',
+    city: '',
+    zipCode: '',
+    specialInstructions: '',
+    carType: '',
+    carColor: '',
+    carModel: '',
+    additionalNotes: ''
+  });
+  const [loading, setLoading] = useState(false);
+  
+  const { user, supabase } = useAuth();
+  const { toast } = useToast();
   
   const timeSlots = [
     '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
@@ -25,6 +42,73 @@ const BookingFlow = () => {
     { number: 3, title: 'Service Details', icon: Car },
     { number: 4, title: 'Confirmation', icon: Clock }
   ];
+
+  const handleBookingSubmit = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please login to complete your booking.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('create-booking', {
+        body: {
+          serviceId: 'premium-wash', // You can make this dynamic
+          companyId: null, // Will be assigned automatically
+          address: bookingData.address,
+          city: bookingData.city,
+          zipCode: bookingData.zipCode,
+          specialInstructions: bookingData.specialInstructions,
+          bookingDate: selectedDate?.toISOString().split('T')[0],
+          bookingTime: selectedTime,
+          carType: bookingData.carType,
+          carColor: bookingData.carColor,
+          carModel: bookingData.carModel,
+          additionalNotes: bookingData.additionalNotes,
+          totalAmount: 59900 // Premium wash price
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Booking Confirmed!",
+        description: "Your car wash has been scheduled successfully."
+      });
+      
+      setStep(4);
+    } catch (error) {
+      console.error('Booking error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create booking. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!user && step > 1) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <h3 className="text-xl font-semibold mb-4">Login Required</h3>
+            <p className="text-gray-600 mb-6">Please login or create an account to continue with your booking.</p>
+            <AuthModal>
+              <Button className="bg-blue-600 hover:bg-blue-700">Login / Sign Up</Button>
+            </AuthModal>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -73,16 +157,30 @@ const BookingFlow = () => {
                   id="address"
                   placeholder="Enter your complete address"
                   className="mt-2"
+                  value={bookingData.address}
+                  onChange={(e) => setBookingData({...bookingData, address: e.target.value})}
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="city">City</Label>
-                  <Input id="city" placeholder="City" className="mt-2" />
+                  <Input
+                    id="city"
+                    placeholder="City"
+                    className="mt-2"
+                    value={bookingData.city}
+                    onChange={(e) => setBookingData({...bookingData, city: e.target.value})}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="zipcode">ZIP Code</Label>
-                  <Input id="zipcode" placeholder="ZIP Code" className="mt-2" />
+                  <Input
+                    id="zipcode"
+                    placeholder="ZIP Code"
+                    className="mt-2"
+                    value={bookingData.zipCode}
+                    onChange={(e) => setBookingData({...bookingData, zipCode: e.target.value})}
+                  />
                 </div>
               </div>
               <div>
@@ -91,6 +189,8 @@ const BookingFlow = () => {
                   id="instructions"
                   placeholder="Any specific instructions for finding your location..."
                   className="mt-2"
+                  value={bookingData.specialInstructions}
+                  onChange={(e) => setBookingData({...bookingData, specialInstructions: e.target.value})}
                 />
               </div>
             </div>
@@ -133,7 +233,11 @@ const BookingFlow = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="carType">Car Type</Label>
-                  <select className="w-full mt-2 p-3 border border-gray-300 rounded-md">
+                  <select
+                    className="w-full mt-2 p-3 border border-gray-300 rounded-md"
+                    value={bookingData.carType}
+                    onChange={(e) => setBookingData({...bookingData, carType: e.target.value})}
+                  >
                     <option value="">Select car type</option>
                     <option value="sedan">Sedan</option>
                     <option value="suv">SUV</option>
@@ -143,12 +247,24 @@ const BookingFlow = () => {
                 </div>
                 <div>
                   <Label htmlFor="carColor">Car Color</Label>
-                  <Input id="carColor" placeholder="Car color" className="mt-2" />
+                  <Input
+                    id="carColor"
+                    placeholder="Car color"
+                    className="mt-2"
+                    value={bookingData.carColor}
+                    onChange={(e) => setBookingData({...bookingData, carColor: e.target.value})}
+                  />
                 </div>
               </div>
               <div>
                 <Label htmlFor="carModel">Car Make & Model</Label>
-                <Input id="carModel" placeholder="e.g., Toyota Camry 2020" className="mt-2" />
+                <Input
+                  id="carModel"
+                  placeholder="e.g., Toyota Camry 2020"
+                  className="mt-2"
+                  value={bookingData.carModel}
+                  onChange={(e) => setBookingData({...bookingData, carModel: e.target.value})}
+                />
               </div>
               <div>
                 <Label htmlFor="additionalNotes">Additional Notes</Label>
@@ -156,6 +272,8 @@ const BookingFlow = () => {
                   id="additionalNotes"
                   placeholder="Any specific requirements or notes..."
                   className="mt-2"
+                  value={bookingData.additionalNotes}
+                  onChange={(e) => setBookingData({...bookingData, additionalNotes: e.target.value})}
                 />
               </div>
             </div>
@@ -169,7 +287,8 @@ const BookingFlow = () => {
                   <p><strong>Service:</strong> Premium Car Wash</p>
                   <p><strong>Date:</strong> {selectedDate?.toLocaleDateString()}</p>
                   <p><strong>Time:</strong> {selectedTime}</p>
-                  <p><strong>Location:</strong> Your specified address</p>
+                  <p><strong>Location:</strong> {bookingData.address}, {bookingData.city}</p>
+                  <p><strong>Total:</strong> ₹599</p>
                 </div>
               </div>
               <div className="text-center">
@@ -190,11 +309,17 @@ const BookingFlow = () => {
               Previous
             </Button>
             <Button
-              onClick={() => setStep(Math.min(4, step + 1))}
-              disabled={step === 4}
+              onClick={() => {
+                if (step === 3) {
+                  handleBookingSubmit();
+                } else {
+                  setStep(Math.min(4, step + 1));
+                }
+              }}
+              disabled={step === 4 || loading}
               className="bg-blue-600 hover:bg-blue-700"
             >
-              {step === 3 ? 'Confirm Booking' : 'Next'}
+              {loading ? 'Processing...' : step === 3 ? 'Confirm Booking' : 'Next'}
             </Button>
           </div>
         </CardContent>
