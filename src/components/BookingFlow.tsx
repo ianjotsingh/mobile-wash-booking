@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,11 +9,14 @@ import { MapPin, Calendar as CalendarIcon, Clock, Car } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import AuthModal from './AuthModal';
+import LocationPicker from './LocationPicker';
+import { Location } from '@/utils/locationService';
 
 const BookingFlow = () => {
   const [step, setStep] = useState(1);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [bookingData, setBookingData] = useState({
     address: '',
     city: '',
@@ -43,6 +45,16 @@ const BookingFlow = () => {
     { number: 4, title: 'Confirmation', icon: Clock }
   ];
 
+  const handleLocationSelect = (location: Location) => {
+    setSelectedLocation(location);
+    setBookingData(prev => ({
+      ...prev,
+      address: location.address || '',
+      city: location.city || '',
+      zipCode: location.zipCode || ''
+    }));
+  };
+
   const handleBookingSubmit = async () => {
     if (!user) {
       toast({
@@ -58,8 +70,8 @@ const BookingFlow = () => {
     try {
       const { data, error } = await supabase.functions.invoke('create-booking', {
         body: {
-          serviceId: 'premium-wash', // You can make this dynamic
-          companyId: null, // Will be assigned automatically
+          serviceId: 'premium-wash',
+          companyId: null,
           address: bookingData.address,
           city: bookingData.city,
           zipCode: bookingData.zipCode,
@@ -70,7 +82,9 @@ const BookingFlow = () => {
           carColor: bookingData.carColor,
           carModel: bookingData.carModel,
           additionalNotes: bookingData.additionalNotes,
-          totalAmount: 59900 // Premium wash price
+          totalAmount: 59900,
+          latitude: selectedLocation?.latitude,
+          longitude: selectedLocation?.longitude
         }
       });
 
@@ -92,6 +106,19 @@ const BookingFlow = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const canProceedToNextStep = () => {
+    if (step === 1) {
+      return bookingData.address && bookingData.city && bookingData.zipCode;
+    }
+    if (step === 2) {
+      return selectedDate && selectedTime;
+    }
+    if (step === 3) {
+      return bookingData.carType && bookingData.carColor && bookingData.carModel;
+    }
+    return true;
   };
 
   if (!user && step > 1) {
@@ -151,38 +178,12 @@ const BookingFlow = () => {
         <CardContent className="p-8">
           {step === 1 && (
             <div className="space-y-6">
-              <div>
-                <Label htmlFor="address">Service Address</Label>
-                <Input
-                  id="address"
-                  placeholder="Enter your complete address"
-                  className="mt-2"
-                  value={bookingData.address}
-                  onChange={(e) => setBookingData({...bookingData, address: e.target.value})}
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    placeholder="City"
-                    className="mt-2"
-                    value={bookingData.city}
-                    onChange={(e) => setBookingData({...bookingData, city: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="zipcode">ZIP Code</Label>
-                  <Input
-                    id="zipcode"
-                    placeholder="ZIP Code"
-                    className="mt-2"
-                    value={bookingData.zipCode}
-                    onChange={(e) => setBookingData({...bookingData, zipCode: e.target.value})}
-                  />
-                </div>
-              </div>
+              <LocationPicker
+                onLocationSelect={handleLocationSelect}
+                initialAddress={bookingData.address}
+                initialCity={bookingData.city}
+                initialZipCode={bookingData.zipCode}
+              />
               <div>
                 <Label htmlFor="instructions">Special Instructions</Label>
                 <Textarea
@@ -316,7 +317,7 @@ const BookingFlow = () => {
                   setStep(Math.min(4, step + 1));
                 }
               }}
-              disabled={step === 4 || loading}
+              disabled={step === 4 || loading || !canProceedToNextStep()}
               className="bg-blue-600 hover:bg-blue-700"
             >
               {loading ? 'Processing...' : step === 3 ? 'Confirm Booking' : 'Next'}

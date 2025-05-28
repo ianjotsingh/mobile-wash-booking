@@ -2,8 +2,27 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { MapPin, Clock, Star, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Hero = () => {
+  const navigate = useNavigate();
+
+  const handleBookNow = () => {
+    navigate('/booking');
+  };
+
+  const handleLearnMore = () => {
+    // Scroll to services section or navigate to about page
+    const servicesSection = document.getElementById('services');
+    if (servicesSection) {
+      servicesSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleContinueBooking = () => {
+    navigate('/booking');
+  };
+
   return (
     <div className="relative bg-gradient-to-br from-blue-50 to-indigo-100 py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -22,7 +41,7 @@ const Hero = () => {
             <div className="flex flex-wrap gap-6 text-sm text-gray-600">
               <div className="flex items-center space-x-2">
                 <MapPin className="h-5 w-5 text-blue-600" />
-                <span>Any Location</span>
+                <span>Any Location in India</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Clock className="h-5 w-5 text-blue-600" />
@@ -35,11 +54,20 @@ const Hero = () => {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="text-lg px-8 py-4 bg-blue-600 hover:bg-blue-700 group">
+              <Button 
+                size="lg" 
+                className="text-lg px-8 py-4 bg-blue-600 hover:bg-blue-700 group"
+                onClick={handleBookNow}
+              >
                 Book Your Wash
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Button>
-              <Button variant="outline" size="lg" className="text-lg px-8 py-4">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="text-lg px-8 py-4"
+                onClick={handleLearnMore}
+              >
                 Learn More
               </Button>
             </div>
@@ -54,17 +82,20 @@ const Hero = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Service Location</label>
                     <div className="flex items-center space-x-2 text-gray-600">
                       <MapPin className="h-4 w-4" />
-                      <span>123 Main Street, City</span>
+                      <span>Anywhere in India</span>
                     </div>
                   </div>
                   <div className="p-4 bg-gray-50 rounded-lg">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Time</label>
                     <div className="flex items-center space-x-2 text-gray-600">
                       <Clock className="h-4 w-4" />
-                      <span>Today, 2:00 PM - 3:00 PM</span>
+                      <span>Flexible Scheduling</span>
                     </div>
                   </div>
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                  <Button 
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    onClick={handleContinueBooking}
+                  >
                     Continue Booking
                   </Button>
                 </div>
