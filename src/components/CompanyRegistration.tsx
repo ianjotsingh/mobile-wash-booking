@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Building2, Phone, Mail, MapPin, Star, Users } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import AuthModal from './AuthModal';
 
@@ -27,7 +28,7 @@ const CompanyRegistration = () => {
   });
   const [loading, setLoading] = useState(false);
 
-  const { user, supabase } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const serviceOptions = [
