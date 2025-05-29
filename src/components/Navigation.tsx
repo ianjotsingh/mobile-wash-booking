@@ -10,25 +10,22 @@ const Navigation = () => {
   const { user, signOut } = useAuth();
 
   return (
-    <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
+    <nav className="bg-black/90 backdrop-blur-sm border-b border-gray-800 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center space-x-2">
-            <Car className="h-8 w-8 text-blue-600" />
-            <span className="text-xl font-bold text-gray-900">WashWave</span>
+            <Car className="h-8 w-8 text-emerald-400" />
+            <span className="text-xl font-bold text-white">WashWave</span>
           </Link>
           
           <div className="hidden md:flex items-center space-x-8">
-            <Link to="/" className="text-gray-700 hover:text-blue-600 transition-colors">
+            <Link to="/" className="text-gray-300 hover:text-emerald-400 transition-colors">
               Home
             </Link>
-            <a href="#services" className="text-gray-700 hover:text-blue-600 transition-colors">
+            <a href="#services" className="text-gray-300 hover:text-emerald-400 transition-colors">
               Services
             </a>
-            <a href="#how-it-works" className="text-gray-700 hover:text-blue-600 transition-colors">
-              How It Works
-            </a>
-            <Link to="/company-signup" className="text-gray-700 hover:text-blue-600 transition-colors">
+            <Link to="/company-signup" className="text-gray-300 hover:text-emerald-400 transition-colors">
               Partner With Us
             </Link>
           </div>
@@ -36,13 +33,13 @@ const Navigation = () => {
           <div className="flex items-center space-x-4">
             {user ? (
               <div className="flex items-center space-x-2">
-                <User className="h-5 w-5 text-gray-600" />
-                <span className="text-gray-700">{user.email}</span>
+                <User className="h-5 w-5 text-gray-400" />
+                <span className="text-gray-300">{user.email}</span>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={signOut}
-                  className="flex items-center space-x-1"
+                  className="flex items-center space-x-1 border-gray-600 text-gray-300 hover:bg-gray-800"
                 >
                   <LogOut className="h-4 w-4" />
                   <span>Logout</span>
@@ -50,11 +47,13 @@ const Navigation = () => {
               </div>
             ) : (
               <AuthModal>
-                <Button variant="outline">Login</Button>
+                <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-800">
+                  Login
+                </Button>
               </AuthModal>
             )}
-            <Link to="/book">
-              <Button className="bg-blue-600 hover:bg-blue-700">
+            <Link to="/booking">
+              <Button className="bg-emerald-500 hover:bg-emerald-600 text-black font-semibold">
                 Book Now
               </Button>
             </Link>
