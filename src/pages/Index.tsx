@@ -8,12 +8,14 @@ const Index = () => {
   const services = [
     {
       title: "Basic Wash",
+      description: "Essential cleaning for your vehicle",
       price: "₹299",
       features: ["Exterior wash", "Vacuum cleaning", "Tire cleaning"],
       duration: "30 minutes"
     },
     {
       title: "Premium Wash",
+      description: "Complete care for your car inside and out",
       price: "₹599",
       features: ["Complete exterior wash", "Interior cleaning", "Dashboard polish", "Tire shine"],
       duration: "60 minutes",
@@ -21,11 +23,19 @@ const Index = () => {
     },
     {
       title: "Deluxe Detailing",
+      description: "Full professional detailing service",
       price: "₹999",
       features: ["Full car wash", "Interior detailing", "Wax application", "Engine cleaning"],
       duration: "90 minutes"
     }
   ];
+
+  const handleScroll = (elementId: string) => {
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
