@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MapPin, Search, Clock, Star } from 'lucide-react';
+import { MapPin, Search, Clock, Star, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentLocation, searchLocation, Location } from '@/utils/locationService';
 import { useToast } from '@/hooks/use-toast';
@@ -12,6 +12,8 @@ const UberLikeHero = () => {
   const [searchResults, setSearchResults] = useState<Location[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -24,13 +26,20 @@ const UberLikeHero = () => {
     setLoading(true);
     try {
       const location = await getCurrentLocation();
-      setPickupLocation(location.address || `${location.city}, ${location.state}`);
+      const displayAddress = location.address || `${location.city}, ${location.state}`;
+      setPickupLocation(displayAddress);
+      setSelectedLocation(location);
       toast({
         title: "Location detected",
         description: "We found your current location",
       });
     } catch (error) {
       console.log('Could not detect location:', error);
+      toast({
+        title: "Location access needed",
+        description: "Please search for your location or allow location access",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -38,25 +47,62 @@ const UberLikeHero = () => {
 
   const handleLocationSearch = async (query: string) => {
     setPickupLocation(query);
+    
     if (query.length > 2) {
+      setSearchLoading(true);
       try {
         const results = await searchLocation(query);
         setSearchResults(results);
         setShowResults(true);
+        
+        if (results.length === 0) {
+          toast({
+            title: "No locations found",
+            description: "Try searching with a different term",
+            variant: "destructive"
+          });
+        }
       } catch (error) {
         console.error('Search error:', error);
+        toast({
+          title: "Search failed",
+          description: "Please check your internet connection and try again",
+          variant: "destructive"
+        });
+      } finally {
+        setSearchLoading(false);
       }
     } else {
       setShowResults(false);
+      setSelectedLocation(null);
     }
   };
 
   const selectLocation = (location: Location) => {
     setPickupLocation(location.address || '');
+    setSelectedLocation(location);
     setShowResults(false);
+    toast({
+      title: "Location selected",
+      description: location.address || `${location.city}, ${location.state}`,
+    });
   };
 
   const handleBookNow = () => {
+    if (!selectedLocation && !pickupLocation) {
+      toast({
+        title: "Location required",
+        description: "Please select a pickup location to continue",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Store selected location for booking flow
+    if (selectedLocation) {
+      localStorage.setItem('selectedLocation', JSON.stringify(selectedLocation));
+    }
+    
     navigate('/booking');
   };
 
@@ -82,43 +128,69 @@ const UberLikeHero = () => {
             {/* Location Input */}
             <div className="relative">
               <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl">
-                <MapPin className="h-5 w-5 text-gray-600" />
+                <MapPin className="h-5 w-5 text-gray-600 flex-shrink-0" />
                 <Input
-                  placeholder="Enter pickup location"
+                  placeholder="Search for your location in India..."
                   value={pickupLocation}
                   onChange={(e) => handleLocationSearch(e.target.value)}
-                  className="border-none bg-transparent text-black placeholder-gray-500 focus-visible:ring-0"
+                  className="border-none bg-transparent text-black placeholder-gray-500 focus-visible:ring-0 flex-1"
                 />
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={detectCurrentLocation}
                   disabled={loading}
-                  className="text-emerald-600 hover:text-emerald-700"
+                  className="text-emerald-600 hover:text-emerald-700 flex-shrink-0"
                 >
                   {loading ? (
-                    <div className="h-4 w-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Search className="h-4 w-4" />
                   )}
                 </Button>
               </div>
 
+              {/* Search Loading */}
+              {searchLoading && (
+                <div className="absolute top-full left-0 right-0 bg-white border rounded-xl shadow-lg z-50 p-3 mt-2">
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
+                    <span className="text-sm text-gray-600">Searching locations...</span>
+                  </div>
+                </div>
+              )}
+
               {/* Search Results */}
-              {showResults && searchResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 bg-white border rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto mt-2">
+              {showResults && searchResults.length > 0 && !searchLoading && (
+                <div className="absolute top-full left-0 right-0 bg-white border rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto mt-2">
                   {searchResults.map((location, index) => (
                     <div
                       key={index}
-                      className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                      className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 transition-colors"
                       onClick={() => selectLocation(location)}
                     >
-                      <div className="font-medium text-gray-900 text-sm">{location.address}</div>
-                      <div className="text-xs text-gray-500">
-                        {location.city}, {location.state}
+                      <div className="flex items-start space-x-2">
+                        <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900 text-sm truncate">
+                            {location.address}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {location.city}, {location.state} {location.zipCode}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* No Results */}
+              {showResults && searchResults.length === 0 && !searchLoading && pickupLocation.length > 2 && (
+                <div className="absolute top-full left-0 right-0 bg-white border rounded-xl shadow-lg z-50 p-3 mt-2">
+                  <div className="text-sm text-gray-500 text-center">
+                    No locations found. Try a different search term.
+                  </div>
                 </div>
               )}
             </div>
@@ -146,7 +218,7 @@ const UberLikeHero = () => {
             <Button
               onClick={handleBookNow}
               className="w-full bg-black text-white hover:bg-gray-800 h-14 text-lg font-semibold rounded-xl"
-              disabled={!pickupLocation}
+              disabled={!pickupLocation.trim()}
             >
               Book Car Wash
             </Button>

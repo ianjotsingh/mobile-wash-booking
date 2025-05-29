@@ -22,8 +22,13 @@ export const getCurrentLocation = (): Promise<Location> => {
         try {
           // Reverse geocoding to get address
           const response = await fetch(
-            `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbTQ5eDB4aXMwM3FzMmtzZW85NXN0ZXdvIn0.7wjXkVmIjmZkiCpKHWlJTg'}&country=IN`
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbTQ5eDB4aXMwM3FzMmtzZW85NXN0ZXdvIn0.7wjXkVmIjmZkiCpKHWlJTg'}&country=IN&limit=1`
           );
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
           const data = await response.json();
           
           let address = '';
@@ -56,36 +61,68 @@ export const getCurrentLocation = (): Promise<Location> => {
             zipCode
           });
         } catch (error) {
+          console.error('Reverse geocoding failed:', error);
+          // Return coordinates even if reverse geocoding fails
           resolve({
             latitude,
-            longitude
+            longitude,
+            address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+            city: 'Unknown',
+            state: 'Unknown',
+            zipCode: ''
           });
         }
       },
       (error) => {
-        reject(new Error(`Location error: ${error.message}`));
+        let errorMessage = 'Location access denied or unavailable.';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Location access denied. Please enable location access in your browser.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information unavailable.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Location request timed out.';
+            break;
+        }
+        reject(new Error(errorMessage));
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 600000
+        timeout: 15000,
+        maximumAge: 300000
       }
     );
   });
 };
 
 export const searchLocation = async (query: string): Promise<Location[]> => {
+  if (!query || query.length < 3) {
+    return [];
+  }
+
   try {
     const response = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbTQ5eDB4aXMwM3FzMmtzZW85NXN0ZXdvIn0.7wjXkVmIjmZkiCpKHWlJTg'}&country=IN&limit=5`
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbTQ5eDB4aXMwM3FzMmtzZW85NXN0ZXdvIn0.7wjXkVmIjmZkiCpKHWlJTg'}&country=IN&limit=10&types=place,locality,neighborhood,address,poi`
     );
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
     const data = await response.json();
     
-    return data.features?.map((feature: any) => {
+    if (!data.features) {
+      return [];
+    }
+    
+    return data.features.map((feature: any) => {
       let city = '';
       let state = '';
       let zipCode = '';
       
+      // Extract location details from context
       feature.context?.forEach((item: any) => {
         if (item.id.includes('place')) {
           city = item.text;
@@ -96,17 +133,28 @@ export const searchLocation = async (query: string): Promise<Location[]> => {
         }
       });
       
+      // If no city found in context, try to extract from place_name
+      if (!city && feature.place_name) {
+        const parts = feature.place_name.split(',');
+        if (parts.length > 1) {
+          city = parts[parts.length - 2]?.trim() || '';
+        }
+      }
+      
       return {
         latitude: feature.center[1],
         longitude: feature.center[0],
-        address: feature.place_name,
-        city,
-        state,
-        zipCode
+        address: feature.place_name || feature.text || '',
+        city: city || 'Unknown',
+        state: state || 'India',
+        zipCode: zipCode || ''
       };
-    }) || [];
+    }).filter((location: Location) => 
+      // Filter out invalid locations
+      location.address && location.address.length > 0
+    );
   } catch (error) {
     console.error('Location search error:', error);
-    return [];
+    throw new Error('Failed to search locations. Please check your internet connection.');
   }
 };
