@@ -49,7 +49,7 @@ const BookingFlow = () => {
     { number: 4, title: 'Confirmation', icon: Clock }
   ];
 
-  // Redirect to home after successful login
+  // Close auth modal when user logs in
   useEffect(() => {
     if (user && showAuthModal) {
       setShowAuthModal(false);
@@ -85,7 +85,10 @@ const BookingFlow = () => {
   };
 
   const handleBookingSubmit = async () => {
-    if (!user) return;
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
 
     setLoading(true);
 
@@ -108,8 +111,12 @@ const BookingFlow = () => {
           status: 'pending'
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Booking error:', error);
+        throw error;
+      }
 
+      console.log('Booking successful:', data);
       toast({
         title: "Booking Confirmed!",
         description: "Your car wash has been scheduled successfully."
@@ -330,11 +337,9 @@ const BookingFlow = () => {
         </CardContent>
       </Card>
 
-      {showAuthModal && (
-        <AuthModal>
-          <div />
-        </AuthModal>
-      )}
+      <AuthModal open={showAuthModal} onOpenChange={setShowAuthModal}>
+        <div />
+      </AuthModal>
     </div>
   );
 };
