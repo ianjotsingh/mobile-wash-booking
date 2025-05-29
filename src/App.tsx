@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Booking from "./pages/Booking";
+import OrderHistory from "./pages/OrderHistory";
 import CompanySignup from "./pages/CompanySignup";
 import NotFound from "./pages/NotFound";
 
@@ -23,6 +24,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/booking" element={<Booking />} />
             <Route path="/book" element={<Booking />} />
+            <Route path="/order-history" element={<OrderHistory />} />
             <Route path="/company-signup" element={<CompanySignup />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

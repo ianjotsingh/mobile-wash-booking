@@ -1,54 +1,56 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Clock, DollarSign, CheckCircle } from 'lucide-react';
+import { Check, Clock } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface ServiceCardProps {
   title: string;
   description: string;
   price: string;
-  duration: string;
   features: string[];
+  duration: string;
   popular?: boolean;
 }
 
-const ServiceCard = ({ title, description, price, duration, features, popular }: ServiceCardProps) => {
+const ServiceCard = ({ title, description, price, features, duration, popular }: ServiceCardProps) => {
   return (
-    <Card className={`relative transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${popular ? 'ring-2 ring-blue-500' : ''}`}>
+    <Card className={`relative bg-gray-800 border-gray-700 text-white ${popular ? 'ring-2 ring-emerald-400' : ''}`}>
       {popular && (
-        <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-blue-600">
-          Most Popular
-        </Badge>
+        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+          <span className="bg-emerald-400 text-black px-4 py-1 rounded-full text-sm font-semibold">
+            Most Popular
+          </span>
+        </div>
       )}
-      
-      <CardHeader className="text-center pb-2">
-        <CardTitle className="text-2xl font-bold text-gray-900">{title}</CardTitle>
-        <CardDescription className="text-gray-600">{description}</CardDescription>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        <div className="text-center">
-          <div className="text-4xl font-bold text-blue-600">{price}</div>
-          <div className="flex items-center justify-center space-x-2 text-gray-500 mt-1">
-            <Clock className="h-4 w-4" />
+      <CardHeader>
+        <CardTitle className="text-2xl font-bold text-emerald-400">{title}</CardTitle>
+        <p className="text-gray-400">{description}</p>
+        <div className="flex items-center space-x-4">
+          <span className="text-3xl font-bold text-white">{price}</span>
+          <div className="flex items-center text-gray-400">
+            <Clock className="h-4 w-4 mr-1" />
             <span>{duration}</span>
           </div>
         </div>
-        
-        <ul className="space-y-3">
+      </CardHeader>
+      <CardContent>
+        <ul className="space-y-3 mb-6">
           {features.map((feature, index) => (
-            <li key={index} className="flex items-center space-x-3">
-              <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span className="text-gray-700">{feature}</span>
+            <li key={index} className="flex items-center space-x-2">
+              <Check className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+              <span className="text-gray-300">{feature}</span>
             </li>
           ))}
         </ul>
-        
-        <Button className="w-full bg-blue-600 hover:bg-blue-700">
-          Select Service
-        </Button>
+        <Link to="/booking">
+          <Button 
+            className={`w-full ${popular ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-gray-700 hover:bg-gray-600'} text-white font-semibold`}
+          >
+            Book Now
+          </Button>
+        </Link>
       </CardContent>
     </Card>
   );
