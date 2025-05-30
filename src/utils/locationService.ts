@@ -8,6 +8,8 @@ export interface Location {
   zipCode?: string;
 }
 
+const MAPBOX_TOKEN = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbTQ5eDB4aXMwM3FzMmtzZW85NXN0ZXdvIn0.7wjXkVmIjmZkiCpKHWlJTg';
+
 export const getCurrentLocation = (): Promise<Location> => {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
@@ -20,37 +22,21 @@ export const getCurrentLocation = (): Promise<Location> => {
         const { latitude, longitude } = position.coords;
         
         try {
-          // Reverse geocoding to get address
+          // Use Nominatim (OpenStreetMap) as a backup free service
           const response = await fetch(
-            `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbTQ5eDB4aXMwM3FzMmtzZW85NXN0ZXdvIn0.7wjXkVmIjmZkiCpKHWlJTg'}&country=IN&limit=1`
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&countrycodes=in&addressdetails=1`
           );
           
           if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error('Failed to get address details');
           }
           
           const data = await response.json();
           
-          let address = '';
-          let city = '';
-          let state = '';
-          let zipCode = '';
-          
-          if (data.features && data.features.length > 0) {
-            const feature = data.features[0];
-            address = feature.place_name || '';
-            
-            // Extract city, state, and zipCode from context
-            feature.context?.forEach((item: any) => {
-              if (item.id.includes('place')) {
-                city = item.text;
-              } else if (item.id.includes('region')) {
-                state = item.text;
-              } else if (item.id.includes('postcode')) {
-                zipCode = item.text;
-              }
-            });
-          }
+          const address = data.display_name || '';
+          const city = data.address?.city || data.address?.town || data.address?.village || '';
+          const state = data.address?.state || '';
+          const zipCode = data.address?.postcode || '';
           
           resolve({
             latitude,
@@ -68,7 +54,7 @@ export const getCurrentLocation = (): Promise<Location> => {
             longitude,
             address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
             city: 'Unknown',
-            state: 'Unknown',
+            state: 'India',
             zipCode: ''
           });
         }
@@ -103,8 +89,9 @@ export const searchLocation = async (query: string): Promise<Location[]> => {
   }
 
   try {
+    // Use Nominatim for search as well
     const response = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbTQ5eDB4aXMwM3FzMmtzZW85NXN0ZXdvIn0.7wjXkVmIjmZkiCpKHWlJTg'}&country=IN&limit=10&types=place,locality,neighborhood,address,poi`
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=in&limit=10&addressdetails=1`
     );
     
     if (!response.ok) {
@@ -113,44 +100,24 @@ export const searchLocation = async (query: string): Promise<Location[]> => {
     
     const data = await response.json();
     
-    if (!data.features) {
+    if (!Array.isArray(data)) {
       return [];
     }
     
-    return data.features.map((feature: any) => {
-      let city = '';
-      let state = '';
-      let zipCode = '';
-      
-      // Extract location details from context
-      feature.context?.forEach((item: any) => {
-        if (item.id.includes('place')) {
-          city = item.text;
-        } else if (item.id.includes('region')) {
-          state = item.text;
-        } else if (item.id.includes('postcode')) {
-          zipCode = item.text;
-        }
-      });
-      
-      // If no city found in context, try to extract from place_name
-      if (!city && feature.place_name) {
-        const parts = feature.place_name.split(',');
-        if (parts.length > 1) {
-          city = parts[parts.length - 2]?.trim() || '';
-        }
-      }
+    return data.map((item: any) => {
+      const city = item.address?.city || item.address?.town || item.address?.village || '';
+      const state = item.address?.state || 'India';
+      const zipCode = item.address?.postcode || '';
       
       return {
-        latitude: feature.center[1],
-        longitude: feature.center[0],
-        address: feature.place_name || feature.text || '',
+        latitude: parseFloat(item.lat),
+        longitude: parseFloat(item.lon),
+        address: item.display_name || '',
         city: city || 'Unknown',
-        state: state || 'India',
+        state: state,
         zipCode: zipCode || ''
       };
     }).filter((location: Location) => 
-      // Filter out invalid locations
       location.address && location.address.length > 0
     );
   } catch (error) {

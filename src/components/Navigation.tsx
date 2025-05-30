@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Car, User, LogOut, History } from 'lucide-react';
+import { Car, User, LogOut, History, Building2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import AuthModal from './AuthModal';
 
@@ -43,6 +43,9 @@ const Navigation = () => {
             </button>
             <Link to="/company-signup" className="text-gray-300 hover:text-emerald-400 transition-colors">
               Partner With Us
+            </Link>
+            <Link to="/company-dashboard" className="text-gray-300 hover:text-emerald-400 transition-colors">
+              Company Dashboard
             </Link>
           </div>
           
