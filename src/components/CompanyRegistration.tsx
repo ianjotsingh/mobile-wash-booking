@@ -1,75 +1,60 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Building2, Phone, Mail, MapPin, Star, Users } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import AuthModal from './AuthModal';
+import { supabase } from '@/integrations/supabase/client';
 
 const CompanyRegistration = () => {
   const [formData, setFormData] = useState({
-    companyName: '',
-    ownerName: '',
+    name: '',
     email: '',
     phone: '',
     address: '',
     city: '',
-    zipCode: '',
-    description: '',
-    experience: '',
-    services: [] as string[],
-    agreedToTerms: false
+    state: '',
+    zip_code: '',
+    services: [] as string[]
   });
   const [loading, setLoading] = useState(false);
-
-  const { user } = useAuth();
   const { toast } = useToast();
 
   const serviceOptions = [
-    'Basic Exterior Wash',
-    'Premium Wash & Wax',
-    'Interior Cleaning',
+    'Basic Wash',
+    'Premium Wash', 
     'Full Detailing',
-    'Engine Cleaning',
-    'Paint Protection'
+    'Interior Cleaning',
+    'Wax & Polish',
+    'Engine Cleaning'
   ];
 
-  const handleServiceChange = (service: string, checked: boolean) => {
-    if (checked) {
-      setFormData({
-        ...formData,
-        services: [...formData.services, service]
-      });
-    } else {
-      setFormData({
-        ...formData,
-        services: formData.services.filter(s => s !== service)
-      });
-    }
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleServiceToggle = (service: string) => {
+    setFormData(prev => ({
+      ...prev,
+      services: prev.services.includes(service)
+        ? prev.services.filter(s => s !== service)
+        : [...prev.services, service]
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user) {
+    if (formData.services.length === 0) {
       toast({
-        title: "Authentication Required",
-        description: "Please login to register your company.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!formData.agreedToTerms) {
-      toast({
-        title: "Terms Required",
-        description: "Please agree to the terms and conditions.",
+        title: "Services Required",
+        description: "Please select at least one service you offer.",
         variant: "destructive"
       });
       return;
@@ -78,36 +63,42 @@ const CompanyRegistration = () => {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('register-company', {
-        body: formData
-      });
+      const { error } = await supabase
+        .from('companies' as any)
+        .insert({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          zip_code: formData.zip_code,
+          services: formData.services
+        });
 
       if (error) throw error;
 
       toast({
-        title: "Application Submitted!",
-        description: "Your company registration has been submitted for review."
+        title: "Registration Successful!",
+        description: "Your company has been registered. You'll be notified when orders are available in your area."
       });
 
       // Reset form
       setFormData({
-        companyName: '',
-        ownerName: '',
+        name: '',
         email: '',
         phone: '',
         address: '',
         city: '',
-        zipCode: '',
-        description: '',
-        experience: '',
-        services: [],
-        agreedToTerms: false
+        state: '',
+        zip_code: '',
+        services: []
       });
     } catch (error) {
       console.error('Registration error:', error);
       toast({
-        title: "Error",
-        description: "Failed to submit application. Please try again.",
+        title: "Registration Failed",
+        description: "Failed to register your company. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -115,236 +106,127 @@ const CompanyRegistration = () => {
     }
   };
 
-  if (!user) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Building2 className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-4">Login Required</h3>
-            <p className="text-gray-600 mb-6">Please login or create an account to register your company.</p>
-            <AuthModal>
-              <Button className="bg-blue-600 hover:bg-blue-700">Login / Sign Up</Button>
-            </AuthModal>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="text-center mb-8">
-        <Building2 className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Join Our Network</h1>
-        <p className="text-lg text-gray-600">Partner with us to grow your car wash business</p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        <div className="bg-blue-50 p-6 rounded-lg text-center">
-          <Users className="h-12 w-12 text-blue-600 mx-auto mb-3" />
-          <h3 className="font-semibold text-gray-900 mb-2">Growing Customer Base</h3>
-          <p className="text-sm text-gray-600">Access thousands of customers in your area</p>
-        </div>
-        <div className="bg-green-50 p-6 rounded-lg text-center">
-          <Star className="h-12 w-12 text-green-600 mx-auto mb-3" />
-          <h3 className="font-semibold text-gray-900 mb-2">Quality Assurance</h3>
-          <p className="text-sm text-gray-600">Build trust with our rating system</p>
-        </div>
-        <div className="bg-purple-50 p-6 rounded-lg text-center">
-          <MapPin className="h-12 w-12 text-purple-600 mx-auto mb-3" />
-          <h3 className="font-semibold text-gray-900 mb-2">Flexible Coverage</h3>
-          <p className="text-sm text-gray-600">Choose your service areas and schedule</p>
-        </div>
-      </div>
-
+    <div className="max-w-2xl mx-auto p-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Company Registration</CardTitle>
+          <CardTitle className="text-2xl text-center">Register Your Car Wash Company</CardTitle>
+          <p className="text-gray-600 text-center">Join our platform and start receiving orders in your area</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Company Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Company Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="companyName">Company Name *</Label>
-                  <Input 
-                    id="companyName" 
-                    placeholder="Your Company Name" 
-                    className="mt-2"
-                    value={formData.companyName}
-                    onChange={(e) => setFormData({...formData, companyName: e.target.value})}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="ownerName">Owner/Manager Name *</Label>
-                  <Input 
-                    id="ownerName" 
-                    placeholder="Your Full Name" 
-                    className="mt-2"
-                    value={formData.ownerName}
-                    onChange={(e) => setFormData({...formData, ownerName: e.target.value})}
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Contact Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Contact Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="email">Email Address *</Label>
-                  <div className="relative mt-2">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      placeholder="company@example.com" 
-                      className="pl-10"
-                      value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="phone">Phone Number *</Label>
-                  <div className="relative mt-2">
-                    <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input 
-                      id="phone" 
-                      type="tel" 
-                      placeholder="+91 98765 43210" 
-                      className="pl-10"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Address Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Business Address</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="address">Street Address *</Label>
-                <Input 
-                  id="address" 
-                  placeholder="1234 Main Street" 
-                  className="mt-2"
-                  value={formData.address}
-                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                <Label htmlFor="name">Company Name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
                   required
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="city">City *</Label>
-                  <Input 
-                    id="city" 
-                    placeholder="City" 
-                    className="mt-2"
-                    value={formData.city}
-                    onChange={(e) => setFormData({...formData, city: e.target.value})}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="zipCode">ZIP Code *</Label>
-                  <Input 
-                    id="zipCode" 
-                    placeholder="400001" 
-                    className="mt-2"
-                    value={formData.zipCode}
-                    onChange={(e) => setFormData({...formData, zipCode: e.target.value})}
-                    required
-                  />
-                </div>
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                />
               </div>
             </div>
 
-            {/* Business Details */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Business Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="description">Company Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Tell us about your company, experience, and what makes you special..."
-                  className="mt-2"
-                  rows={4}
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  required
                 />
               </div>
               <div>
-                <Label htmlFor="experience">Years of Experience</Label>
-                <select 
-                  className="w-full mt-2 p-3 border border-gray-300 rounded-md"
-                  value={formData.experience}
-                  onChange={(e) => setFormData({...formData, experience: e.target.value})}
-                >
-                  <option value="">Select experience level</option>
-                  <option value="0-1">0-1 years</option>
-                  <option value="1-3">1-3 years</option>
-                  <option value="3-5">3-5 years</option>
-                  <option value="5-10">5-10 years</option>
-                  <option value="10+">10+ years</option>
-                </select>
+                <Label htmlFor="state">State</Label>
+                <Input
+                  id="state"
+                  name="state"
+                  value={formData.state}
+                  onChange={handleInputChange}
+                  required
+                />
               </div>
             </div>
 
-            {/* Services Offered */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Services Offered</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="address">Address</Label>
+              <Input
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="zip_code">ZIP Code</Label>
+                <Input
+                  id="zip_code"
+                  name="zip_code"
+                  value={formData.zip_code}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>Services Offered</Label>
+              <div className="grid grid-cols-2 gap-2 mt-2">
                 {serviceOptions.map((service) => (
-                  <div key={service} className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={service} 
+                  <label
+                    key={service}
+                    className={`flex items-center space-x-2 p-3 border rounded cursor-pointer ${
+                      formData.services.includes(service)
+                        ? 'bg-emerald-50 border-emerald-500'
+                        : 'border-gray-300'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
                       checked={formData.services.includes(service)}
-                      onCheckedChange={(checked) => handleServiceChange(service, checked as boolean)}
+                      onChange={() => handleServiceToggle(service)}
+                      className="hidden"
                     />
-                    <Label htmlFor={service} className="text-sm">{service}</Label>
-                  </div>
+                    <span className="text-sm">{service}</span>
+                  </label>
                 ))}
               </div>
             </div>
 
-            {/* Terms and Submit */}
-            <div className="space-y-4">
-              <div className="flex items-start space-x-2">
-                <Checkbox 
-                  id="terms" 
-                  checked={formData.agreedToTerms}
-                  onCheckedChange={(checked) => setFormData({...formData, agreedToTerms: checked as boolean})}
-                />
-                <Label htmlFor="terms" className="text-sm text-gray-600 leading-relaxed">
-                  I agree to the <a href="#" className="text-blue-600 hover:underline">Terms of Service</a> and 
-                  <a href="#" className="text-blue-600 hover:underline ml-1">Privacy Policy</a>. 
-                  I understand that my application will be reviewed before approval.
-                </Label>
-              </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6"
-                disabled={loading}
-              >
-                {loading ? 'Submitting...' : 'Submit Application'}
-              </Button>
-              
-              <p className="text-sm text-gray-500 text-center">
-                We'll review your application within 2-3 business days and contact you with next steps.
-              </p>
-            </div>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-emerald-500 hover:bg-emerald-600"
+            >
+              {loading ? 'Registering...' : 'Register Company'}
+            </Button>
           </form>
         </CardContent>
       </Card>

@@ -3,8 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Clock, Car, Phone, CheckCircle, XCircle } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { MapPin, Calendar, Clock, Car, Phone, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -29,46 +28,59 @@ interface Order {
 const CompanyDashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user) {
-      fetchOrders();
-      
-      // Set up real-time subscription for new orders
-      const channel = supabase
-        .channel('orders-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'orders'
-          },
-          (payload) => {
-            const newOrder = payload.new as Order;
-            setOrders(prev => [newOrder, ...prev]);
-            toast({
-              title: "New Order Received!",
-              description: `New ${newOrder.service_type} order in ${newOrder.city}`,
-            });
-          }
-        )
-        .subscribe();
+    fetchOrders();
+    
+    // Set up real-time subscription for new orders
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload) => {
+          console.log('New order received:', payload);
+          const newOrder = payload.new as Order;
+          setOrders(prev => [newOrder, ...prev]);
+          
+          toast({
+            title: "New Order Received!",
+            description: `New ${newOrder.service_type} order in ${newOrder.city}`,
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload) => {
+          console.log('Order updated:', payload);
+          const updatedOrder = payload.new as Order;
+          setOrders(prev => prev.map(order => 
+            order.id === updatedOrder.id ? updatedOrder : order
+          ));
+        }
+      )
+      .subscribe();
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [user, toast]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [toast]);
 
   const fetchOrders = async () => {
     try {
       const { data, error } = await supabase
-        .from('orders')
+        .from('orders' as any)
         .select('*')
-        .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -85,64 +97,82 @@ const CompanyDashboard = () => {
     }
   };
 
-  const updateOrderStatus = async (orderId: string, status: string) => {
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       const { error } = await supabase
-        .from('orders')
-        .update({ status })
+        .from('orders' as any)
+        .update({ status: newStatus })
         .eq('id', orderId);
 
       if (error) throw error;
 
-      setOrders(prev => prev.filter(order => order.id !== orderId));
-      
       toast({
-        title: "Order Updated",
-        description: `Order ${status === 'accepted' ? 'accepted' : 'declined'} successfully`,
+        title: "Status Updated",
+        description: `Order status updated to ${newStatus.replace('_', ' ')}`
       });
     } catch (error) {
-      console.error('Error updating order:', error);
+      console.error('Error updating order status:', error);
       toast({
         title: "Error",
-        description: "Failed to update order",
+        description: "Failed to update order status",
         variant: "destructive"
       });
     }
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'confirmed':
+        return 'bg-blue-100 text-blue-800';
+      case 'in_progress':
+        return 'bg-purple-100 text-purple-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="text-center">Loading orders...</div>
+      <div className="p-8 text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Loading orders...</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="max-w-6xl mx-auto p-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Company Dashboard</h1>
-        <p className="text-gray-600">Manage your incoming service requests</p>
+        <p className="text-gray-600">Manage your car wash service orders</p>
       </div>
 
       {orders.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
             <Car className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No Pending Orders</h3>
-            <p className="text-gray-600">New orders will appear here automatically</p>
+            <h3 className="text-xl font-semibold mb-2">No Orders Yet</h3>
+            <p className="text-gray-600">Orders will appear here when customers book services in your area.</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6">
+        <div className="space-y-6">
           {orders.map((order) => (
-            <Card key={order.id} className="border-l-4 border-l-emerald-500">
+            <Card key={order.id}>
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle className="text-lg">{order.service_type}</CardTitle>
                     <div className="flex items-center space-x-2 mt-2">
-                      <Badge variant="outline">{order.status}</Badge>
+                      <Badge className={getStatusColor(order.status)}>
+                        {order.status.replace('_', ' ').toUpperCase()}
+                      </Badge>
                       <span className="text-sm text-gray-500">
                         Order #{order.id.slice(0, 8)}
                       </span>
@@ -168,10 +198,12 @@ const CompanyDashboard = () => {
                       </span>
                     </div>
                     <div className="flex items-center space-x-2">
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm">{order.booking_date}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
                       <Clock className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm">
-                        {order.booking_date} at {order.booking_time}
-                      </span>
+                      <span className="text-sm">{order.booking_time}</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Car className="h-4 w-4 text-gray-500" />
@@ -191,22 +223,40 @@ const CompanyDashboard = () => {
                   )}
                 </div>
                 
-                <div className="flex gap-3 mt-6">
-                  <Button
-                    onClick={() => updateOrderStatus(order.id, 'accepted')}
-                    className="flex-1 bg-emerald-500 hover:bg-emerald-600"
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Accept Order
-                  </Button>
-                  <Button
-                    onClick={() => updateOrderStatus(order.id, 'declined')}
-                    variant="outline"
-                    className="flex-1 border-red-200 text-red-600 hover:bg-red-50"
-                  >
-                    <XCircle className="h-4 w-4 mr-2" />
-                    Decline
-                  </Button>
+                <div className="mt-6 flex gap-2 flex-wrap">
+                  {order.status === 'pending' && (
+                    <Button
+                      onClick={() => updateOrderStatus(order.id, 'confirmed')}
+                      className="bg-blue-500 hover:bg-blue-600"
+                    >
+                      Accept Order
+                    </Button>
+                  )}
+                  {order.status === 'confirmed' && (
+                    <Button
+                      onClick={() => updateOrderStatus(order.id, 'in_progress')}
+                      className="bg-purple-500 hover:bg-purple-600"
+                    >
+                      Start Service
+                    </Button>
+                  )}
+                  {order.status === 'in_progress' && (
+                    <Button
+                      onClick={() => updateOrderStatus(order.id, 'completed')}
+                      className="bg-green-500 hover:bg-green-600"
+                    >
+                      Complete Service
+                    </Button>
+                  )}
+                  {order.status === 'pending' && (
+                    <Button
+                      onClick={() => updateOrderStatus(order.id, 'cancelled')}
+                      variant="outline"
+                      className="border-red-500 text-red-500 hover:bg-red-50"
+                    >
+                      Decline
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

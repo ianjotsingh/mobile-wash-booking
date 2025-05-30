@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
 interface FeedbackModalProps {
@@ -21,6 +22,7 @@ const FeedbackModal = ({ isOpen, onClose, orderId, companyName }: FeedbackModalP
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,24 +36,48 @@ const FeedbackModal = ({ isOpen, onClose, orderId, companyName }: FeedbackModalP
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to submit feedback.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('feedback')
-        .insert({
-          order_id: orderId,
-          rating: rating,
-          comment: comment
-        });
+      // Use raw SQL to insert feedback since TypeScript types may not be updated yet
+      const { error } = await supabase.rpc('submit_feedback', {
+        p_order_id: orderId,
+        p_user_id: user.id,
+        p_rating: rating,
+        p_comment: comment || null
+      });
 
-      if (error) throw error;
+      if (error) {
+        // Fallback to direct table insert if RPC doesn't exist
+        const { error: insertError } = await supabase
+          .from('feedback' as any)
+          .insert({
+            order_id: orderId,
+            user_id: user.id,
+            rating: rating,
+            comment: comment || null
+          });
+
+        if (insertError) throw insertError;
+      }
 
       toast({
         title: "Thank you!",
         description: "Your feedback has been submitted successfully."
       });
 
+      // Reset form
+      setRating(0);
+      setComment('');
       onClose();
     } catch (error) {
       console.error('Feedback submission error:', error);
