@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Check, Clock } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 interface ServiceCardProps {
   title: string;
@@ -15,8 +15,14 @@ interface ServiceCardProps {
 }
 
 const ServiceCard = ({ title, description, price, features, duration, popular }: ServiceCardProps) => {
+  const navigate = useNavigate();
+
+  const handleBookNow = () => {
+    navigate('/booking');
+  };
+
   return (
-    <Card className={`relative bg-gray-800 border-gray-700 text-white ${popular ? 'ring-2 ring-emerald-400' : ''}`}>
+    <Card className={`relative bg-gray-800 border-gray-700 text-white cursor-pointer hover:bg-gray-750 transition-colors ${popular ? 'ring-2 ring-emerald-400' : ''}`} onClick={handleBookNow}>
       {popular && (
         <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
           <span className="bg-emerald-400 text-black px-4 py-1 rounded-full text-sm font-semibold">
@@ -44,13 +50,15 @@ const ServiceCard = ({ title, description, price, features, duration, popular }:
             </li>
           ))}
         </ul>
-        <Link to="/booking">
-          <Button 
-            className={`w-full ${popular ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-gray-700 hover:bg-gray-600'} text-white font-semibold`}
-          >
-            Book Now
-          </Button>
-        </Link>
+        <Button 
+          className={`w-full ${popular ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-gray-700 hover:bg-gray-600'} text-white font-semibold`}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleBookNow();
+          }}
+        >
+          Book Now
+        </Button>
       </CardContent>
     </Card>
   );
