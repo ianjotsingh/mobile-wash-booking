@@ -47,27 +47,17 @@ const FeedbackModal = ({ isOpen, onClose, orderId, companyName }: FeedbackModalP
     setLoading(true);
 
     try {
-      // Use raw SQL query to insert into feedback table since TypeScript types aren't updated yet
-      const { error } = await supabase.rpc('insert_feedback', {
-        p_order_id: orderId,
-        p_user_id: user.id,
-        p_rating: rating,
-        p_comment: comment || null
-      });
+      // Use type casting to insert into feedback table since TypeScript types aren't updated yet
+      const { error } = await (supabase as any)
+        .from('feedback')
+        .insert({
+          order_id: orderId,
+          user_id: user.id,
+          rating: rating,
+          comment: comment || null
+        });
 
-      if (error) {
-        // Fallback: try direct insert with any type casting
-        const { error: fallbackError } = await (supabase as any)
-          .from('feedback')
-          .insert({
-            order_id: orderId,
-            user_id: user.id,
-            rating: rating,
-            comment: comment || null
-          });
-
-        if (fallbackError) throw fallbackError;
-      }
+      if (error) throw error;
 
       toast({
         title: "Thank you!",
