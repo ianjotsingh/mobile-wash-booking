@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -48,16 +47,27 @@ const FeedbackModal = ({ isOpen, onClose, orderId, companyName }: FeedbackModalP
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('feedback')
-        .insert({
-          order_id: orderId,
-          user_id: user.id,
-          rating: rating,
-          comment: comment || null
-        });
+      // Use raw SQL query to insert into feedback table since TypeScript types aren't updated yet
+      const { error } = await supabase.rpc('insert_feedback', {
+        p_order_id: orderId,
+        p_user_id: user.id,
+        p_rating: rating,
+        p_comment: comment || null
+      });
 
-      if (error) throw error;
+      if (error) {
+        // Fallback: try direct insert with any type casting
+        const { error: fallbackError } = await (supabase as any)
+          .from('feedback')
+          .insert({
+            order_id: orderId,
+            user_id: user.id,
+            rating: rating,
+            comment: comment || null
+          });
+
+        if (fallbackError) throw fallbackError;
+      }
 
       toast({
         title: "Thank you!",
