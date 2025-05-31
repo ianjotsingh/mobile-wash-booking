@@ -108,7 +108,9 @@ const BookingFlow = () => {
           car_model: bookingData.carModel,
           special_instructions: bookingData.specialInstructions,
           total_amount: 59900,
-          status: 'pending'
+          status: 'pending',
+          latitude: selectedLocation?.latitude || null,
+          longitude: selectedLocation?.longitude || null
         });
 
       if (error) {
@@ -119,7 +121,7 @@ const BookingFlow = () => {
       console.log('Booking successful:', data);
       toast({
         title: "Booking Confirmed!",
-        description: "Your car wash has been scheduled successfully."
+        description: "Your car wash has been scheduled successfully. Nearby companies have been notified."
       });
       
       setStep(4);

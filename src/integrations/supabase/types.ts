@@ -9,6 +9,111 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      companies: {
+        Row: {
+          address: string
+          city: string
+          company_name: string
+          created_at: string | null
+          description: string | null
+          email: string
+          experience: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          owner_name: string
+          phone: string
+          services: string[] | null
+          status: Database["public"]["Enums"]["company_status"] | null
+          updated_at: string | null
+          user_id: string | null
+          zip_code: string
+        }
+        Insert: {
+          address: string
+          city: string
+          company_name: string
+          created_at?: string | null
+          description?: string | null
+          email: string
+          experience?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          owner_name: string
+          phone: string
+          services?: string[] | null
+          status?: Database["public"]["Enums"]["company_status"] | null
+          updated_at?: string | null
+          user_id?: string | null
+          zip_code: string
+        }
+        Update: {
+          address?: string
+          city?: string
+          company_name?: string
+          created_at?: string | null
+          description?: string | null
+          email?: string
+          experience?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          owner_name?: string
+          phone?: string
+          services?: string[] | null
+          status?: Database["public"]["Enums"]["company_status"] | null
+          updated_at?: string | null
+          user_id?: string | null
+          zip_code?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          order_id: string | null
+          title: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          order_id?: string | null
+          title: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          order_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           address: string
@@ -20,6 +125,8 @@ export type Database = {
           city: string
           created_at: string
           id: string
+          latitude: number | null
+          longitude: number | null
           service_type: string
           special_instructions: string | null
           status: string
@@ -37,6 +144,8 @@ export type Database = {
           city: string
           created_at?: string
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           service_type: string
           special_instructions?: string | null
           status?: string
@@ -54,6 +163,8 @@ export type Database = {
           city?: string
           created_at?: string
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           service_type?: string
           special_instructions?: string | null
           status?: string
@@ -63,15 +174,88 @@ export type Database = {
         }
         Relationships: []
       }
+      services: {
+        Row: {
+          created_at: string | null
+          description: string
+          duration: number
+          features: string[] | null
+          id: string
+          name: string
+          popular: boolean | null
+          price: number
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          duration: number
+          features?: string[] | null
+          id?: string
+          name: string
+          popular?: boolean | null
+          price: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          duration?: number
+          features?: string[] | null
+          id?: string
+          name?: string
+          popular?: boolean | null
+          price?: number
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          created_at: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_distance: {
+        Args: { lat1: number; lon1: number; lat2: number; lon2: number }
+        Returns: number
+      }
     }
     Enums: {
-      [_ in never]: never
+      booking_status:
+        | "pending"
+        | "confirmed"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
+      company_status: "pending" | "approved" | "rejected"
+      user_role: "customer" | "company" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -186,6 +370,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      booking_status: [
+        "pending",
+        "confirmed",
+        "in_progress",
+        "completed",
+        "cancelled",
+      ],
+      company_status: ["pending", "approved", "rejected"],
+      user_role: ["customer", "company", "admin"],
+    },
   },
 } as const

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Clock, Car, MapPin, User, Phone, Mail } from 'lucide-react';
+import NotificationCenter from './NotificationCenter';
 
 interface Order {
   id: string;
@@ -23,6 +24,8 @@ interface Order {
   status: string;
   special_instructions?: string;
   created_at: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 const CompanyDashboard = () => {
@@ -142,113 +145,154 @@ const CompanyDashboard = () => {
         <p className="text-gray-600 mt-2">Manage your car wash orders and bookings</p>
       </div>
 
-      <div className="grid gap-6">
-        {orders.length === 0 ? (
+      <div className="grid lg:grid-cols-3 gap-6 mb-8">
+        <div className="lg:col-span-1">
+          <NotificationCenter />
+        </div>
+        <div className="lg:col-span-2">
           <Card>
-            <CardContent className="p-8 text-center">
-              <Car className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Orders Yet</h3>
-              <p className="text-gray-600">New orders will appear here when customers book your services.</p>
+            <CardHeader>
+              <CardTitle>Recent Orders</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {orders.length === 0 ? (
+                <div className="text-center py-8">
+                  <Car className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Orders Yet</h3>
+                  <p className="text-gray-600">New orders will appear here when customers book your services.</p>
+                </div>
+              ) : (
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {orders.slice(0, 5).map((order) => (
+                    <div key={order.id} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h4 className="font-semibold">{order.service_type}</h4>
+                          <p className="text-sm text-gray-600">Order #{order.id.slice(0, 8)}</p>
+                        </div>
+                        <Badge className={getStatusColor(order.status)}>
+                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                        <MapPin className="h-4 w-4" />
+                        {order.address}, {order.city}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Clock className="h-4 w-4" />
+                        {order.booking_date} at {order.booking_time}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
-        ) : (
-          orders.map((order) => (
-            <Card key={order.id} className="overflow-hidden">
-              <CardHeader className="bg-gray-50">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">{order.service_type}</CardTitle>
-                    <p className="text-sm text-gray-600 mt-1">Order #{order.id.slice(0, 8)}</p>
-                  </div>
-                  <Badge className={getStatusColor(order.status)}>
-                    {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                  </Badge>
+        </div>
+      </div>
+
+      <div className="grid gap-6">
+        {orders.map((order) => (
+          <Card key={order.id} className="overflow-hidden">
+            <CardHeader className="bg-gray-50">
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-lg">{order.service_type}</CardTitle>
+                  <p className="text-sm text-gray-600 mt-1">Order #{order.id.slice(0, 8)}</p>
                 </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-3">
-                      <Clock className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <p className="font-medium">{order.booking_date}</p>
-                        <p className="text-sm text-gray-600">{order.booking_time}</p>
-                      </div>
+                <Badge className={getStatusColor(order.status)}>
+                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <Clock className="h-5 w-5 text-gray-400" />
+                    <div>
+                      <p className="font-medium">{order.booking_date}</p>
+                      <p className="text-sm text-gray-600">{order.booking_time}</p>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <MapPin className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <p className="font-medium">{order.address}</p>
-                        <p className="text-sm text-gray-600">{order.city}, {order.zip_code}</p>
-                      </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <MapPin className="h-5 w-5 text-gray-400" />
+                    <div>
+                      <p className="font-medium">{order.address}</p>
+                      <p className="text-sm text-gray-600">{order.city}, {order.zip_code}</p>
+                      {order.latitude && order.longitude && (
+                        <p className="text-xs text-gray-500">
+                          Lat: {order.latitude.toFixed(6)}, Lng: {order.longitude.toFixed(6)}
+                        </p>
+                      )}
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <Car className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <p className="font-medium">{order.car_color} {order.car_model}</p>
-                        <p className="text-sm text-gray-600">{order.car_type}</p>
-                      </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Car className="h-5 w-5 text-gray-400" />
+                    <div>
+                      <p className="font-medium">{order.car_color} {order.car_model}</p>
+                      <p className="text-sm text-gray-600">{order.car_type}</p>
                     </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-emerald-600">${order.total_amount}</p>
                   </div>
                   
-                  <div className="space-y-4">
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-emerald-600">${order.total_amount}</p>
+                  {order.special_instructions && (
+                    <div>
+                      <p className="font-medium mb-1">Special Instructions:</p>
+                      <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                        {order.special_instructions}
+                      </p>
                     </div>
-                    
-                    {order.special_instructions && (
-                      <div>
-                        <p className="font-medium mb-1">Special Instructions:</p>
-                        <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                          {order.special_instructions}
-                        </p>
-                      </div>
+                  )}
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {order.status === 'pending' && (
+                      <>
+                        <Button
+                          size="sm"
+                          onClick={() => updateOrderStatus(order.id, 'confirmed')}
+                          className="bg-blue-500 hover:bg-blue-600"
+                        >
+                          Accept Order
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => updateOrderStatus(order.id, 'cancelled')}
+                        >
+                          Decline
+                        </Button>
+                      </>
                     )}
-                    
-                    <div className="flex flex-wrap gap-2">
-                      {order.status === 'pending' && (
-                        <>
-                          <Button
-                            size="sm"
-                            onClick={() => updateOrderStatus(order.id, 'confirmed')}
-                            className="bg-blue-500 hover:bg-blue-600"
-                          >
-                            Accept Order
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => updateOrderStatus(order.id, 'cancelled')}
-                          >
-                            Decline
-                          </Button>
-                        </>
-                      )}
-                      {order.status === 'confirmed' && (
-                        <Button
-                          size="sm"
-                          onClick={() => updateOrderStatus(order.id, 'in_progress')}
-                          className="bg-orange-500 hover:bg-orange-600"
-                        >
-                          Start Service
-                        </Button>
-                      )}
-                      {order.status === 'in_progress' && (
-                        <Button
-                          size="sm"
-                          onClick={() => updateOrderStatus(order.id, 'completed')}
-                          className="bg-green-500 hover:bg-green-600"
-                        >
-                          Complete Service
-                        </Button>
-                      )}
-                    </div>
+                    {order.status === 'confirmed' && (
+                      <Button
+                        size="sm"
+                        onClick={() => updateOrderStatus(order.id, 'in_progress')}
+                        className="bg-orange-500 hover:bg-orange-600"
+                      >
+                        Start Service
+                      </Button>
+                    )}
+                    {order.status === 'in_progress' && (
+                      <Button
+                        size="sm"
+                        onClick={() => updateOrderStatus(order.id, 'completed')}
+                        className="bg-green-500 hover:bg-green-600"
+                      >
+                        Complete Service
+                      </Button>
+                    )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );
