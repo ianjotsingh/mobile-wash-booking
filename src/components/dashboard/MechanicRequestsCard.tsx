@@ -29,8 +29,7 @@ const MechanicRequestsCard = ({ requests, onRequestUpdate }: MechanicRequestsCar
 
   const handleAcceptRequest = async (requestId: string) => {
     try {
-      // Using any type to bypass TypeScript issues with new table
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('mechanic_requests')
         .update({ status: 'accepted' })
         .eq('id', requestId);

@@ -45,8 +45,7 @@ const MechanicRequest = () => {
   const onSubmit = async (data: MechanicRequestForm) => {
     setIsSubmitting(true);
     try {
-      // Using any type to bypass TypeScript issues with new table
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('mechanic_requests')
         .insert({
           problem_description: data.problem_description,

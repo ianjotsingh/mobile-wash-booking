@@ -79,8 +79,7 @@ const CompanyDashboard = () => {
   const fetchMechanicRequests = async () => {
     try {
       console.log('Fetching mechanic requests...');
-      // Using any type to bypass TypeScript issues with new table
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('mechanic_requests')
         .select('*')
         .order('created_at', { ascending: false });
