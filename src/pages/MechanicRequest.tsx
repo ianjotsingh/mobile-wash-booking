@@ -16,6 +16,7 @@ import Navigation from '@/components/Navigation';
 
 const mechanicRequestSchema = z.object({
   problem_description: z.string().min(10, 'Please describe the problem in at least 10 characters'),
+  car_model: z.string().min(2, 'Please enter your car model'),
   phone: z.string().min(10, 'Please enter a valid phone number'),
   address: z.string().min(5, 'Please enter your address'),
   city: z.string().min(2, 'Please enter your city'),
@@ -33,6 +34,7 @@ const MechanicRequest = () => {
     resolver: zodResolver(mechanicRequestSchema),
     defaultValues: {
       problem_description: '',
+      car_model: '',
       phone: '',
       address: '',
       city: '',
@@ -43,10 +45,12 @@ const MechanicRequest = () => {
   const onSubmit = async (data: MechanicRequestForm) => {
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
+      // Using any type to bypass TypeScript issues with new table
+      const { error } = await (supabase as any)
         .from('mechanic_requests')
         .insert({
           problem_description: data.problem_description,
+          car_model: data.car_model,
           phone: data.phone,
           address: data.address,
           city: data.city,
@@ -110,6 +114,20 @@ const MechanicRequest = () => {
                             className="min-h-[100px]"
                             {...field}
                           />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="car_model"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Car Model</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Honda Civic, Toyota Camry" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

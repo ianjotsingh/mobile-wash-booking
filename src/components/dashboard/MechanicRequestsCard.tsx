@@ -3,13 +3,14 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Wrench, Phone, MapPin, Clock } from 'lucide-react';
+import { Wrench, Phone, MapPin, Clock, Car } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 interface MechanicRequest {
   id: string;
   problem_description: string;
+  car_model: string;
   phone: string;
   address: string;
   city: string;
@@ -28,7 +29,8 @@ const MechanicRequestsCard = ({ requests, onRequestUpdate }: MechanicRequestsCar
 
   const handleAcceptRequest = async (requestId: string) => {
     try {
-      const { error } = await supabase
+      // Using any type to bypass TypeScript issues with new table
+      const { error } = await (supabase as any)
         .from('mechanic_requests')
         .update({ status: 'accepted' })
         .eq('id', requestId);
@@ -95,6 +97,11 @@ const MechanicRequestsCard = ({ requests, onRequestUpdate }: MechanicRequestsCar
 
                 <div className="space-y-2 mb-4">
                   <p className="text-sm"><strong>Problem:</strong> {request.problem_description}</p>
+                  
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Car className="h-4 w-4" />
+                    {request.car_model}
+                  </div>
                   
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <MapPin className="h-4 w-4" />
