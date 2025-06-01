@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MapPin, Search, Clock, Star, Loader2 } from 'lucide-react';
+import { MapPin, Search, Clock, Star, Loader2, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentLocation, searchLocation, Location } from '@/utils/locationService';
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +14,7 @@ const UberLikeHero = () => {
   const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [selectedService, setSelectedService] = useState('Premium');
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -98,13 +99,38 @@ const UberLikeHero = () => {
       return;
     }
     
-    // Store selected location for booking flow
+    // Store selected location and service for booking flow
+    if (selectedLocation) {
+      localStorage.setItem('selectedLocation', JSON.stringify(selectedLocation));
+    }
+    localStorage.setItem('selectedService', selectedService);
+    
+    navigate('/booking');
+  };
+
+  const handleCallMechanic = () => {
+    if (!selectedLocation && !pickupLocation) {
+      toast({
+        title: "Location required",
+        description: "Please select a location to call a mechanic",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Store selected location for mechanic request
     if (selectedLocation) {
       localStorage.setItem('selectedLocation', JSON.stringify(selectedLocation));
     }
     
-    navigate('/booking');
+    navigate('/mechanic-request');
   };
+
+  const services = [
+    { id: 'Basic', name: 'Basic', price: '₹299', icon: '🚗' },
+    { id: 'Premium', name: 'Premium', price: '₹599', icon: '✨' },
+    { id: 'Deluxe', name: 'Deluxe', price: '₹999', icon: '💎' }
+  ];
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
@@ -197,31 +223,51 @@ const UberLikeHero = () => {
 
             {/* Service Selection */}
             <div className="grid grid-cols-3 gap-3">
-              <div className="p-4 border rounded-xl text-center hover:bg-gray-50 cursor-pointer transition-colors">
-                <div className="text-2xl mb-2">🚗</div>
-                <div className="text-sm font-medium text-gray-900">Basic</div>
-                <div className="text-xs text-gray-500">₹299</div>
-              </div>
-              <div className="p-4 border-2 border-emerald-400 bg-emerald-50 rounded-xl text-center cursor-pointer">
-                <div className="text-2xl mb-2">✨</div>
-                <div className="text-sm font-medium text-emerald-700">Premium</div>
-                <div className="text-xs text-emerald-600">₹599</div>
-              </div>
-              <div className="p-4 border rounded-xl text-center hover:bg-gray-50 cursor-pointer transition-colors">
-                <div className="text-2xl mb-2">💎</div>
-                <div className="text-sm font-medium text-gray-900">Deluxe</div>
-                <div className="text-xs text-gray-500">₹999</div>
-              </div>
+              {services.map((service) => (
+                <div
+                  key={service.id}
+                  className={`p-4 border rounded-xl text-center cursor-pointer transition-colors ${
+                    selectedService === service.id
+                      ? 'border-2 border-emerald-400 bg-emerald-50'
+                      : 'border hover:bg-gray-50'
+                  }`}
+                  onClick={() => setSelectedService(service.id)}
+                >
+                  <div className="text-2xl mb-2">{service.icon}</div>
+                  <div className={`text-sm font-medium ${
+                    selectedService === service.id ? 'text-emerald-700' : 'text-gray-900'
+                  }`}>
+                    {service.name}
+                  </div>
+                  <div className={`text-xs ${
+                    selectedService === service.id ? 'text-emerald-600' : 'text-gray-500'
+                  }`}>
+                    {service.price}
+                  </div>
+                </div>
+              ))}
             </div>
 
-            {/* Book Button */}
-            <Button
-              onClick={handleBookNow}
-              className="w-full bg-black text-white hover:bg-gray-800 h-14 text-lg font-semibold rounded-xl"
-              disabled={!pickupLocation.trim()}
-            >
-              Book Car Wash
-            </Button>
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <Button
+                onClick={handleBookNow}
+                className="w-full bg-black text-white hover:bg-gray-800 h-14 text-lg font-semibold rounded-xl"
+                disabled={!pickupLocation.trim()}
+              >
+                Book Car Wash
+              </Button>
+              
+              <Button
+                onClick={handleCallMechanic}
+                variant="outline"
+                className="w-full border-emerald-500 text-emerald-600 hover:bg-emerald-50 h-12 text-base font-semibold rounded-xl"
+                disabled={!pickupLocation.trim()}
+              >
+                <Wrench className="h-4 w-4 mr-2" />
+                Call Mechanic
+              </Button>
+            </div>
 
             {/* Stats */}
             <div className="flex justify-center space-x-8 pt-4">

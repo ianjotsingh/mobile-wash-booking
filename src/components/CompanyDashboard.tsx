@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import NotificationCenter from './NotificationCenter';
 import OrderCard from './dashboard/OrderCard';
 import RecentOrdersCard from './dashboard/RecentOrdersCard';
+import MechanicRequestsCard from './dashboard/MechanicRequestsCard';
 import DashboardHeader from './dashboard/DashboardHeader';
 
 interface Order {
@@ -27,9 +28,22 @@ interface Order {
   longitude?: number;
 }
 
+interface MechanicRequest {
+  id: string;
+  problem_description: string;
+  phone: string;
+  address: string;
+  city: string;
+  zip_code: string;
+  status: string;
+  created_at: string;
+}
+
 const CompanyDashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [mechanicRequests, setMechanicRequests] = useState<MechanicRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [company, setCompany] = useState<any>(null);
   const { toast } = useToast();
 
   const fetchOrders = async () => {
@@ -61,6 +75,47 @@ const CompanyDashboard = () => {
     }
   };
 
+  const fetchMechanicRequests = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('mechanic_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching mechanic requests:', error);
+        throw error;
+      }
+
+      console.log('Mechanic requests fetched:', data);
+      setMechanicRequests(data || []);
+    } catch (error) {
+      console.error('Error fetching mechanic requests:', error);
+    }
+  };
+
+  const fetchCompanyInfo = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching company info:', error);
+        return;
+      }
+
+      setCompany(data);
+    } catch (error) {
+      console.error('Error fetching company info:', error);
+    }
+  };
+
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       const { error } = await supabase
@@ -89,9 +144,11 @@ const CompanyDashboard = () => {
 
   useEffect(() => {
     fetchOrders();
+    fetchMechanicRequests();
+    fetchCompanyInfo();
 
     // Set up real-time subscription for orders
-    const channel = supabase
+    const ordersChannel = supabase
       .channel('orders-changes')
       .on(
         'postgres_changes',
@@ -107,15 +164,33 @@ const CompanyDashboard = () => {
       )
       .subscribe();
 
+    // Set up real-time subscription for mechanic requests
+    const mechanicChannel = supabase
+      .channel('mechanic-requests-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'mechanic_requests'
+        },
+        (payload) => {
+          console.log('Mechanic request update received:', payload);
+          fetchMechanicRequests(); // Refresh mechanic requests when changes occur
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(ordersChannel);
+      supabase.removeChannel(mechanicChannel);
     };
   }, []);
 
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto p-6">
-        <div className="text-center">Loading orders...</div>
+        <div className="text-center">Loading dashboard...</div>
       </div>
     );
   }
@@ -132,6 +207,16 @@ const CompanyDashboard = () => {
           <RecentOrdersCard orders={orders} />
         </div>
       </div>
+
+      {/* Show mechanic requests only if company offers mechanic services */}
+      {company?.has_mechanic && (
+        <div className="mb-8">
+          <MechanicRequestsCard 
+            requests={mechanicRequests} 
+            onRequestUpdate={fetchMechanicRequests}
+          />
+        </div>
+      )}
 
       <div className="grid gap-6">
         {orders.map((order) => (

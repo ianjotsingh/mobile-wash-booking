@@ -1,161 +1,127 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 import { getCurrentLocation } from '@/utils/locationService';
-import { MapPin, Loader2 } from 'lucide-react';
+
+const companyRegistrationSchema = z.object({
+  company_name: z.string().min(2, 'Company name must be at least 2 characters'),
+  owner_name: z.string().min(2, 'Owner name must be at least 2 characters'),
+  email: z.string().email('Please enter a valid email address'),
+  phone: z.string().min(10, 'Please enter a valid phone number'),
+  address: z.string().min(10, 'Please enter your complete address'),
+  city: z.string().min(2, 'Please enter your city'),
+  zip_code: z.string().min(5, 'Please enter a valid ZIP code'),
+  description: z.string().optional(),
+  experience: z.string().min(10, 'Please describe your experience'),
+  services: z.array(z.string()).min(1, 'Please select at least one service'),
+  has_mechanic: z.boolean(),
+});
+
+type CompanyRegistrationForm = z.infer<typeof companyRegistrationSchema>;
 
 const CompanyRegistration = () => {
-  const [formData, setFormData] = useState({
-    company_name: '',
-    owner_name: '',
-    email: '',
-    phone: '',
-    address: '',
-    city: '',
-    zip_code: '',
-    description: '',
-    experience: '',
-    services: [] as string[],
-    latitude: null as number | null,
-    longitude: null as number | null
-  });
-  const [loading, setLoading] = useState(false);
-  const [locationLoading, setLocationLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const form = useForm<CompanyRegistrationForm>({
+    resolver: zodResolver(companyRegistrationSchema),
+    defaultValues: {
+      company_name: '',
+      owner_name: '',
+      email: '',
+      phone: '',
+      address: '',
+      city: '',
+      zip_code: '',
+      description: '',
+      experience: '',
+      services: [],
+      has_mechanic: false,
+    },
+  });
 
   const serviceOptions = [
-    'Basic Wash',
-    'Premium Wash', 
-    'Full Detailing',
-    'Interior Cleaning',
-    'Wax & Polish',
-    'Engine Cleaning'
+    { id: 'basic_wash', label: 'Basic Wash' },
+    { id: 'premium_wash', label: 'Premium Wash' },
+    { id: 'full_detailing', label: 'Full Detailing' },
+    { id: 'interior_cleaning', label: 'Interior Cleaning' },
+    { id: 'wax_polish', label: 'Wax & Polish' },
   ];
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleServiceToggle = (service: string) => {
-    setFormData(prev => ({
-      ...prev,
-      services: prev.services.includes(service)
-        ? prev.services.filter(s => s !== service)
-        : [...prev.services, service]
-    }));
-  };
-
-  const handleGetLocation = async () => {
-    setLocationLoading(true);
+  const onSubmit = async (data: CompanyRegistrationForm) => {
+    setIsSubmitting(true);
     try {
-      const location = await getCurrentLocation();
-      setFormData(prev => ({
-        ...prev,
-        latitude: location.latitude,
-        longitude: location.longitude,
-        address: location.address || prev.address,
-        city: location.city || prev.city,
-        zip_code: location.zipCode || prev.zip_code
-      }));
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to register your company",
+          variant: "destructive"
+        });
+        return;
+      }
 
-      toast({
-        title: "Location Detected",
-        description: "Your location has been automatically detected and added."
-      });
-    } catch (error) {
-      toast({
-        title: "Location Error",
-        description: "Could not detect your location. Please enter it manually.",
-        variant: "destructive"
-      });
-    } finally {
-      setLocationLoading(false);
-    }
-  };
+      // Get current location for the company
+      let latitude = null;
+      let longitude = null;
+      try {
+        const location = await getCurrentLocation();
+        latitude = location.latitude;
+        longitude = location.longitude;
+      } catch (error) {
+        console.log('Could not get location for company registration');
+      }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (formData.services.length === 0) {
-      toast({
-        title: "Services Required",
-        description: "Please select at least one service you offer.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!formData.latitude || !formData.longitude) {
-      toast({
-        title: "Location Required",
-        description: "Please detect your location or enter coordinates manually for service area mapping.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setLoading(true);
-
-    try {
       const { error } = await supabase
         .from('companies')
         .insert({
-          company_name: formData.company_name,
-          owner_name: formData.owner_name,
-          email: formData.email,
-          phone: formData.phone,
-          address: formData.address,
-          city: formData.city,
-          zip_code: formData.zip_code,
-          latitude: formData.latitude,
-          longitude: formData.longitude,
-          description: formData.description,
-          experience: formData.experience,
-          services: formData.services,
+          user_id: user.id,
+          company_name: data.company_name,
+          owner_name: data.owner_name,
+          email: data.email,
+          phone: data.phone,
+          address: data.address,
+          city: data.city,
+          zip_code: data.zip_code,
+          description: data.description,
+          experience: data.experience,
+          services: data.services,
+          has_mechanic: data.has_mechanic,
+          latitude,
+          longitude,
           status: 'pending'
         });
 
       if (error) throw error;
 
       toast({
-        title: "Registration Successful!",
-        description: "Your company has been registered. You'll receive orders within your 20km service area once approved."
+        title: "Registration submitted!",
+        description: "Your company registration has been submitted for review. You'll receive an email confirmation soon.",
       });
 
-      // Reset form
-      setFormData({
-        company_name: '',
-        owner_name: '',
-        email: '',
-        phone: '',
-        address: '',
-        city: '',
-        zip_code: '',
-        description: '',
-        experience: '',
-        services: [],
-        latitude: null,
-        longitude: null
-      });
+      navigate('/dashboard');
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('Error registering company:', error);
       toast({
-        title: "Registration Failed",
-        description: "Failed to register your company. Please try again.",
+        title: "Registration failed",
+        description: "There was an error submitting your registration. Please try again.",
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -163,173 +129,229 @@ const CompanyRegistration = () => {
     <div className="max-w-2xl mx-auto p-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl text-center">Register Your Car Wash Company</CardTitle>
-          <p className="text-gray-600 text-center">Join our platform and start receiving orders in your 20km service area</p>
+          <CardTitle>Register Your Car Wash Company</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="company_name">Company Name</Label>
-                <Input
-                  id="company_name"
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
                   name="company_name"
-                  value={formData.company_name}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="owner_name">Owner Name</Label>
-                <Input
-                  id="owner_name"
-                  name="owner_name"
-                  value={formData.owner_name}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="address">Business Address</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="address"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  placeholder="Enter your business address"
-                  required
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleGetLocation}
-                  disabled={locationLoading}
-                  className="flex items-center gap-2"
-                >
-                  {locationLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <MapPin className="h-4 w-4" />
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Company Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Your company name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                  Detect Location
-                </Button>
-              </div>
-            </div>
+                />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
+                <FormField
+                  control={form.control}
+                  name="owner_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Owner Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Your full name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="company@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Your contact number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Business Address</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Your business address" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
                   name="city"
-                  value={formData.city}
-                  onChange={handleInputChange}
-                  required
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City</FormLabel>
+                      <FormControl>
+                        <Input placeholder="City" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <div>
-                <Label htmlFor="zip_code">ZIP Code</Label>
-                <Input
-                  id="zip_code"
+
+                <FormField
+                  control={form.control}
                   name="zip_code"
-                  value={formData.zip_code}
-                  onChange={handleInputChange}
-                  required
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>ZIP Code</FormLabel>
+                      <FormControl>
+                        <Input placeholder="ZIP Code" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
-            </div>
 
-            {formData.latitude && formData.longitude && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                <p className="text-sm text-green-800">
-                  ✓ Location detected: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
-                </p>
-              </div>
-            )}
-
-            <div>
-              <Label htmlFor="description">Company Description</Label>
-              <Textarea
-                id="description"
+              <FormField
+                control={form.control}
                 name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                placeholder="Brief description of your car wash services..."
-                rows={3}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Company Description (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Tell us about your company..." 
+                        className="min-h-[100px]"
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
 
-            <div>
-              <Label htmlFor="experience">Years of Experience</Label>
-              <Input
-                id="experience"
+              <FormField
+                control={form.control}
                 name="experience"
-                value={formData.experience}
-                onChange={handleInputChange}
-                placeholder="e.g., 5 years"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Experience & Qualifications</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Describe your experience in car washing and detailing..." 
+                        className="min-h-[100px]"
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
 
-            <div>
-              <Label>Services Offered</Label>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {serviceOptions.map((service) => (
-                  <label
-                    key={service}
-                    className={`flex items-center space-x-2 p-3 border rounded cursor-pointer ${
-                      formData.services.includes(service)
-                        ? 'bg-emerald-50 border-emerald-500'
-                        : 'border-gray-300'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formData.services.includes(service)}
-                      onChange={() => handleServiceToggle(service)}
-                      className="hidden"
-                    />
-                    <span className="text-sm">{service}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+              <FormField
+                control={form.control}
+                name="services"
+                render={() => (
+                  <FormItem>
+                    <FormLabel>Services Offered</FormLabel>
+                    <div className="grid grid-cols-2 gap-2">
+                      {serviceOptions.map((service) => (
+                        <FormField
+                          key={service.id}
+                          control={form.control}
+                          name="services"
+                          render={({ field }) => {
+                            return (
+                              <FormItem
+                                key={service.id}
+                                className="flex flex-row items-start space-x-3 space-y-0"
+                              >
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes(service.id)}
+                                    onCheckedChange={(checked) => {
+                                      return checked
+                                        ? field.onChange([...field.value, service.id])
+                                        : field.onChange(
+                                            field.value?.filter(
+                                              (value) => value !== service.id
+                                            )
+                                          );
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                  {service.label}
+                                </FormLabel>
+                              </FormItem>
+                            );
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-emerald-500 hover:bg-emerald-600"
-            >
-              {loading ? 'Registering...' : 'Register Company'}
-            </Button>
-          </form>
+              <FormField
+                control={form.control}
+                name="has_mechanic"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        We also provide mechanic services
+                      </FormLabel>
+                      <p className="text-sm text-muted-foreground">
+                        Check this if your company also offers vehicle repair and maintenance services.
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit Registration'}
+              </Button>
+            </form>
+          </Form>
         </CardContent>
       </Card>
     </div>
