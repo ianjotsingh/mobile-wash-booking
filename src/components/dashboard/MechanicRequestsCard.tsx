@@ -29,7 +29,7 @@ const MechanicRequestsCard = ({ requests, onRequestUpdate }: MechanicRequestsCar
 
   const handleAcceptRequest = async (requestId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('mechanic_requests')
         .update({ status: 'accepted' })
         .eq('id', requestId);

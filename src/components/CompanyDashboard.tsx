@@ -79,7 +79,7 @@ const CompanyDashboard = () => {
   const fetchMechanicRequests = async () => {
     try {
       console.log('Fetching mechanic requests...');
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('mechanic_requests')
         .select('*')
         .order('created_at', { ascending: false });
