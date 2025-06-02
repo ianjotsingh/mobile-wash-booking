@@ -47,34 +47,70 @@ const MechanicRequest = () => {
     try {
       console.log('Submitting mechanic request:', data);
 
-      const { error } = await supabase
+      // Check if user is authenticated
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        console.error('Auth error:', authError);
+        throw new Error('Authentication required');
+      }
+
+      if (!user) {
+        throw new Error('Please log in to submit a mechanic request');
+      }
+
+      const requestData = {
+        problem_description: data.problem_description,
+        car_model: data.car_model,
+        phone: data.phone,
+        address: data.address,
+        city: data.city,
+        zip_code: data.zip_code,
+        status: 'pending'
+      };
+
+      console.log('Inserting data:', requestData);
+
+      const { data: result, error } = await supabase
         .from('mechanic_requests')
-        .insert({
-          problem_description: data.problem_description,
-          car_model: data.car_model,
-          phone: data.phone,
-          address: data.address,
-          city: data.city,
-          zip_code: data.zip_code,
-          status: 'pending',
-        });
+        .insert(requestData)
+        .select()
+        .single();
 
       if (error) {
-        console.error('Supabase error:', error);
+        console.error('Supabase insert error:', error);
         throw error;
       }
+
+      console.log('Successfully inserted mechanic request:', result);
 
       toast({
         title: "Mechanic request submitted",
         description: "Companies with mechanics will be notified and may contact you soon.",
       });
 
-      navigate('/');
-    } catch (error) {
+      // Reset form
+      form.reset();
+      
+      // Navigate back after short delay
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
+
+    } catch (error: any) {
       console.error('Error submitting mechanic request:', error);
+      
+      let errorMessage = "Failed to submit request. Please try again.";
+      
+      if (error.message?.includes('Authentication')) {
+        errorMessage = "Please log in to submit a mechanic request.";
+      } else if (error.message?.includes('Load failed')) {
+        errorMessage = "Network error. Please check your connection and try again.";
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to submit request. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
