@@ -49,16 +49,29 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
     setLoading(true);
 
     try {
+      console.log('Attempting login with:', loginData.email);
       const { data, error } = await signIn(loginData.email, loginData.password);
 
       if (error) {
         console.error('Login error:', error);
+        let errorMessage = "Invalid email or password";
+        
+        // Provide more specific error messages
+        if (error.message?.includes('Invalid login credentials')) {
+          errorMessage = "Invalid email or password. Please check your credentials and try again.";
+        } else if (error.message?.includes('Email not confirmed')) {
+          errorMessage = "Please check your email and click the confirmation link before signing in.";
+        } else if (error.message?.includes('Too many requests')) {
+          errorMessage = "Too many login attempts. Please wait a moment and try again.";
+        }
+        
         toast({
           title: "Login Failed",
-          description: error.message || "Invalid email or password",
+          description: errorMessage,
           variant: "destructive"
         });
       } else if (data?.user) {
+        console.log('Login successful for user:', data.user.email);
         toast({
           title: "Success",
           description: "Logged in successfully!"
@@ -68,10 +81,10 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
         setLoginData({ email: '', password: '' });
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Unexpected login error:', error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
     }
@@ -92,6 +105,7 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
     setLoading(true);
 
     try {
+      console.log('Attempting signup with:', signupData.email);
       const { data, error } = await signUp(signupData.email, signupData.password, {
         full_name: signupData.fullName,
         phone: signupData.phone
@@ -99,25 +113,36 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
 
       if (error) {
         console.error('Signup error:', error);
+        let errorMessage = "Failed to create account";
+        
+        if (error.message?.includes('User already registered')) {
+          errorMessage = "An account with this email already exists. Please try logging in instead.";
+        } else if (error.message?.includes('Password')) {
+          errorMessage = "Password must be at least 6 characters long.";
+        }
+        
         toast({
           title: "Signup Failed",
-          description: error.message || "Failed to create account",
+          description: errorMessage,
           variant: "destructive"
         });
       } else if (data?.user) {
+        console.log('Signup successful for user:', data.user.email);
         toast({
           title: "Success",
-          description: "Account created successfully!"
+          description: data.user.email_confirmed_at 
+            ? "Account created successfully!" 
+            : "Account created! Please check your email for confirmation."
         });
         setOpen(false);
         // Reset form
         setSignupData({ email: '', password: '', fullName: '', phone: '' });
       }
     } catch (error) {
-      console.error('Signup error:', error);
+      console.error('Unexpected signup error:', error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
     }
@@ -150,6 +175,7 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
                   onChange={(e) => setLoginData({...loginData, email: e.target.value})}
                   required
                   disabled={loading}
+                  placeholder="Enter your email"
                 />
               </div>
               <div>
@@ -161,6 +187,7 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
                   onChange={(e) => setLoginData({...loginData, password: e.target.value})}
                   required
                   disabled={loading}
+                  placeholder="Enter your password"
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
