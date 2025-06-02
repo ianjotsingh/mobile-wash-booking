@@ -29,12 +29,17 @@ const MechanicRequestsCard = ({ requests, onRequestUpdate }: MechanicRequestsCar
 
   const handleAcceptRequest = async (requestId: string) => {
     try {
-      const { error } = await (supabase as any)
+      console.log('Accepting mechanic request:', requestId);
+
+      const { error } = await supabase
         .from('mechanic_requests')
         .update({ status: 'accepted' })
         .eq('id', requestId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error accepting request:', error);
+        throw error;
+      }
 
       toast({
         title: "Request accepted",

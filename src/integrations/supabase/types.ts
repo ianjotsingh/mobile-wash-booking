@@ -18,6 +18,7 @@ export type Database = {
           description: string | null
           email: string
           experience: string | null
+          has_mechanic: boolean | null
           id: string
           latitude: number | null
           longitude: number | null
@@ -37,6 +38,7 @@ export type Database = {
           description?: string | null
           email: string
           experience?: string | null
+          has_mechanic?: boolean | null
           id?: string
           latitude?: number | null
           longitude?: number | null
@@ -56,6 +58,7 @@ export type Database = {
           description?: string | null
           email?: string
           experience?: string | null
+          has_mechanic?: boolean | null
           id?: string
           latitude?: number | null
           longitude?: number | null
@@ -65,6 +68,45 @@ export type Database = {
           status?: Database["public"]["Enums"]["company_status"] | null
           updated_at?: string | null
           user_id?: string | null
+          zip_code?: string
+        }
+        Relationships: []
+      }
+      mechanic_requests: {
+        Row: {
+          address: string
+          car_model: string
+          city: string
+          created_at: string
+          id: string
+          phone: string
+          problem_description: string
+          status: string
+          updated_at: string
+          zip_code: string
+        }
+        Insert: {
+          address: string
+          car_model: string
+          city: string
+          created_at?: string
+          id?: string
+          phone: string
+          problem_description: string
+          status?: string
+          updated_at?: string
+          zip_code: string
+        }
+        Update: {
+          address?: string
+          car_model?: string
+          city?: string
+          created_at?: string
+          id?: string
+          phone?: string
+          problem_description?: string
+          status?: string
+          updated_at?: string
           zip_code?: string
         }
         Relationships: []

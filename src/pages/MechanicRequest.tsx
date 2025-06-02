@@ -45,7 +45,9 @@ const MechanicRequest = () => {
   const onSubmit = async (data: MechanicRequestForm) => {
     setIsSubmitting(true);
     try {
-      const { error } = await (supabase as any)
+      console.log('Submitting mechanic request:', data);
+
+      const { error } = await supabase
         .from('mechanic_requests')
         .insert({
           problem_description: data.problem_description,
@@ -57,7 +59,10 @@ const MechanicRequest = () => {
           status: 'pending',
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
       toast({
         title: "Mechanic request submitted",
