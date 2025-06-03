@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,9 +8,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Building, MapPin, Phone, Mail, User, FileText, Clock, Wrench } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import MechanicRegistration from './MechanicRegistration';
 
 const companyRegistrationSchema = z.object({
   company_name: z.string().min(2, 'Company name must be at least 2 characters'),
@@ -31,6 +32,7 @@ type CompanyRegistrationForm = z.infer<typeof companyRegistrationSchema>;
 
 const CompanyRegistration = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMechanicDialogOpen, setIsMechanicDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const availableServices = [
@@ -111,6 +113,38 @@ const CompanyRegistration = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Individual Mechanic Registration Button */}
+          <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Wrench className="h-5 w-5 text-emerald-600" />
+                  Individual Mechanic?
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  Are you an individual mechanic looking to register? Click here to register as a freelance mechanic instead.
+                </p>
+              </div>
+              <Dialog open={isMechanicDialogOpen} onOpenChange={setIsMechanicDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="ml-4">
+                    <Wrench className="h-4 w-4 mr-2" />
+                    Register as Individual Mechanic
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Wrench className="h-5 w-5 text-emerald-600" />
+                      Individual Mechanic Registration
+                    </DialogTitle>
+                  </DialogHeader>
+                  <MechanicRegistration />
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* Company Information */}
