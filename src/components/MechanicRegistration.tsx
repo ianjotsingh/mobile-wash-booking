@@ -73,14 +73,26 @@ const MechanicRegistration = () => {
         throw new Error('User not authenticated');
       }
 
+      // Structure the data to match the database schema exactly
+      const mechanicData = {
+        user_id: user.id,
+        full_name: data.full_name,
+        email: data.email,
+        phone: data.phone,
+        address: data.address,
+        city: data.city,
+        zip_code: data.zip_code,
+        experience: data.experience,
+        description: data.description,
+        hourly_rate: parseInt(data.hourly_rate) * 100, // Convert to cents
+        availability_hours: data.availability_hours,
+        specializations: data.specializations,
+        status: 'pending'
+      };
+
       const { error } = await supabase
         .from('mechanics')
-        .insert({
-          ...data,
-          user_id: user.id,
-          hourly_rate: parseInt(data.hourly_rate) * 100, // Convert to cents
-          status: 'pending'
-        });
+        .insert(mechanicData);
 
       if (error) {
         console.error('Supabase error:', error);
