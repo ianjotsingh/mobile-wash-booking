@@ -12,9 +12,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Wrench, MapPin, Phone, Mail, User, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 const mechanicRegistrationSchema = z.object({
   full_name: z.string().min(2, 'Full name must be at least 2 characters'),
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
   aadhaar_number: z.string().min(12, 'Aadhaar number must be 12 digits').max(12, 'Aadhaar number must be 12 digits').regex(/^\d+$/, 'Aadhaar number must contain only digits'),
   phone: z.string().min(10, 'Please enter a valid phone number'),
   address: z.string().min(5, 'Please enter your complete address'),
@@ -30,6 +33,7 @@ type MechanicRegistrationForm = z.infer<typeof mechanicRegistrationSchema>;
 const MechanicRegistration = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { signUp } = useAuth();
 
   const availableSpecializations = [
     'Engine Repair',
@@ -48,6 +52,8 @@ const MechanicRegistration = () => {
     resolver: zodResolver(mechanicRegistrationSchema),
     defaultValues: {
       full_name: '',
+      email: '',
+      password: '',
       aadhaar_number: '',
       phone: '',
       address: '',
@@ -64,23 +70,40 @@ const MechanicRegistration = () => {
     try {
       console.log('Submitting mechanic registration:', data);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('User not authenticated');
+      // First, sign up the user
+      const { data: authData, error: authError } = await signUp(
+        data.email,
+        data.password,
+        {
+          full_name: data.full_name,
+          role: 'mechanic'
+        }
+      );
+
+      if (authError) {
+        console.error('Auth error:', authError);
+        throw authError;
       }
+
+      if (!authData.user) {
+        throw new Error('User registration failed');
+      }
+
+      // Wait a moment for the auth state to update
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Structure the data to match the database schema
       const mechanicData = {
-        user_id: user.id,
+        user_id: authData.user.id,
         full_name: data.full_name,
-        email: user.email || '', // Use user's auth email
+        email: data.email,
         phone: data.phone,
         address: data.address,
         city: data.city,
         zip_code: data.zip_code,
         experience: data.experience,
-        description: `Aadhaar: ${data.aadhaar_number}`, // Store Aadhaar in description field
-        hourly_rate: 50000, // Default hourly rate (500 in rupees, stored as 50000 paise)
+        description: `Aadhaar: ${data.aadhaar_number}`,
+        hourly_rate: 50000,
         availability_hours: data.availability_hours,
         specializations: data.specializations,
         status: 'pending'
@@ -97,15 +120,15 @@ const MechanicRegistration = () => {
 
       toast({
         title: "Mechanic registration submitted successfully!",
-        description: "Your registration is under review. We'll contact you soon.",
+        description: "Your registration is under review. We'll contact you soon. You are now logged in.",
       });
 
       form.reset();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting registration:', error);
       toast({
         title: "Registration failed",
-        description: "There was an error submitting your registration. Please try again.",
+        description: error.message || "There was an error submitting your registration. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -141,6 +164,36 @@ const MechanicRegistration = () => {
                         <FormLabel>Full Name</FormLabel>
                         <FormControl>
                           <Input placeholder="Your full name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Address</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="your.email@example.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Choose a secure password" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -319,7 +372,7 @@ const MechanicRegistration = () => {
                 className="w-full"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Submitting Registration...' : 'Submit Mechanic Registration'}
+                {isSubmitting ? 'Creating Account & Submitting Registration...' : 'Create Account & Submit Mechanic Registration'}
               </Button>
             </form>
           </Form>

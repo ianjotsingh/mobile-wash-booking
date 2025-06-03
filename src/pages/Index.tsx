@@ -24,7 +24,7 @@ const Index = () => {
     {
       title: "Deluxe Detailing",
       description: "Full professional detailing service",
-      price: "₹999",
+      price: "₹600",
       features: ["Full car wash", "Interior detailing", "Wax application", "Engine cleaning"],
       duration: "90 minutes"
     }
