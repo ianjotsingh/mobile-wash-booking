@@ -15,14 +15,12 @@ import { supabase } from '@/integrations/supabase/client';
 
 const mechanicRegistrationSchema = z.object({
   full_name: z.string().min(2, 'Full name must be at least 2 characters'),
-  email: z.string().email('Please enter a valid email address'),
+  aadhaar_number: z.string().min(12, 'Aadhaar number must be 12 digits').max(12, 'Aadhaar number must be 12 digits').regex(/^\d+$/, 'Aadhaar number must contain only digits'),
   phone: z.string().min(10, 'Please enter a valid phone number'),
   address: z.string().min(5, 'Please enter your complete address'),
   city: z.string().min(2, 'Please enter your city'),
   zip_code: z.string().min(5, 'Please enter a valid zip code'),
   experience: z.string().min(1, 'Please specify your experience'),
-  description: z.string().min(20, 'Please provide at least 20 characters description'),
-  hourly_rate: z.string().min(1, 'Please enter your hourly rate'),
   availability_hours: z.string().min(1, 'Please specify your availability'),
   specializations: z.array(z.string()).min(1, 'Please select at least one specialization'),
 });
@@ -50,14 +48,12 @@ const MechanicRegistration = () => {
     resolver: zodResolver(mechanicRegistrationSchema),
     defaultValues: {
       full_name: '',
-      email: '',
+      aadhaar_number: '',
       phone: '',
       address: '',
       city: '',
       zip_code: '',
       experience: '',
-      description: '',
-      hourly_rate: '',
       availability_hours: '',
       specializations: [],
     },
@@ -73,18 +69,18 @@ const MechanicRegistration = () => {
         throw new Error('User not authenticated');
       }
 
-      // Structure the data to match the database schema exactly
+      // Structure the data to match the database schema
       const mechanicData = {
         user_id: user.id,
         full_name: data.full_name,
-        email: data.email,
+        email: user.email || '', // Use user's auth email
         phone: data.phone,
         address: data.address,
         city: data.city,
         zip_code: data.zip_code,
         experience: data.experience,
-        description: data.description,
-        hourly_rate: parseInt(data.hourly_rate) * 100, // Convert to cents
+        description: `Aadhaar: ${data.aadhaar_number}`, // Store Aadhaar in description field
+        hourly_rate: 50000, // Default hourly rate (500 in rupees, stored as 50000 paise)
         availability_hours: data.availability_hours,
         specializations: data.specializations,
         status: 'pending'
@@ -153,12 +149,12 @@ const MechanicRegistration = () => {
 
                   <FormField
                     control={form.control}
-                    name="email"
+                    name="aadhaar_number"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email Address</FormLabel>
+                        <FormLabel>Aadhaar Card Number</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="your@email.com" {...field} />
+                          <Input placeholder="12-digit Aadhaar number" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -256,51 +252,17 @@ const MechanicRegistration = () => {
 
                 <FormField
                   control={form.control}
-                  name="description"
+                  name="availability_hours"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Description</FormLabel>
+                      <FormLabel>Availability Hours</FormLabel>
                       <FormControl>
-                        <Textarea
-                          placeholder="Tell us about your experience and services..."
-                          className="min-h-[100px]"
-                          {...field}
-                        />
+                        <Input placeholder="e.g., 9 AM - 6 PM" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="hourly_rate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Hourly Rate (₹)</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="500" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="availability_hours"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Availability Hours</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., 9 AM - 6 PM" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
               </div>
 
               {/* Specializations */}
