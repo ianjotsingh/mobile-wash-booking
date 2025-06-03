@@ -75,38 +75,121 @@ export type Database = {
       mechanic_requests: {
         Row: {
           address: string
+          assigned_mechanic_id: string | null
           car_model: string
           city: string
           created_at: string
+          customer_phone_shared: boolean | null
           id: string
+          mechanic_phone_shared: boolean | null
           phone: string
           problem_description: string
           status: string
           updated_at: string
+          user_id: string | null
           zip_code: string
         }
         Insert: {
           address: string
+          assigned_mechanic_id?: string | null
           car_model: string
           city: string
           created_at?: string
+          customer_phone_shared?: boolean | null
           id?: string
+          mechanic_phone_shared?: boolean | null
           phone: string
           problem_description: string
           status?: string
           updated_at?: string
+          user_id?: string | null
           zip_code: string
         }
         Update: {
           address?: string
+          assigned_mechanic_id?: string | null
           car_model?: string
           city?: string
           created_at?: string
+          customer_phone_shared?: boolean | null
           id?: string
+          mechanic_phone_shared?: boolean | null
           phone?: string
           problem_description?: string
           status?: string
           updated_at?: string
+          user_id?: string | null
+          zip_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mechanic_requests_assigned_mechanic_id_fkey"
+            columns: ["assigned_mechanic_id"]
+            isOneToOne: false
+            referencedRelation: "mechanics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mechanics: {
+        Row: {
+          address: string
+          availability_hours: string | null
+          city: string
+          created_at: string | null
+          description: string | null
+          email: string
+          experience: string | null
+          full_name: string
+          hourly_rate: number | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          phone: string
+          specializations: string[] | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+          zip_code: string
+        }
+        Insert: {
+          address: string
+          availability_hours?: string | null
+          city: string
+          created_at?: string | null
+          description?: string | null
+          email: string
+          experience?: string | null
+          full_name: string
+          hourly_rate?: number | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          phone: string
+          specializations?: string[] | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          zip_code: string
+        }
+        Update: {
+          address?: string
+          availability_hours?: string | null
+          city?: string
+          created_at?: string | null
+          description?: string | null
+          email?: string
+          experience?: string | null
+          full_name?: string
+          hourly_rate?: number | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          phone?: string
+          specializations?: string[] | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
           zip_code?: string
         }
         Relationships: []

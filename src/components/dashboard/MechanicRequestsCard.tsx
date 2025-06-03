@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Wrench, Phone, MapPin, Clock, Car } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Wrench, Phone, MapPin, Clock, Car, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -17,6 +18,16 @@ interface MechanicRequest {
   zip_code: string;
   status: string;
   created_at: string;
+  assigned_mechanic_id?: string;
+  customer_phone_shared?: boolean;
+  mechanic_phone_shared?: boolean;
+}
+
+interface Mechanic {
+  id: string;
+  full_name: string;
+  phone: string;
+  specializations: string[];
 }
 
 interface MechanicRequestsCardProps {
@@ -26,32 +37,83 @@ interface MechanicRequestsCardProps {
 
 const MechanicRequestsCard = ({ requests, onRequestUpdate }: MechanicRequestsCardProps) => {
   const { toast } = useToast();
+  const [mechanics, setMechanics] = useState<Mechanic[]>([]);
+  const [loadingMechanics, setLoadingMechanics] = useState(false);
 
-  const handleAcceptRequest = async (requestId: string) => {
+  const fetchApprovedMechanics = async () => {
+    if (loadingMechanics) return;
+    
+    setLoadingMechanics(true);
     try {
-      console.log('Accepting mechanic request:', requestId);
+      const { data, error } = await supabase
+        .from('mechanics')
+        .select('id, full_name, phone, specializations')
+        .eq('status', 'approved');
+
+      if (error) throw error;
+      setMechanics(data || []);
+    } catch (error) {
+      console.error('Error fetching mechanics:', error);
+    } finally {
+      setLoadingMechanics(false);
+    }
+  };
+
+  const handleAssignMechanic = async (requestId: string, mechanicId: string) => {
+    try {
+      console.log('Assigning mechanic:', mechanicId, 'to request:', requestId);
 
       const { error } = await supabase
         .from('mechanic_requests')
-        .update({ status: 'accepted' })
+        .update({ 
+          assigned_mechanic_id: mechanicId,
+          status: 'assigned'
+        })
         .eq('id', requestId);
 
       if (error) {
-        console.error('Error accepting request:', error);
+        console.error('Error assigning mechanic:', error);
         throw error;
       }
 
       toast({
-        title: "Request accepted",
-        description: "You can now contact the customer",
+        title: "Mechanic assigned",
+        description: "The mechanic has been assigned to this request",
       });
 
       onRequestUpdate();
     } catch (error) {
-      console.error('Error accepting request:', error);
+      console.error('Error assigning mechanic:', error);
       toast({
         title: "Error",
-        description: "Failed to accept request",
+        description: "Failed to assign mechanic",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleShareContact = async (requestId: string, shareType: 'customer' | 'mechanic') => {
+    try {
+      const updateField = shareType === 'customer' ? 'customer_phone_shared' : 'mechanic_phone_shared';
+      
+      const { error } = await supabase
+        .from('mechanic_requests')
+        .update({ [updateField]: true })
+        .eq('id', requestId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Contact shared",
+        description: `${shareType === 'customer' ? 'Customer' : 'Mechanic'} contact has been shared`,
+      });
+
+      onRequestUpdate();
+    } catch (error) {
+      console.error('Error sharing contact:', error);
+      toast({
+        title: "Error",
+        description: "Failed to share contact",
         variant: "destructive",
       });
     }
@@ -61,14 +123,20 @@ const MechanicRequestsCard = ({ requests, onRequestUpdate }: MechanicRequestsCar
     switch (status.toLowerCase()) {
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
+      case 'assigned':
+        return 'bg-blue-100 text-blue-800';
       case 'accepted':
         return 'bg-green-100 text-green-800';
       case 'completed':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
+
+  React.useEffect(() => {
+    fetchApprovedMechanics();
+  }, []);
 
   return (
     <Card>
@@ -124,12 +192,52 @@ const MechanicRequestsCard = ({ requests, onRequestUpdate }: MechanicRequestsCar
                 </div>
 
                 {request.status === 'pending' && (
-                  <Button
-                    onClick={() => handleAcceptRequest(request.id)}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700"
-                  >
-                    Accept Request
-                  </Button>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      <span className="text-sm font-medium">Assign Mechanic:</span>
+                    </div>
+                    <Select onValueChange={(mechanicId) => handleAssignMechanic(request.id, mechanicId)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a mechanic" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mechanics.map((mechanic) => (
+                          <SelectItem key={mechanic.id} value={mechanic.id}>
+                            {mechanic.full_name} - {mechanic.specializations.slice(0, 2).join(', ')}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {request.status === 'assigned' && (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      {!request.customer_phone_shared && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleShareContact(request.id, 'customer')}
+                        >
+                          Share Customer Contact
+                        </Button>
+                      )}
+                      {!request.mechanic_phone_shared && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleShareContact(request.id, 'mechanic')}
+                        >
+                          Share Mechanic Contact
+                        </Button>
+                      )}
+                    </div>
+                    {request.customer_phone_shared && request.mechanic_phone_shared && (
+                      <p className="text-sm text-green-600">Both contacts have been shared</p>
+                    )}
+                  </div>
                 )}
               </div>
             ))}

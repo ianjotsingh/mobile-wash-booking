@@ -66,7 +66,8 @@ const MechanicRequest = () => {
         address: data.address,
         city: data.city,
         zip_code: data.zip_code,
-        status: 'pending'
+        status: 'pending',
+        user_id: user.id // Add user_id to the request
       };
 
       console.log('Inserting data:', requestData);
@@ -86,7 +87,7 @@ const MechanicRequest = () => {
 
       toast({
         title: "Mechanic request submitted",
-        description: "Companies with mechanics will be notified and may contact you soon.",
+        description: "Mechanics will be notified and may contact you soon.",
       });
 
       // Reset form

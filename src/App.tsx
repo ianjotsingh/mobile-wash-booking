@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Booking from "./pages/Booking";
 import CompanySignup from "./pages/CompanySignup";
+import MechanicSignup from "./pages/MechanicSignup";
 import CompanyDashboard from "./pages/CompanyDashboard";
 import OrderHistory from "./pages/OrderHistory";
 import MechanicRequest from "./pages/MechanicRequest";
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/booking" element={<Booking />} />
             <Route path="/company-signup" element={<CompanySignup />} />
+            <Route path="/mechanic-signup" element={<MechanicSignup />} />
             <Route path="/company-dashboard" element={<CompanyDashboard />} />
             <Route path="/order-history" element={<OrderHistory />} />
             <Route path="/mechanic-request" element={<MechanicRequest />} />
