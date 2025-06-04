@@ -122,14 +122,26 @@ const CompanyRegistration = () => {
         throw new Error('User authentication failed');
       }
 
+      // Create the company record with proper structure
+      const companyData = {
+        company_name: formData.company_name,
+        owner_name: formData.owner_name,
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        zip_code: formData.zip_code,
+        description: formData.description,
+        experience: formData.experience,
+        services: formData.services,
+        has_mechanic: formData.has_mechanic,
+        email: user.email || '', // This will be empty for phone auth
+        user_id: user.id,
+        status: 'pending' as const
+      };
+
       const { error } = await supabase
         .from('companies')
-        .insert({
-          ...formData,
-          user_id: user.id,
-          email: user.email || '', // This will be empty for phone auth
-          status: 'pending'
-        });
+        .insert(companyData);
 
       if (error) {
         console.error('Supabase error:', error);
