@@ -8,6 +8,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signUp: (email: string, password: string, userData: any) => Promise<any>;
+  signUpWithPhone: (phone: string, userData: any) => Promise<any>;
+  verifyOtp: (phone: string, otp: string) => Promise<any>;
   signIn: (email: string, password: string) => Promise<any>;
   signOut: () => Promise<void>;
 }
@@ -77,6 +79,57 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const signUpWithPhone = async (phone: string, userData: any) => {
+    try {
+      console.log('Attempting phone sign up for:', phone);
+      const { data, error } = await supabase.auth.signInWithOtp({
+        phone,
+        options: {
+          data: userData
+        }
+      });
+      console.log('Phone sign up result:', { data, error });
+      
+      if (error) {
+        console.error('Phone sign up error details:', {
+          message: error.message,
+          status: error.status,
+          code: error.name
+        });
+      }
+      
+      return { data, error };
+    } catch (error) {
+      console.error('Phone sign up error:', error);
+      return { data: null, error };
+    }
+  };
+
+  const verifyOtp = async (phone: string, otp: string) => {
+    try {
+      console.log('Attempting OTP verification for:', phone);
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone,
+        token: otp,
+        type: 'sms'
+      });
+      console.log('OTP verification result:', { data, error });
+      
+      if (error) {
+        console.error('OTP verification error details:', {
+          message: error.message,
+          status: error.status,
+          code: error.name
+        });
+      }
+      
+      return { data, error };
+    } catch (error) {
+      console.error('OTP verification error:', error);
+      return { data: null, error };
+    }
+  };
+
   const signIn = async (email: string, password: string) => {
     try {
       console.log('Attempting sign in for:', email);
@@ -121,6 +174,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       session,
       loading,
       signUp,
+      signUpWithPhone,
+      verifyOtp,
       signIn,
       signOut
     }}>

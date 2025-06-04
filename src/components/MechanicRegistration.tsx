@@ -5,19 +5,17 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Wrench, MapPin, Phone, Mail, User, Clock } from 'lucide-react';
+import { Wrench, MapPin, Phone, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import OtpVerification from './OtpVerification';
 
 const mechanicRegistrationSchema = z.object({
   full_name: z.string().min(2, 'Full name must be at least 2 characters'),
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
   aadhaar_number: z.string().min(12, 'Aadhaar number must be 12 digits').max(12, 'Aadhaar number must be 12 digits').regex(/^\d+$/, 'Aadhaar number must contain only digits'),
   phone: z.string().min(10, 'Please enter a valid phone number'),
   address: z.string().min(5, 'Please enter your complete address'),
@@ -32,8 +30,11 @@ type MechanicRegistrationForm = z.infer<typeof mechanicRegistrationSchema>;
 
 const MechanicRegistration = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showOtpVerification, setShowOtpVerification] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [formData, setFormData] = useState<MechanicRegistrationForm | null>(null);
   const { toast } = useToast();
-  const { signUp } = useAuth();
+  const { signUpWithPhone } = useAuth();
 
   const availableSpecializations = [
     'Engine Repair',
@@ -52,8 +53,6 @@ const MechanicRegistration = () => {
     resolver: zodResolver(mechanicRegistrationSchema),
     defaultValues: {
       full_name: '',
-      email: '',
-      password: '',
       aadhaar_number: '',
       phone: '',
       address: '',
@@ -68,44 +67,73 @@ const MechanicRegistration = () => {
   const onSubmit = async (data: MechanicRegistrationForm) => {
     setIsSubmitting(true);
     try {
-      console.log('Submitting mechanic registration:', data);
+      console.log('Initiating phone auth for mechanic registration:', data);
 
-      // First, sign up the user
-      const { data: authData, error: authError } = await signUp(
-        data.email,
-        data.password,
-        {
-          full_name: data.full_name,
-          role: 'mechanic'
-        }
-      );
+      // Format phone number (ensure it starts with +91 for India)
+      const formattedPhone = data.phone.startsWith('+91') ? data.phone : `+91${data.phone}`;
+      
+      // Send OTP to phone number
+      const { error } = await signUpWithPhone(formattedPhone, {
+        full_name: data.full_name,
+        role: 'mechanic'
+      });
 
-      if (authError) {
-        console.error('Auth error:', authError);
-        throw authError;
+      if (error) {
+        console.error('Phone auth error:', error);
+        throw error;
       }
 
-      if (!authData.user) {
-        throw new Error('User registration failed');
-      }
+      // Store form data for later use after OTP verification
+      setFormData(data);
+      setPhoneNumber(formattedPhone);
+      setShowOtpVerification(true);
+
+      toast({
+        title: "OTP Sent",
+        description: `Verification code sent to ${formattedPhone}`,
+      });
+
+    } catch (error: any) {
+      console.error('Error initiating phone auth:', error);
+      toast({
+        title: "Failed to send OTP",
+        description: error.message || "There was an error sending the OTP. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleVerificationSuccess = async () => {
+    if (!formData) return;
+
+    setIsSubmitting(true);
+    try {
+      console.log('Completing mechanic registration after OTP verification');
 
       // Wait a moment for the auth state to update
       await new Promise(resolve => setTimeout(resolve, 1000));
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User authentication failed');
+      }
+
       // Structure the data to match the database schema
       const mechanicData = {
-        user_id: authData.user.id,
-        full_name: data.full_name,
-        email: data.email,
-        phone: data.phone,
-        address: data.address,
-        city: data.city,
-        zip_code: data.zip_code,
-        experience: data.experience,
-        description: `Aadhaar: ${data.aadhaar_number}`,
+        user_id: user.id,
+        full_name: formData.full_name,
+        email: user.email || '', // This will be empty for phone auth
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        zip_code: formData.zip_code,
+        experience: formData.experience,
+        description: `Aadhaar: ${formData.aadhaar_number}`,
         hourly_rate: 50000,
-        availability_hours: data.availability_hours,
-        specializations: data.specializations,
+        availability_hours: formData.availability_hours,
+        specializations: formData.specializations,
         status: 'pending'
       };
 
@@ -119,22 +147,41 @@ const MechanicRegistration = () => {
       }
 
       toast({
-        title: "Mechanic registration submitted successfully!",
-        description: "Your registration is under review. We'll contact you soon. You are now logged in.",
+        title: "Registration completed successfully!",
+        description: "Your mechanic registration is under review. We'll contact you soon. You are now logged in.",
       });
 
       form.reset();
+      setShowOtpVerification(false);
+      setFormData(null);
     } catch (error: any) {
-      console.error('Error submitting registration:', error);
+      console.error('Error completing registration:', error);
       toast({
         title: "Registration failed",
-        description: error.message || "There was an error submitting your registration. Please try again.",
+        description: error.message || "There was an error completing your registration. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const handleBackToForm = () => {
+    setShowOtpVerification(false);
+    setFormData(null);
+  };
+
+  if (showOtpVerification) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <OtpVerification
+          phoneNumber={phoneNumber}
+          onVerificationSuccess={handleVerificationSuccess}
+          onBack={handleBackToForm}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -172,42 +219,12 @@ const MechanicRegistration = () => {
 
                   <FormField
                     control={form.control}
-                    name="email"
+                    name="phone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email Address</FormLabel>
+                        <FormLabel>Phone Number</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="your.email@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="Choose a secure password" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="aadhaar_number"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Aadhaar Card Number</FormLabel>
-                        <FormControl>
-                          <Input placeholder="12-digit Aadhaar number" {...field} />
+                          <Input placeholder="10-digit phone number" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -217,12 +234,12 @@ const MechanicRegistration = () => {
 
                 <FormField
                   control={form.control}
-                  name="phone"
+                  name="aadhaar_number"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
+                      <FormLabel>Aadhaar Card Number</FormLabel>
                       <FormControl>
-                        <Input placeholder="Your phone number" {...field} />
+                        <Input placeholder="12-digit Aadhaar number" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -372,7 +389,7 @@ const MechanicRegistration = () => {
                 className="w-full"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Creating Account & Submitting Registration...' : 'Create Account & Submit Mechanic Registration'}
+                {isSubmitting ? 'Sending OTP...' : 'Send OTP to Register'}
               </Button>
             </form>
           </Form>
