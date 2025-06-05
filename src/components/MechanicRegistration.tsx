@@ -8,15 +8,15 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Wrench, MapPin, Phone, User } from 'lucide-react';
+import { Wrench, MapPin, Phone, User, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import OtpVerification from './OtpVerification';
 
 const mechanicRegistrationSchema = z.object({
   full_name: z.string().min(2, 'Full name must be at least 2 characters'),
-  aadhaar_number: z.string().min(12, 'Aadhaar number must be 12 digits').max(12, 'Aadhaar number must be 12 digits').regex(/^\d+$/, 'Aadhaar number must contain only digits'),
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
   phone: z.string().min(10, 'Please enter a valid phone number'),
   address: z.string().min(5, 'Please enter your complete address'),
   city: z.string().min(2, 'Please enter your city'),
@@ -24,17 +24,16 @@ const mechanicRegistrationSchema = z.object({
   experience: z.string().min(1, 'Please specify your experience'),
   availability_hours: z.string().min(1, 'Please specify your availability'),
   specializations: z.array(z.string()).min(1, 'Please select at least one specialization'),
+  id_document: z.any().refine((file) => file instanceof File, 'Please upload your Aadhaar or PAN card'),
 });
 
 type MechanicRegistrationForm = z.infer<typeof mechanicRegistrationSchema>;
 
 const MechanicRegistration = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showOtpVerification, setShowOtpVerification] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [formData, setFormData] = useState<MechanicRegistrationForm | null>(null);
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
   const { toast } = useToast();
-  const { signUpWithPhone } = useAuth();
+  const { signUp } = useAuth();
 
   const availableSpecializations = [
     'Engine Repair',
@@ -53,7 +52,8 @@ const MechanicRegistration = () => {
     resolver: zodResolver(mechanicRegistrationSchema),
     defaultValues: {
       full_name: '',
-      aadhaar_number: '',
+      email: '',
+      password: '',
       phone: '',
       address: '',
       city: '',
@@ -64,98 +64,90 @@ const MechanicRegistration = () => {
     },
   });
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setDocumentFile(file);
+      form.setValue('id_document', file);
+    }
+  };
+
   const onSubmit = async (data: MechanicRegistrationForm) => {
     setIsSubmitting(true);
     try {
-      console.log('Initiating phone auth for mechanic registration:', data);
+      console.log('Starting mechanic registration:', data.email);
 
-      // Format phone number (ensure it starts with +91 for India)
-      const formattedPhone = data.phone.startsWith('+91') ? data.phone : `+91${data.phone}`;
-      
-      // Send OTP to phone number
-      const { error } = await signUpWithPhone(formattedPhone, {
+      // First, sign up the user
+      const { data: authData, error: authError } = await signUp(data.email, data.password, {
         full_name: data.full_name,
         role: 'mechanic'
       });
 
-      if (error) {
-        console.error('Phone auth error:', error);
-        throw error;
+      if (authError) {
+        console.error('Auth error:', authError);
+        throw authError;
       }
 
-      // Store form data for later use after OTP verification
-      setFormData(data);
-      setPhoneNumber(formattedPhone);
-      setShowOtpVerification(true);
+      if (!authData?.user) {
+        throw new Error('User registration failed');
+      }
 
-      toast({
-        title: "OTP Sent",
-        description: `Verification code sent to ${formattedPhone}`,
-      });
+      // Upload the document if provided
+      let documentUrl = '';
+      if (documentFile) {
+        const fileExt = documentFile.name.split('.').pop();
+        const fileName = `${authData.user.id}-${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('mechanic_documents')
+          .upload(fileName, documentFile);
 
-    } catch (error: any) {
-      console.error('Error initiating phone auth:', error);
-      toast({
-        title: "Failed to send OTP",
-        description: error.message || "There was an error sending the OTP. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleVerificationSuccess = async () => {
-    if (!formData) return;
-
-    setIsSubmitting(true);
-    try {
-      console.log('Completing mechanic registration after OTP verification');
-
-      // Wait a moment for the auth state to update
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('User authentication failed');
+        if (uploadError) {
+          console.error('Document upload error:', uploadError);
+          // Continue without document if upload fails
+        } else {
+          const { data: { publicUrl } } = supabase.storage
+            .from('mechanic_documents')
+            .getPublicUrl(fileName);
+          documentUrl = publicUrl;
+        }
       }
 
       // Structure the data to match the database schema
       const mechanicData = {
-        user_id: user.id,
-        full_name: formData.full_name,
-        email: user.email || '', // This will be empty for phone auth
-        phone: formData.phone,
-        address: formData.address,
-        city: formData.city,
-        zip_code: formData.zip_code,
-        experience: formData.experience,
-        description: `Aadhaar: ${formData.aadhaar_number}`,
+        user_id: authData.user.id,
+        full_name: data.full_name,
+        email: data.email,
+        phone: data.phone,
+        address: data.address,
+        city: data.city,
+        zip_code: data.zip_code,
+        experience: data.experience,
+        description: documentUrl ? `Document: ${documentUrl}` : 'No document uploaded',
         hourly_rate: 50000,
-        availability_hours: formData.availability_hours,
-        specializations: formData.specializations,
+        availability_hours: data.availability_hours,
+        specializations: data.specializations,
         status: 'pending'
       };
 
-      const { error } = await supabase
+      const { error: insertError } = await supabase
         .from('mechanics')
         .insert(mechanicData);
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
+      if (insertError) {
+        console.error('Supabase error:', insertError);
+        throw insertError;
       }
 
       toast({
         title: "Registration completed successfully!",
-        description: "Your mechanic registration is under review. We'll contact you soon. You are now logged in.",
+        description: "Your mechanic registration is under review. Please check your email for verification.",
       });
 
       form.reset();
-      setShowOtpVerification(false);
-      setFormData(null);
+      setDocumentFile(null);
     } catch (error: any) {
-      console.error('Error completing registration:', error);
+      console.error('Error during registration:', error);
       toast({
         title: "Registration failed",
         description: error.message || "There was an error completing your registration. Please try again.",
@@ -165,23 +157,6 @@ const MechanicRegistration = () => {
       setIsSubmitting(false);
     }
   };
-
-  const handleBackToForm = () => {
-    setShowOtpVerification(false);
-    setFormData(null);
-  };
-
-  if (showOtpVerification) {
-    return (
-      <div className="max-w-4xl mx-auto p-6">
-        <OtpVerification
-          phoneNumber={phoneNumber}
-          onVerificationSuccess={handleVerificationSuccess}
-          onBack={handleBackToForm}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -219,6 +194,36 @@ const MechanicRegistration = () => {
 
                   <FormField
                     control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Address</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="your@email.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Create a secure password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="phone"
                     render={({ field }) => (
                       <FormItem>
@@ -232,14 +237,30 @@ const MechanicRegistration = () => {
                   />
                 </div>
 
+                {/* Document Upload */}
                 <FormField
                   control={form.control}
-                  name="aadhaar_number"
+                  name="id_document"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Aadhaar Card Number</FormLabel>
+                      <FormLabel className="flex items-center gap-2">
+                        <Upload className="h-4 w-4" />
+                        Upload Aadhaar or PAN Card
+                      </FormLabel>
                       <FormControl>
-                        <Input placeholder="12-digit Aadhaar number" {...field} />
+                        <div className="flex items-center gap-4">
+                          <Input
+                            type="file"
+                            accept="image/*,.pdf"
+                            onChange={handleFileChange}
+                            className="cursor-pointer"
+                          />
+                          {documentFile && (
+                            <span className="text-sm text-green-600">
+                              ✓ {documentFile.name}
+                            </span>
+                          )}
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -389,7 +410,7 @@ const MechanicRegistration = () => {
                 className="w-full"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Sending OTP...' : 'Send OTP to Register'}
+                {isSubmitting ? 'Registering...' : 'Register as Mechanic'}
               </Button>
             </form>
           </Form>
