@@ -1,7 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 import NotificationCenter from './NotificationCenter';
 import OrderCard from './dashboard/OrderCard';
 import RecentOrdersCard from './dashboard/RecentOrdersCard';
@@ -45,7 +46,70 @@ const CompanyDashboard = () => {
   const [mechanicRequests, setMechanicRequests] = useState<MechanicRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [company, setCompany] = useState<any>(null);
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const checkCompanyAuthorization = async () => {
+    try {
+      if (!user) {
+        console.log('No user found, redirecting to home');
+        navigate('/');
+        return;
+      }
+
+      // Check if user has a company record
+      const { data: companyData, error } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error || !companyData) {
+        console.log('No company record found for user, redirecting to company signup');
+        toast({
+          title: "Access Denied",
+          description: "You need to register as a company to access this dashboard.",
+          variant: "destructive"
+        });
+        navigate('/company-signup');
+        return;
+      }
+
+      if (companyData.status === 'pending') {
+        toast({
+          title: "Registration Pending",
+          description: "Your company registration is under review. Please wait for approval.",
+          variant: "destructive"
+        });
+        navigate('/');
+        return;
+      }
+
+      if (companyData.status === 'rejected') {
+        toast({
+          title: "Registration Rejected",
+          description: "Your company registration has been rejected. Please contact support.",
+          variant: "destructive"
+        });
+        navigate('/');
+        return;
+      }
+
+      // User is authorized
+      setCompany(companyData);
+      setIsAuthorized(true);
+    } catch (error) {
+      console.error('Error checking company authorization:', error);
+      toast({
+        title: "Error",
+        description: "Failed to verify company access. Please try again.",
+        variant: "destructive"
+      });
+      navigate('/');
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -146,62 +210,69 @@ const CompanyDashboard = () => {
   };
 
   useEffect(() => {
-    fetchOrders();
-    fetchMechanicRequests();
-    fetchCompanyInfo();
+    checkCompanyAuthorization();
+  }, [user]);
 
-    // Set up real-time subscription for orders
-    const ordersChannel = supabase
-      .channel('orders-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders'
-        },
-        (payload) => {
-          console.log('Order update received:', payload);
-          fetchOrders(); // Refresh orders when changes occur
-        }
-      )
-      .subscribe();
+  useEffect(() => {
+    if (isAuthorized) {
+      fetchOrders();
+      fetchMechanicRequests();
 
-    // Set up real-time subscription for mechanic requests
-    const mechanicChannel = supabase
-      .channel('mechanic-requests-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'mechanic_requests'
-        },
-        (payload) => {
-          console.log('Mechanic request update received:', payload);
-          fetchMechanicRequests(); // Refresh mechanic requests when changes occur
-          
-          // Show toast notification for new mechanic requests
-          if (payload.eventType === 'INSERT') {
-            toast({
-              title: "New Mechanic Request",
-              description: "A new mechanic request has been received!",
-            });
+      // Set up real-time subscription for orders
+      const ordersChannel = supabase
+        .channel('orders-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'orders'
+          },
+          (payload) => {
+            console.log('Order update received:', payload);
+            fetchOrders(); // Refresh orders when changes occur
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(ordersChannel);
-      supabase.removeChannel(mechanicChannel);
-    };
-  }, [toast]);
+      // Set up real-time subscription for mechanic requests
+      const mechanicChannel = supabase
+        .channel('mechanic-requests-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'mechanic_requests'
+          },
+          (payload) => {
+            console.log('Mechanic request update received:', payload);
+            fetchMechanicRequests(); // Refresh mechanic requests when changes occur
+            
+            // Show toast notification for new mechanic requests
+            if (payload.eventType === 'INSERT') {
+              toast({
+                title: "New Mechanic Request",
+                description: "A new mechanic request has been received!",
+              });
+            }
+          }
+        )
+        .subscribe();
 
-  if (loading) {
+      return () => {
+        supabase.removeChannel(ordersChannel);
+        supabase.removeChannel(mechanicChannel);
+      };
+    }
+  }, [isAuthorized, toast]);
+
+  if (loading || !isAuthorized) {
     return (
       <div className="max-w-7xl mx-auto p-6">
-        <div className="text-center">Loading dashboard...</div>
+        <div className="text-center">
+          {loading ? 'Verifying access...' : 'Redirecting...'}
+        </div>
       </div>
     );
   }

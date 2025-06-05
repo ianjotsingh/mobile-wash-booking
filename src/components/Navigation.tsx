@@ -1,14 +1,41 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Car, User, LogOut, History, Building2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import AuthModal from './AuthModal';
 
 const Navigation = () => {
   const { user, signOut } = useAuth();
   const location = useLocation();
+  const [isCompany, setIsCompany] = useState(false);
+
+  useEffect(() => {
+    const checkIfCompany = async () => {
+      if (!user) {
+        setIsCompany(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('companies')
+          .select('status')
+          .eq('user_id', user.id)
+          .single();
+
+        // Only show dashboard link if company exists and is approved
+        setIsCompany(!error && data && data.status === 'approved');
+      } catch (error) {
+        console.error('Error checking company status:', error);
+        setIsCompany(false);
+      }
+    };
+
+    checkIfCompany();
+  }, [user]);
 
   const scrollToServices = () => {
     if (location.pathname === '/') {
@@ -44,9 +71,12 @@ const Navigation = () => {
             <Link to="/company-signup" className="text-gray-300 hover:text-emerald-400 transition-colors">
               Partner With Us
             </Link>
-            <Link to="/company-dashboard" className="text-gray-300 hover:text-emerald-400 transition-colors">
-              Company Dashboard
-            </Link>
+            {/* Only show Company Dashboard link to approved companies */}
+            {isCompany && (
+              <Link to="/company-dashboard" className="text-gray-300 hover:text-emerald-400 transition-colors">
+                Company Dashboard
+              </Link>
+            )}
           </div>
           
           <div className="flex items-center space-x-4">
@@ -64,7 +94,7 @@ const Navigation = () => {
                 </Link>
                 <div className="flex items-center space-x-2">
                   <User className="h-5 w-5 text-gray-400" />
-                  <span className="text-gray-300 text-sm">{user.email}</span>
+                  <span className="text-gray-300 text-sm">{user.email || user.phone}</span>
                 </div>
                 <Button
                   variant="outline"
