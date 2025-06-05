@@ -48,6 +48,11 @@ const OrderCard = ({ order, onStatusUpdate }: OrderCardProps) => {
     }
   };
 
+  // Convert amount from paise to rupees for display
+  const formatAmount = (amount: number) => {
+    return `₹${(amount / 100).toFixed(0)}`;
+  };
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="bg-gray-50">
@@ -94,7 +99,7 @@ const OrderCard = ({ order, onStatusUpdate }: OrderCardProps) => {
           
           <div className="space-y-4">
             <div className="text-right">
-              <p className="text-2xl font-bold text-emerald-600">${order.total_amount}</p>
+              <p className="text-2xl font-bold text-emerald-600">{formatAmount(order.total_amount)}</p>
             </div>
             
             {order.special_instructions && (

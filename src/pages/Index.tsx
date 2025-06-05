@@ -16,7 +16,7 @@ const Index = () => {
     {
       title: "Premium Wash",
       description: "Complete care for your car inside and out",
-      price: "₹599",
+      price: "₹499",
       features: ["Complete exterior wash", "Interior cleaning", "Dashboard polish", "Tire shine"],
       duration: "60 minutes",
       popular: true
@@ -24,7 +24,7 @@ const Index = () => {
     {
       title: "Deluxe Detailing",
       description: "Full professional detailing service",
-      price: "₹600",
+      price: "₹599",
       features: ["Full car wash", "Interior detailing", "Wax application", "Engine cleaning"],
       duration: "90 minutes"
     }

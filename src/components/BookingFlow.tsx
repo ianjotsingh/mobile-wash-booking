@@ -107,7 +107,7 @@ const BookingFlow = () => {
           car_color: bookingData.carColor,
           car_model: bookingData.carModel,
           special_instructions: bookingData.specialInstructions,
-          total_amount: 59900,
+          total_amount: 49900, // ₹499 in paise
           status: 'pending',
           latitude: selectedLocation?.latitude || null,
           longitude: selectedLocation?.longitude || null
@@ -304,7 +304,7 @@ const BookingFlow = () => {
                   <p><strong>Date:</strong> {selectedDate?.toLocaleDateString()}</p>
                   <p><strong>Time:</strong> {selectedTime}</p>
                   <p><strong>Location:</strong> {bookingData.address}, {bookingData.city}</p>
-                  <p><strong>Total:</strong> ₹599</p>
+                  <p><strong>Total:</strong> ₹499</p>
                 </div>
               </div>
               <div className="text-center">
