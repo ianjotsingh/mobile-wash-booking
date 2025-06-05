@@ -10,16 +10,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Building, MapPin, Phone, User, Wrench } from 'lucide-react';
+import { Building, MapPin, Phone, User, Wrench, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import MechanicRegistration from './MechanicRegistration';
-import OtpVerification from './OtpVerification';
 
 const companyRegistrationSchema = z.object({
   company_name: z.string().min(2, 'Company name must be at least 2 characters'),
   owner_name: z.string().min(2, 'Owner name must be at least 2 characters'),
+  email: z.string().email('Please enter a valid email address'),
   phone: z.string().min(10, 'Please enter a valid phone number'),
   address: z.string().min(5, 'Please enter your complete address'),
   city: z.string().min(2, 'Please enter your city'),
@@ -28,6 +28,7 @@ const companyRegistrationSchema = z.object({
   experience: z.string().min(1, 'Please specify your experience'),
   services: z.array(z.string()).min(1, 'Please select at least one service'),
   has_mechanic: z.boolean().default(false),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 type CompanyRegistrationForm = z.infer<typeof companyRegistrationSchema>;
@@ -35,11 +36,8 @@ type CompanyRegistrationForm = z.infer<typeof companyRegistrationSchema>;
 const CompanyRegistration = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMechanicDialogOpen, setIsMechanicDialogOpen] = useState(false);
-  const [showOtpVerification, setShowOtpVerification] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [formData, setFormData] = useState<CompanyRegistrationForm | null>(null);
   const { toast } = useToast();
-  const { signUpWithPhone } = useAuth();
+  const { signUp } = useAuth();
 
   const availableServices = [
     'Basic Car Wash',
@@ -55,6 +53,7 @@ const CompanyRegistration = () => {
     defaultValues: {
       company_name: '',
       owner_name: '',
+      email: '',
       phone: '',
       address: '',
       city: '',
@@ -63,99 +62,64 @@ const CompanyRegistration = () => {
       experience: '',
       services: [],
       has_mechanic: false,
+      password: '',
     },
   });
 
   const onSubmit = async (data: CompanyRegistrationForm) => {
     setIsSubmitting(true);
     try {
-      console.log('Initiating phone auth for company registration:', data);
+      console.log('Initiating email signup for company registration:', data);
 
-      // Format phone number (ensure it starts with +91 for India)
-      const formattedPhone = data.phone.startsWith('+91') ? data.phone : `+91${data.phone}`;
-      
-      // Send OTP to phone number
-      const { error } = await signUpWithPhone(formattedPhone, {
+      // Create user account with email and password
+      const { data: authData, error: authError } = await signUp(data.email, data.password, {
         full_name: data.owner_name,
         role: 'company'
       });
 
-      if (error) {
-        console.error('Phone auth error:', error);
-        throw error;
+      if (authError) {
+        console.error('Email signup error:', authError);
+        throw authError;
       }
 
-      // Store form data for later use after OTP verification
-      setFormData(data);
-      setPhoneNumber(formattedPhone);
-      setShowOtpVerification(true);
-
-      toast({
-        title: "OTP Sent",
-        description: `Verification code sent to ${formattedPhone}`,
-      });
-
-    } catch (error: any) {
-      console.error('Error initiating phone auth:', error);
-      toast({
-        title: "Failed to send OTP",
-        description: error.message || "There was an error sending the OTP. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleVerificationSuccess = async () => {
-    if (!formData) return;
-
-    setIsSubmitting(true);
-    try {
-      console.log('Completing company registration after OTP verification');
-
-      // Wait a moment for the auth state to update
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('User authentication failed');
+      if (!authData.user) {
+        throw new Error('User creation failed');
       }
 
       // Create the company record with proper structure
       const companyData = {
-        company_name: formData.company_name,
-        owner_name: formData.owner_name,
-        phone: formData.phone,
-        address: formData.address,
-        city: formData.city,
-        zip_code: formData.zip_code,
-        description: formData.description,
-        experience: formData.experience,
-        services: formData.services,
-        has_mechanic: formData.has_mechanic,
-        email: user.email || '', // This will be empty for phone auth
-        user_id: user.id,
+        company_name: data.company_name,
+        owner_name: data.owner_name,
+        phone: data.phone,
+        address: data.address,
+        city: data.city,
+        zip_code: data.zip_code,
+        description: data.description,
+        experience: data.experience,
+        services: data.services,
+        has_mechanic: data.has_mechanic,
+        email: data.email,
+        user_id: authData.user.id,
         status: 'pending' as const
       };
 
-      const { error } = await supabase
+      const { error: dbError } = await supabase
         .from('companies')
         .insert(companyData);
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
+      if (dbError) {
+        console.error('Supabase error:', dbError);
+        throw dbError;
       }
 
       toast({
         title: "Registration completed successfully!",
-        description: "Your company registration is under review. We'll contact you soon. You are now logged in.",
+        description: authData.user.email_confirmed_at 
+          ? "Your company registration is under review. We'll contact you soon. You are now logged in."
+          : "Please check your email for a confirmation link to complete your registration.",
       });
 
       form.reset();
-      setShowOtpVerification(false);
-      setFormData(null);
     } catch (error: any) {
       console.error('Error completing registration:', error);
       toast({
@@ -167,23 +131,6 @@ const CompanyRegistration = () => {
       setIsSubmitting(false);
     }
   };
-
-  const handleBackToForm = () => {
-    setShowOtpVerification(false);
-    setFormData(null);
-  };
-
-  if (showOtpVerification) {
-    return (
-      <div className="max-w-4xl mx-auto p-6">
-        <OtpVerification
-          phoneNumber={phoneNumber}
-          onVerificationSuccess={handleVerificationSuccess}
-          onBack={handleBackToForm}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -302,18 +249,48 @@ const CompanyRegistration = () => {
               {/* Contact Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Phone className="h-5 w-5" />
+                  <Mail className="h-5 w-5" />
                   Contact Information
                 </h3>
                 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Address</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="your@company.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number</FormLabel>
+                        <FormControl>
+                          <Input placeholder="10-digit phone number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <FormField
                   control={form.control}
-                  name="phone"
+                  name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
+                      <FormLabel>Password</FormLabel>
                       <FormControl>
-                        <Input placeholder="10-digit phone number" {...field} />
+                        <Input type="password" placeholder="Create a secure password" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -458,7 +435,7 @@ const CompanyRegistration = () => {
                 className="w-full"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Sending OTP...' : 'Send OTP to Register'}
+                {isSubmitting ? 'Creating Account...' : 'Register Company'}
               </Button>
             </form>
           </Form>

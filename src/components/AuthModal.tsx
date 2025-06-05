@@ -93,10 +93,10 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!signupData.email || !signupData.password || !signupData.fullName || !signupData.phone) {
+    if (!signupData.email || !signupData.password || !signupData.fullName) {
       toast({
         title: "Error",
-        description: "Please fill in all fields",
+        description: "Please fill in all required fields",
         variant: "destructive"
       });
       return;
@@ -108,7 +108,8 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
       console.log('Attempting signup with:', signupData.email);
       const { data, error } = await signUp(signupData.email, signupData.password, {
         full_name: signupData.fullName,
-        phone: signupData.phone
+        phone: signupData.phone || '',
+        role: 'customer'
       });
 
       if (error) {
@@ -206,6 +207,7 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
                   onChange={(e) => setSignupData({...signupData, fullName: e.target.value})}
                   required
                   disabled={loading}
+                  placeholder="Your full name"
                 />
               </div>
               <div>
@@ -217,17 +219,18 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
                   onChange={(e) => setSignupData({...signupData, email: e.target.value})}
                   required
                   disabled={loading}
+                  placeholder="your@email.com"
                 />
               </div>
               <div>
-                <Label htmlFor="signup-phone">Phone</Label>
+                <Label htmlFor="signup-phone">Phone (Optional)</Label>
                 <Input
                   id="signup-phone"
                   type="tel"
                   value={signupData.phone}
                   onChange={(e) => setSignupData({...signupData, phone: e.target.value})}
-                  required
                   disabled={loading}
+                  placeholder="Your phone number"
                 />
               </div>
               <div>
@@ -239,6 +242,7 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
                   onChange={(e) => setSignupData({...signupData, password: e.target.value})}
                   required
                   disabled={loading}
+                  placeholder="Create a secure password"
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
