@@ -122,10 +122,22 @@ const ServiceSelector = () => {
 
   const handleServiceSelect = (service: Service) => {
     try {
-      // Store selected service for booking flow with proper JSON stringification
-      const serviceData = JSON.stringify(service);
-      console.log('Storing service data:', serviceData);
-      localStorage.setItem('selectedService', serviceData);
+      // Ensure we're storing the complete service object
+      const serviceData = {
+        id: service.id,
+        title: service.title,
+        description: service.description,
+        price: service.price,
+        features: service.features,
+        duration: service.duration,
+        category: service.category,
+        popular: service.popular,
+        emergency: service.emergency
+      };
+      
+      const serviceDataString = JSON.stringify(serviceData);
+      console.log('Storing complete service data:', serviceDataString);
+      localStorage.setItem('selectedService', serviceDataString);
       
       // Navigate to unified booking flow
       navigate('/booking');
