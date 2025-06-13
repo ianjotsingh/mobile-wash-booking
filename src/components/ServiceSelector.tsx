@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Car, Wrench, Clock, Star, MapPin } from 'lucide-react';
+import { Car, Wrench, Clock, Star, MapPin, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -121,19 +121,11 @@ const ServiceSelector = () => {
   ];
 
   const handleServiceSelect = (service: Service) => {
-    if (!user) {
-      // Will be handled by auth modal in parent component
-      return;
-    }
-
     // Store selected service for booking flow
     localStorage.setItem('selectedService', JSON.stringify(service));
     
-    if (service.category === 'wash') {
-      navigate('/booking');
-    } else {
-      navigate('/mechanic-request');
-    }
+    // Navigate to unified booking flow
+    navigate('/booking');
   };
 
   const ServiceCard = ({ service }: { service: Service }) => (
@@ -153,8 +145,9 @@ const ServiceSelector = () => {
       )}
       {service.emergency && (
         <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-          <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
-            Emergency
+          <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center space-x-1">
+            <Zap className="w-3 h-3" />
+            <span>Emergency</span>
           </span>
         </div>
       )}
@@ -192,7 +185,7 @@ const ServiceSelector = () => {
         </ul>
         
         <Button className="w-full bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white font-semibold">
-          Select Service
+          Book Now
         </Button>
       </CardContent>
     </Card>
