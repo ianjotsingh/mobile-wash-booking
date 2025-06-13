@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -70,20 +69,41 @@ const BookingFlow = () => {
     { number: 4, title: 'Review & Payment', icon: Clock }
   ];
 
-  // Load selected service from localStorage
+  // Load selected service from localStorage with proper error handling
   useEffect(() => {
-    const storedService = localStorage.getItem('selectedService');
-    if (storedService) {
-      const service = JSON.parse(storedService);
-      setSelectedService(service);
+    try {
+      const storedService = localStorage.getItem('selectedService');
+      console.log('Stored service from localStorage:', storedService);
       
-      // Calculate initial pricing
-      if (service.category) {
-        const initialPricing = calculateServicePrice(service.id, service.category);
-        setPricing(initialPricing);
+      if (storedService) {
+        // Check if the stored data looks like valid JSON
+        if (storedService.startsWith('{') && storedService.endsWith('}')) {
+          const service = JSON.parse(storedService);
+          console.log('Parsed service:', service);
+          setSelectedService(service);
+          
+          // Calculate initial pricing
+          if (service.category) {
+            const initialPricing = calculateServicePrice(service.id, service.category);
+            setPricing(initialPricing);
+          }
+        } else {
+          console.error('Invalid JSON format in localStorage:', storedService);
+          // Clear the invalid data
+          localStorage.removeItem('selectedService');
+        }
       }
+    } catch (error) {
+      console.error('Error parsing selectedService from localStorage:', error);
+      // Clear the corrupted data
+      localStorage.removeItem('selectedService');
+      toast({
+        title: "Error",
+        description: "Failed to load selected service. Please select a service again.",
+        variant: "destructive"
+      });
     }
-  }, []);
+  }, [toast]);
 
   // Update pricing when promo code changes
   useEffect(() => {

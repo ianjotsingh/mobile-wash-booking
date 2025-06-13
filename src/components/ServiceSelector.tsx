@@ -121,11 +121,19 @@ const ServiceSelector = () => {
   ];
 
   const handleServiceSelect = (service: Service) => {
-    // Store selected service for booking flow
-    localStorage.setItem('selectedService', JSON.stringify(service));
-    
-    // Navigate to unified booking flow
-    navigate('/booking');
+    try {
+      // Store selected service for booking flow with proper JSON stringification
+      const serviceData = JSON.stringify(service);
+      console.log('Storing service data:', serviceData);
+      localStorage.setItem('selectedService', serviceData);
+      
+      // Navigate to unified booking flow
+      navigate('/booking');
+    } catch (error) {
+      console.error('Error storing service data:', error);
+      // Still navigate but without storing - the booking flow will handle missing data
+      navigate('/booking');
+    }
   };
 
   const ServiceCard = ({ service }: { service: Service }) => (
