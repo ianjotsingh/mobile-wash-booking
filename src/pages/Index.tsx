@@ -1,54 +1,26 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import UberLikeHero from '@/components/UberLikeHero';
-import ServiceCard from '@/components/ServiceCard';
+import ServiceSelector from '@/components/ServiceSelector';
+import ServiceStats from '@/components/ServiceStats';
+import AuthModal from '@/components/AuthModal';
+import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
-  const services = [
-    {
-      title: "Basic Wash",
-      description: "Essential cleaning for your vehicle",
-      price: "₹299",
-      features: ["Exterior wash", "Vacuum cleaning", "Tire cleaning"],
-      duration: "30 minutes"
-    },
-    {
-      title: "Premium Wash",
-      description: "Complete care for your car inside and out",
-      price: "₹499",
-      features: ["Complete exterior wash", "Interior cleaning", "Dashboard polish", "Tire shine"],
-      duration: "60 minutes",
-      popular: true
-    },
-    {
-      title: "Deluxe Detailing",
-      description: "Full professional detailing service",
-      price: "₹599",
-      features: ["Full car wash", "Interior detailing", "Wax application", "Engine cleaning"],
-      duration: "90 minutes"
-    }
-  ];
+  const { user } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-white">
       <Navigation />
       <UberLikeHero />
+      <ServiceSelector />
+      <ServiceStats />
       
-      <section id="services" className="py-20 bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-white mb-4">Our Services</h2>
-            <p className="text-xl text-gray-400">Choose the perfect wash for your car</p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {services.map((service, index) => (
-              <ServiceCard key={index} {...service} />
-            ))}
-          </div>
-        </div>
-      </section>
+      <AuthModal open={showAuthModal} onOpenChange={setShowAuthModal}>
+        <div />
+      </AuthModal>
     </div>
   );
 };
