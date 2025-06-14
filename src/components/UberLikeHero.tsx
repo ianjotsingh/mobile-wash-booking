@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -92,11 +93,11 @@ const UberLikeHero = () => {
     });
   };
 
-  // Add service objects (matching ServiceSelector shape)
+  // Add service objects (matching ServiceSelector shape) - removed pricing
   const services = [
-    { id: 'Basic', name: 'Basic', title: 'Basic Wash', description: 'Essential exterior wash', price: '₹299', icon: '🚗', category: 'wash' },
-    { id: 'Premium', name: 'Premium', title: 'Premium Wash', description: 'Full exterior + interior clean', price: '₹499', icon: '✨', category: 'wash', popular: true },
-    { id: 'Deluxe', name: 'Deluxe', title: 'Full Detailing', description: 'Complete inside-out clean & polish', price: '₹599', icon: '💎', category: 'wash' }
+    { id: 'Basic', name: 'Basic', title: 'Basic Wash', description: 'Essential exterior wash', icon: '🚗', category: 'wash' },
+    { id: 'Premium', name: 'Premium', title: 'Premium Wash', description: 'Full exterior + interior clean', icon: '✨', category: 'wash', popular: true },
+    { id: 'Deluxe', name: 'Deluxe', title: 'Full Detailing', description: 'Complete inside-out clean & polish', icon: '💎', category: 'wash' }
   ];
 
   // Find full service object by selectedService, fallback to Premium
@@ -128,7 +129,6 @@ const UberLikeHero = () => {
       id: serviceObj.id,
       title: serviceObj.title,
       description: serviceObj.description,
-      price: serviceObj.price,
       features: [
         serviceObj.id === 'Basic'
           ? 'Exterior wash, Tire cleaning, Basic drying'
@@ -240,7 +240,7 @@ const UberLikeHero = () => {
                 )}
               </div>
 
-              {/* Service Selection */}
+              {/* Service Selection - removed pricing */}
               <div className="grid grid-cols-3 gap-3">
                 {services.map((service) => (
                   <div
@@ -259,7 +259,7 @@ const UberLikeHero = () => {
                       {service.name}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {service.price}
+                      {service.description}
                     </div>
                   </div>
                 ))}

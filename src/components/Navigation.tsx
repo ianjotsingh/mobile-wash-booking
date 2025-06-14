@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -133,7 +132,7 @@ const Navigation = () => {
                 </div>
               ) : (
                 <AuthModal>
-                  <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-800">
+                  <Button variant="outline" className="border-emerald-600 text-emerald-400 hover:bg-emerald-600 hover:text-white">
                     Login
                   </Button>
                 </AuthModal>
