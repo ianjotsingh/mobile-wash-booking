@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,6 @@ interface Service {
   id: string;
   title: string;
   description: string;
-  price: string;
   features: string[];
   duration: string;
   category: 'wash' | 'mechanic';
@@ -26,7 +26,6 @@ const ServiceSelector = () => {
       id: 'basic-wash',
       title: 'Basic Wash',
       description: 'Essential exterior cleaning for your vehicle',
-      price: '₹199',
       features: ['Exterior wash', 'Tire cleaning', 'Basic drying'],
       duration: '30 mins',
       category: 'wash'
@@ -35,7 +34,6 @@ const ServiceSelector = () => {
       id: 'premium-wash',
       title: 'Premium Wash',
       description: 'Complete care inside and out',
-      price: '₹399',
       features: ['Exterior wash', 'Interior vacuuming', 'Dashboard cleaning', 'Tire shine'],
       duration: '60 mins',
       category: 'wash',
@@ -45,7 +43,6 @@ const ServiceSelector = () => {
       id: 'full-detailing',
       title: 'Full Detailing',
       description: 'Professional deep cleaning service',
-      price: '₹799',
       features: ['Complete wash', 'Wax application', 'Deep interior cleaning', 'Polish'],
       duration: '90 mins',
       category: 'wash'
@@ -54,7 +51,6 @@ const ServiceSelector = () => {
       id: 'interior-only',
       title: 'Interior Only',
       description: 'Deep interior cleaning and care',
-      price: '₹299',
       features: ['Deep vacuuming', 'Upholstery cleaning', 'Dashboard polish', 'Air freshening'],
       duration: '45 mins',
       category: 'wash'
@@ -66,7 +62,6 @@ const ServiceSelector = () => {
       id: 'emergency-roadside',
       title: 'Emergency Roadside',
       description: 'Immediate assistance for breakdowns',
-      price: '₹299+',
       features: ['30 min response', 'On-spot diagnosis', 'Basic repairs', '24/7 availability'],
       duration: '30 mins',
       category: 'mechanic',
@@ -76,7 +71,6 @@ const ServiceSelector = () => {
       id: 'engine-diagnostics',
       title: 'Engine Diagnostics',
       description: 'Complete engine health checkup',
-      price: '₹499',
       features: ['Computer diagnostics', 'Error code reading', 'Performance analysis', 'Report provided'],
       duration: '60-120 mins',
       category: 'mechanic'
@@ -85,7 +79,6 @@ const ServiceSelector = () => {
       id: 'tire-services',
       title: 'Tire Services',
       description: 'Puncture repair and tire replacement',
-      price: '₹199-999',
       features: ['Puncture repair', 'Tire replacement', 'Balancing', 'Pressure check'],
       duration: '30-60 mins',
       category: 'mechanic'
@@ -94,7 +87,6 @@ const ServiceSelector = () => {
       id: 'battery-services',
       title: 'Battery Services',
       description: 'Battery testing and replacement',
-      price: '₹299-1999',
       features: ['Jump start', 'Battery testing', 'Replacement', 'Installation'],
       duration: '30-45 mins',
       category: 'mechanic'
@@ -103,7 +95,6 @@ const ServiceSelector = () => {
       id: 'oil-change',
       title: 'Oil Change',
       description: 'Engine oil and filter replacement',
-      price: '₹699-1299',
       features: ['Oil drain & refill', 'Filter replacement', 'Quality oils', 'Disposal included'],
       duration: '45-60 mins',
       category: 'mechanic'
@@ -112,7 +103,6 @@ const ServiceSelector = () => {
       id: 'ac-repair',
       title: 'AC Repair',
       description: 'Air conditioning service and repair',
-      price: '₹799-2499',
       features: ['Gas refill', 'Compressor check', 'Filter cleaning', 'Performance test'],
       duration: '60-90 mins',
       category: 'mechanic'
@@ -121,12 +111,11 @@ const ServiceSelector = () => {
 
   const handleServiceSelect = (service: Service) => {
     try {
-      // Ensure we're storing the complete service object
+      // Store only service info, pricing will come from companies
       const serviceData = {
         id: service.id,
         title: service.title,
         description: service.description,
-        price: service.price,
         features: service.features,
         duration: service.duration,
         category: service.category,
@@ -135,14 +124,13 @@ const ServiceSelector = () => {
       };
       
       const serviceDataString = JSON.stringify(serviceData);
-      console.log('Storing complete service data:', serviceDataString);
+      console.log('Storing service data for marketplace selection:', serviceDataString);
       localStorage.setItem('selectedService', serviceDataString);
       
-      // Navigate to unified booking flow
+      // Navigate to booking flow where companies and their pricing will be shown
       navigate('/booking');
     } catch (error) {
       console.error('Error storing service data:', error);
-      // Still navigate but without storing - the booking flow will handle missing data
       navigate('/booking');
     }
   };
@@ -154,21 +142,21 @@ const ServiceSelector = () => {
           cardClass: "relative cursor-pointer transition-all duration-200 hover:shadow-md bg-red-50 border border-red-200 hover:border-red-300",
           badge: "absolute -top-2 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-3 py-1 rounded-full text-xs font-medium",
           icon: "w-5 h-5 text-red-600",
-          priceColor: "text-red-600"
+          buttonColor: "bg-red-600 hover:bg-red-700"
         };
       } else if (service.category === 'wash') {
         return {
           cardClass: "relative cursor-pointer transition-all duration-200 hover:shadow-md bg-blue-50 border border-blue-200 hover:border-blue-300",
           badge: service.popular ? "absolute -top-2 left-1/2 transform -translate-x-1/2 bg-black text-white px-3 py-1 rounded-full text-xs font-medium" : "",
           icon: "w-5 h-5 text-blue-600",
-          priceColor: "text-blue-600"
+          buttonColor: "bg-blue-600 hover:bg-blue-700"
         };
       } else {
         return {
           cardClass: "relative cursor-pointer transition-all duration-200 hover:shadow-md bg-gray-50 border border-gray-200 hover:border-gray-300",
           badge: service.popular ? "absolute -top-2 left-1/2 transform -translate-x-1/2 bg-black text-white px-3 py-1 rounded-full text-xs font-medium" : "",
           icon: "w-5 h-5 text-gray-700",
-          priceColor: "text-gray-900"
+          buttonColor: "bg-gray-700 hover:bg-gray-800"
         };
       }
     };
@@ -209,7 +197,7 @@ const ServiceSelector = () => {
         
         <CardContent>
           <div className="flex items-center justify-between mb-4">
-            <span className={`text-2xl font-bold ${styling.priceColor}`}>{service.price}</span>
+            <span className="text-lg font-medium text-gray-600">Compare Providers</span>
             <div className="flex items-center text-gray-500 text-sm">
               <Clock className="w-4 h-4 mr-1" />
               <span>{service.duration}</span>
@@ -225,8 +213,8 @@ const ServiceSelector = () => {
             ))}
           </ul>
           
-          <Button className="w-full bg-black hover:bg-gray-800 text-white font-medium transition-all duration-200">
-            Book Now
+          <Button className={`w-full ${styling.buttonColor} text-white font-medium transition-all duration-200`}>
+            View Providers & Prices
           </Button>
         </CardContent>
       </Card>
@@ -248,7 +236,7 @@ const ServiceSelector = () => {
               </h2>
             </div>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Professional car wash services delivered to your location
+              Compare prices from multiple providers in your area
             </p>
           </div>
           
@@ -271,7 +259,7 @@ const ServiceSelector = () => {
               </h2>
             </div>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Expert automotive repair and maintenance services available 24/7
+              Find the best rates for automotive repair and maintenance services
             </p>
           </div>
           

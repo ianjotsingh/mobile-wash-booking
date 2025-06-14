@@ -72,6 +72,47 @@ export type Database = {
         }
         Relationships: []
       }
+      company_service_pricing: {
+        Row: {
+          base_price: number
+          company_id: string
+          created_at: string | null
+          id: string
+          is_available: boolean | null
+          service_id: string
+          service_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          base_price: number
+          company_id: string
+          created_at?: string | null
+          id?: string
+          is_available?: boolean | null
+          service_id: string
+          service_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          base_price?: number
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          is_available?: boolean | null
+          service_id?: string
+          service_name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_service_pricing_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mechanic_requests: {
         Row: {
           address: string

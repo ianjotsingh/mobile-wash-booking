@@ -1,4 +1,3 @@
-
 interface ServicePricing {
   id: string;
   basePrice: number;
