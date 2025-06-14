@@ -25,15 +25,31 @@ const ResetPassword = () => {
   useEffect(() => {
     const handlePasswordReset = async () => {
       console.log('Password reset page loaded');
-      console.log('Current URL:', window.location.href);
-      console.log('Search params:', Object.fromEntries(searchParams.entries()));
+      console.log('Full URL:', window.location.href);
       
+      // Get all URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const fragment = window.location.hash.substring(1);
+      const fragmentParams = new URLSearchParams(fragment);
+      
+      // Check both URL search params and fragment for tokens
+      const accessToken = urlParams.get('access_token') || fragmentParams.get('access_token');
+      const refreshToken = urlParams.get('refresh_token') || fragmentParams.get('refresh_token');
+      const type = urlParams.get('type') || fragmentParams.get('type');
+      const error = urlParams.get('error') || fragmentParams.get('error');
+      const errorDescription = urlParams.get('error_description') || fragmentParams.get('error_description');
+
+      console.log('Extracted parameters:', {
+        accessToken: accessToken ? 'present' : 'missing',
+        refreshToken: refreshToken ? 'present' : 'missing',
+        type,
+        error,
+        errorDescription
+      });
+
       setCheckingSession(true);
-      
-      // Check if we have error parameters
-      const error = searchParams.get('error');
-      const errorDescription = searchParams.get('error_description');
-      
+
+      // Handle errors first
       if (error) {
         console.error('URL contains error:', error, errorDescription);
         setCheckingSession(false);
@@ -46,59 +62,48 @@ const ResetPassword = () => {
         return;
       }
 
-      // Get the tokens from URL
-      const accessToken = searchParams.get('access_token');
-      const refreshToken = searchParams.get('refresh_token');
-      const type = searchParams.get('type');
-
-      console.log('URL parameters:', { 
-        hasAccessToken: !!accessToken, 
-        hasRefreshToken: !!refreshToken, 
-        type 
-      });
-
-      // Validate required parameters
+      // Check if we have the required parameters
       if (!accessToken || type !== 'recovery') {
-        console.error('Missing required parameters for password reset');
+        console.error('Missing required parameters:', { accessToken: !!accessToken, type });
         setCheckingSession(false);
         setIsValidSession(false);
         toast({
           title: "Invalid Reset Link",
-          description: "This password reset link is invalid. Please request a new one.",
+          description: "This password reset link is invalid or missing required parameters. Please request a new one.",
           variant: "destructive"
         });
         return;
       }
 
       try {
-        console.log('Setting session with provided tokens...');
+        console.log('Setting session with tokens...');
         
-        // Set the session using the tokens
+        // Set the session with the tokens from the URL
         const { data, error: sessionError } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken || ''
         });
 
         console.log('Session setup result:', {
-          hasUser: !!data.user,
+          user: data.user?.email,
           hasSession: !!data.session,
           error: sessionError?.message
         });
 
         if (sessionError) {
-          console.error('Session error:', sessionError);
+          console.error('Session setup error:', sessionError);
           setCheckingSession(false);
           setIsValidSession(false);
           toast({
             title: "Session Error",
-            description: "Unable to verify your reset link. Please request a new password reset.",
+            description: "The reset link is invalid or has expired. Please request a new password reset.",
             variant: "destructive"
           });
           return;
         }
 
         if (data.session && data.user) {
-          console.log('Valid session established for:', data.user.email);
+          console.log('Valid session established for user:', data.user.email);
           setIsValidSession(true);
           setCheckingSession(false);
           toast({
@@ -106,7 +111,7 @@ const ResetPassword = () => {
             description: `You can now set a new password for ${data.user.email}`,
           });
         } else {
-          console.error('Session setup did not return valid user/session');
+          console.error('No valid session or user returned');
           setCheckingSession(false);
           setIsValidSession(false);
           toast({
@@ -116,7 +121,7 @@ const ResetPassword = () => {
           });
         }
       } catch (error) {
-        console.error('Error during session setup:', error);
+        console.error('Unexpected error during session setup:', error);
         setCheckingSession(false);
         setIsValidSession(false);
         toast({
@@ -128,7 +133,7 @@ const ResetPassword = () => {
     };
 
     handlePasswordReset();
-  }, [searchParams, toast]);
+  }, [toast]);
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
