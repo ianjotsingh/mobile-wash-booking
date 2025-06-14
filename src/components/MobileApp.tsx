@@ -14,6 +14,9 @@ import MechanicRequest from '@/pages/MechanicRequest';
 import MechanicSignup from '@/pages/MechanicSignup';
 import CompanySignup from '@/pages/CompanySignup';
 import ResetPassword from '@/pages/ResetPassword';
+import WashBookingDetails from '@/pages/WashBookingDetails';
+import MechanicRequestForm from '@/pages/MechanicRequestForm';
+import OrderHistory from '@/pages/OrderHistory';
 
 type Step = 'loading' | 'onboarding' | 'front' | 'login' | 'app';
 
@@ -129,6 +132,11 @@ const MobileApp = () => {
           path="/admin/dashboard" 
           element={user ? <AdminDashboard /> : <Navigate to="/" />} 
         />
+        
+        {/* Booking and Service Routes */}
+        <Route path="/wash-booking" element={<WashBookingDetails />} />
+        <Route path="/mechanic-request-form" element={<MechanicRequestForm />} />
+        <Route path="/order-history" element={<OrderHistory />} />
         
         {/* Main App Routes */}
         <Route path="/*" element={
