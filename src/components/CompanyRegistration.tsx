@@ -1,127 +1,173 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Building, MapPin, Phone, Mail, Star, CheckCircle } from 'lucide-react';
-import EnhancedLocationSelector from './EnhancedLocationSelector';
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
+import EnhancedLocationSelector from '@/components/EnhancedLocationSelector';
 
 const CompanyRegistration = () => {
+  const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState(1);
+  const { toast } = useToast();
+  const { signUp } = useAuth();
+  const navigate = useNavigate();
+  
+  const [authData, setAuthData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+
   const [formData, setFormData] = useState({
     companyName: '',
     ownerName: '',
     email: '',
     phone: '',
-    address: '',
-    city: '',
-    zipCode: '',
     description: '',
     experience: '',
-    services: [] as string[],
+    hasMechanic: false,
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    lat: 0,
+    lng: 0
   });
-  const [location, setLocation] = useState<{latitude: number; longitude: number} | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const { toast } = useToast();
 
-  const availableServices = [
-    'Car Wash (Exterior)',
-    'Car Wash (Interior)', 
-    'Full Car Detailing',
-    'Premium Wash & Wax',
-    'Steam Cleaning',
-    'Engine Cleaning',
-    'Tire & Rim Cleaning',
-    'Carpet Shampooing',
-    'Paint Protection',
-    'Ceramic Coating'
-  ];
+  const handleAuthSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (authData.password !== authData.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive"
+      });
+      return;
+    }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    if (authData.password.length < 6) {
+      toast({
+        title: "Error", 
+        description: "Password must be at least 6 characters long",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setFormData(prev => ({ ...prev, email: authData.email }));
+    setStep(2);
   };
 
-  const handleServiceToggle = (service: string) => {
-    setFormData(prev => ({
-      ...prev,
-      services: prev.services.includes(service)
-        ? prev.services.filter(s => s !== service)
-        : [...prev.services, service]
-    }));
-  };
-
-  const handleLocationSelect = (selectedLocation: { lat: number; lng: number; address: string; city: string; zipCode: string }) => {
-    setLocation({
-      latitude: selectedLocation.lat,
-      longitude: selectedLocation.lng
-    });
+  const handleLocationSelect = (selectedLocation: { 
+    lat: number; 
+    lng: number; 
+    address: string; 
+    city: string; 
+    zipCode: string; 
+  }) => {
     setFormData(prev => ({
       ...prev,
       address: selectedLocation.address,
       city: selectedLocation.city,
-      zipCode: selectedLocation.zipCode
+      zipCode: selectedLocation.zipCode,
+      lat: selectedLocation.lat,
+      lng: selectedLocation.lng
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (formData.services.length === 0) {
-      toast({
-        title: "Please select at least one service",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!location) {
-      toast({
-        title: "Please select your location",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setLoading(true);
+
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      console.log('Starting company registration process...');
+      
+      // First create the user account without email confirmation
+      const userData = {
+        full_name: formData.ownerName,
+        role: 'provider'
+      };
+
+      const { data: authData, error: authError } = await signUp(
+        formData.email, 
+        authData.password, 
+        userData
+      );
+
+      if (authError) {
+        console.error('Auth error:', authError);
         toast({
-          title: "Please log in to register your company",
+          title: "Registration Failed",
+          description: authError.message || "Failed to create account",
           variant: "destructive"
         });
         return;
       }
 
-      const { error } = await supabase.functions.invoke('register-company', {
+      if (!authData?.user) {
+        toast({
+          title: "Registration Failed", 
+          description: "Failed to create user account",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('User account created successfully, now registering company...');
+
+      // Register the company
+      const { data: functionData, error: functionError } = await supabase.functions.invoke('register-company', {
         body: {
-          ...formData,
-          latitude: location.latitude,
-          longitude: location.longitude
+          company_name: formData.companyName,
+          owner_name: formData.ownerName,
+          email: formData.email,
+          phone: formData.phone,
+          description: formData.description,
+          experience: formData.experience,
+          has_mechanic: formData.hasMechanic,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          zip_code: formData.zipCode,
+          latitude: formData.lat,
+          longitude: formData.lng,
+          user_id: authData.user.id
         }
       });
 
-      if (error) throw error;
+      if (functionError) {
+        console.error('Company registration error:', functionError);
+        toast({
+          title: "Registration Failed",
+          description: functionError.message || "Failed to register company",
+          variant: "destructive"
+        });
+        return;
+      }
 
-      setSubmitted(true);
+      console.log('Company registration successful:', functionData);
+      
       toast({
-        title: "Company registration submitted!",
-        description: "Your application is under review. You'll be notified once approved."
+        title: "Success!",
+        description: "Company registered successfully! You can now log in and start receiving booking requests.",
       });
+
+      // Redirect to company dashboard
+      navigate('/company-dashboard');
+      
     } catch (error) {
       console.error('Registration error:', error);
       toast({
-        title: "Registration failed",
-        description: "Please try again or contact support",
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -129,221 +175,236 @@ const CompanyRegistration = () => {
     }
   };
 
-  if (submitted) {
+  if (step === 1) {
     return (
-      <div className="container mx-auto p-6 max-w-2xl">
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="p-8 text-center">
-            <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-green-800 mb-2">
-              Registration Submitted!
-            </h2>
-            <p className="text-green-600 mb-4">
-              Thank you for registering with us. Your company application is under review.
-            </p>
-            <div className="bg-white p-4 rounded-lg mb-6">
-              <h3 className="font-semibold mb-2">What's Next?</h3>
-              <ul className="text-sm text-gray-600 space-y-1">
-                <li>• Our team will review your application within 24-48 hours</li>
-                <li>• You'll receive an email notification once approved</li>
-                <li>• After approval, you can start receiving booking requests</li>
-                <li>• Access your dashboard to manage orders and pricing</li>
-              </ul>
-            </div>
-            <Button 
-              onClick={() => window.location.href = '/company-dashboard'}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              Go to Dashboard
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
+        <div className="max-w-md mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold text-center">Create Account</CardTitle>
+              <CardDescription className="text-center">
+                Step 1: Set up your login credentials
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleAuthSubmit} className="space-y-4">
+                <div>
+                  <Input
+                    type="email"
+                    placeholder="Email Address"
+                    value={authData.email}
+                    onChange={(e) => setAuthData(prev => ({ ...prev, email: e.target.value }))}
+                    required
+                    disabled={loading}
+                  />
+                </div>
+                
+                <div>
+                  <Input
+                    type="password"
+                    placeholder="Password (min 6 characters)"
+                    value={authData.password}
+                    onChange={(e) => setAuthData(prev => ({ ...prev, password: e.target.value }))}
+                    required
+                    minLength={6}
+                    disabled={loading}
+                  />
+                </div>
+                
+                <div>
+                  <Input
+                    type="password"
+                    placeholder="Confirm Password"
+                    value={authData.confirmPassword}
+                    onChange={(e) => setAuthData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    required
+                    disabled={loading}
+                  />
+                </div>
+
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'Processing...' : 'Continue to Company Details'}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold mb-2">Register Your Car Wash Company</h1>
-        <p className="text-gray-600">
-          Join our platform and start receiving booking requests from customers in your area
-        </p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Company Information */}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
+      <div className="max-w-2xl mx-auto">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building className="h-5 w-5" />
-              Company Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="companyName">Company Name *</Label>
-                <Input
-                  id="companyName"
-                  name="companyName"
-                  value={formData.companyName}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Premium Car Wash Services"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="ownerName">Owner Name *</Label>
-                <Input
-                  id="ownerName"
-                  name="ownerName"
-                  value={formData.ownerName}
-                  onChange={handleInputChange}
-                  placeholder="Your full name"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address *</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  placeholder="company@example.com"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number *</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  placeholder="+91 XXXXX XXXXX"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Company Description</Label>
-              <Textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                placeholder="Brief description of your services and company..."
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="experience">Years of Experience</Label>
-              <Input
-                id="experience"
-                name="experience"
-                value={formData.experience}
-                onChange={handleInputChange}
-                placeholder="e.g., 5 years"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Location Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Service Location
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Service Area Location *</Label>
-              <EnhancedLocationSelector
-                onLocationSelect={handleLocationSelect}
-              />
-              <p className="text-sm text-gray-500">
-                This will be used to show your services to nearby customers
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="city">City *</Label>
-                <Input
-                  id="city"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleInputChange}
-                  placeholder="Your city"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="zipCode">ZIP Code *</Label>
-                <Input
-                  id="zipCode"
-                  name="zipCode"
-                  value={formData.zipCode}
-                  onChange={handleInputChange}
-                  placeholder="000000"
-                  required
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Services Offered */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Star className="h-5 w-5" />
-              Services Offered
-            </CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">Register Your Washing Company</CardTitle>
+            <CardDescription className="text-center">
+              Step 2: Complete your company profile to start receiving bookings
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {availableServices.map((service) => (
-                <div key={service} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={service}
-                    checked={formData.services.includes(service)}
-                    onCheckedChange={() => handleServiceToggle(service)}
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Company Name *</label>
+                  <Input
+                    value={formData.companyName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                    placeholder="Your Company Name"
+                    required
+                    disabled={loading}
                   />
-                  <Label htmlFor={service} className="text-sm">
-                    {service}
-                  </Label>
                 </div>
-              ))}
-            </div>
-            <p className="text-sm text-gray-500 mt-3">
-              Select all services your company provides
-            </p>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-2">Owner Name *</label>
+                  <Input
+                    value={formData.ownerName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, ownerName: e.target.value }))}
+                    placeholder="Owner's Full Name"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Phone Number *</label>
+                  <Input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="Your Phone Number"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">State *</label>
+                  <Select onValueChange={(value) => setFormData(prev => ({ ...prev, state: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select State" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AP">Andhra Pradesh</SelectItem>
+                      <SelectItem value="AR">Arunachal Pradesh</SelectItem>
+                      <SelectItem value="AS">Assam</SelectItem>
+                      <SelectItem value="BR">Bihar</SelectItem>
+                      <SelectItem value="CT">Chhattisgarh</SelectItem>
+                      <SelectItem value="GA">Goa</SelectItem>
+                      <SelectItem value="GJ">Gujarat</SelectItem>
+                      <SelectItem value="HR">Haryana</SelectItem>
+                      <SelectItem value="HP">Himachal Pradesh</SelectItem>
+                      <SelectItem value="JH">Jharkhand</SelectItem>
+                      <SelectItem value="KA">Karnataka</SelectItem>
+                      <SelectItem value="KL">Kerala</SelectItem>
+                      <SelectItem value="MP">Madhya Pradesh</SelectItem>
+                      <SelectItem value="MH">Maharashtra</SelectItem>
+                      <SelectItem value="MN">Manipur</SelectItem>
+                      <SelectItem value="ML">Meghalaya</SelectItem>
+                      <SelectItem value="MZ">Mizoram</SelectItem>
+                      <SelectItem value="NL">Nagaland</SelectItem>
+                      <SelectItem value="OR">Odisha</SelectItem>
+                      <SelectItem value="PB">Punjab</SelectItem>
+                      <SelectItem value="RJ">Rajasthan</SelectItem>
+                      <SelectItem value="SK">Sikkim</SelectItem>
+                      <SelectItem value="TN">Tamil Nadu</SelectItem>
+                      <SelectItem value="TG">Telangana</SelectItem>
+                      <SelectItem value="TR">Tripura</SelectItem>
+                      <SelectItem value="UP">Uttar Pradesh</SelectItem>
+                      <SelectItem value="UT">Uttarakhand</SelectItem>
+                      <SelectItem value="WB">West Bengal</SelectItem>
+                      <SelectItem value="AN">Andaman and Nicobar Islands</SelectItem>
+                      <SelectItem value="CH">Chandigarh</SelectItem>
+                      <SelectItem value="DN">Dadra and Nagar Haveli</SelectItem>
+                      <SelectItem value="DD">Daman and Diu</SelectItem>
+                      <SelectItem value="DL">Delhi</SelectItem>
+                      <SelectItem value="JK">Jammu and Kashmir</SelectItem>
+                      <SelectItem value="LA">Ladakh</SelectItem>
+                      <SelectItem value="LD">Lakshadweep</SelectItem>
+                      <SelectItem value="PY">Puducherry</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Company Address *</label>
+                <EnhancedLocationSelector
+                  onLocationSelect={handleLocationSelect}
+                />
+                {formData.address && (
+                  <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
+                    <strong>Selected:</strong> {formData.address}, {formData.city} - {formData.zipCode}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Company Description *</label>
+                <Textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Describe your company, services offered, and what makes you unique..."
+                  rows={4}
+                  required
+                  disabled={loading}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Years of Experience *</label>
+                <Select onValueChange={(value) => setFormData(prev => ({ ...prev, experience: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Experience" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1-2">1-2 years</SelectItem>
+                    <SelectItem value="3-5">3-5 years</SelectItem>
+                    <SelectItem value="6-10">6-10 years</SelectItem>
+                    <SelectItem value="10+">10+ years</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="hasMechanic"
+                  checked={formData.hasMechanic}
+                  onCheckedChange={(checked) => 
+                    setFormData(prev => ({ ...prev, hasMechanic: checked as boolean }))
+                  }
+                />
+                <label htmlFor="hasMechanic" className="text-sm font-medium">
+                  We also provide vehicle mechanic services
+                </label>
+              </div>
+
+              <div className="flex gap-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setStep(1)}
+                  disabled={loading}
+                  className="flex-1"
+                >
+                  Back
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={loading || !formData.address}
+                  className="flex-1"
+                >
+                  {loading ? 'Registering...' : 'Complete Registration'}
+                </Button>
+              </div>
+            </form>
           </CardContent>
         </Card>
-
-        {/* Submit Button */}
-        <div className="flex justify-center">
-          <Button 
-            type="submit" 
-            size="lg" 
-            disabled={loading}
-            className="min-w-48"
-          >
-            {loading ? 'Submitting...' : 'Register Company'}
-          </Button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 };

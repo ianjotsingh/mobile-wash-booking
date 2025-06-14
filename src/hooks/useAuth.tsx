@@ -140,13 +140,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('Starting signup process for:', email);
       
-      // Sign up without email confirmation
+      // Sign up without email confirmation - completely disable it
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: userData,
-          emailRedirectTo: undefined // Remove email redirect to skip verification
+          emailRedirectTo: undefined // No email redirect
         }
       });
       
@@ -166,8 +166,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { data: null, error };
       }
       
-      // Always return success for immediate signup
-      console.log('User created successfully');
+      // Return success immediately - no email confirmation needed
+      console.log('User created successfully without email confirmation');
       return { data, error: null };
       
     } catch (error) {
