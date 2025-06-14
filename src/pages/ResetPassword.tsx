@@ -17,6 +17,7 @@ const ResetPassword = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isValidSession, setIsValidSession] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -24,6 +25,7 @@ const ResetPassword = () => {
   useEffect(() => {
     const setupSession = async () => {
       console.log('Setting up password reset session...');
+      setCheckingSession(true);
       
       // Check if we have the required tokens from the URL
       const accessToken = searchParams.get('access_token');
@@ -38,6 +40,7 @@ const ResetPassword = () => {
       
       if (!accessToken || !refreshToken || type !== 'recovery') {
         console.log('Invalid or missing reset parameters');
+        setCheckingSession(false);
         toast({
           title: "Invalid Reset Link",
           description: "This password reset link is invalid or has expired. Please request a new one.",
@@ -56,6 +59,7 @@ const ResetPassword = () => {
         
         if (error) {
           console.error('Session setup error:', error);
+          setCheckingSession(false);
           toast({
             title: "Session Error",
             description: "Unable to verify reset link. Please request a new password reset.",
@@ -68,12 +72,14 @@ const ResetPassword = () => {
         if (data.session && data.user) {
           console.log('Session established for user:', data.user.email);
           setIsValidSession(true);
+          setCheckingSession(false);
           toast({
             title: "Ready to Reset",
             description: `Hello ${data.user.email}! You can now set your new password.`,
           });
         } else {
           console.log('No valid session created');
+          setCheckingSession(false);
           toast({
             title: "Session Error",
             description: "Could not establish a valid session. Please request a new password reset.",
@@ -83,6 +89,7 @@ const ResetPassword = () => {
         }
       } catch (error) {
         console.error('Unexpected error during session setup:', error);
+        setCheckingSession(false);
         toast({
           title: "Error",
           description: "An unexpected error occurred. Please try again.",
@@ -98,15 +105,6 @@ const ResetPassword = () => {
   const validatePassword = (pwd: string) => {
     if (pwd.length < 6) {
       return "Password must be at least 6 characters long";
-    }
-    if (!/(?=.*[a-z])/.test(pwd)) {
-      return "Password must contain at least one lowercase letter";
-    }
-    if (!/(?=.*[A-Z])/.test(pwd)) {
-      return "Password must contain at least one uppercase letter";
-    }
-    if (!/(?=.*\d)/.test(pwd)) {
-      return "Password must contain at least one number";
     }
     return null;
   };
@@ -171,7 +169,7 @@ const ResetPassword = () => {
         setIsSuccess(true);
         toast({
           title: "Password Updated!",
-          description: "Your password has been successfully updated. You will be redirected to sign in.",
+          description: "Your password has been successfully updated. You can now sign in with your new password.",
         });
         
         // Clear the session and redirect after a delay
@@ -201,7 +199,7 @@ const ResetPassword = () => {
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-green-800 mb-2">Password Updated!</h2>
               <p className="text-gray-600 mb-4">
-                Your password has been successfully changed. You will be redirected to the login page shortly.
+                Your password has been successfully changed. You can now sign in with your new password.
               </p>
               <Button
                 onClick={() => navigate('/')}
@@ -216,13 +214,13 @@ const ResetPassword = () => {
     );
   }
 
-  if (!isValidSession) {
+  if (checkingSession) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-100 via-white to-white flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="text-center">
-              <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
                 <span className="text-2xl">⏳</span>
               </div>
               <h2 className="text-xl font-bold text-gray-800 mb-2">Verifying Reset Link...</h2>
@@ -234,6 +232,7 @@ const ResetPassword = () => {
     );
   }
 
+  // Main password reset form - this should always show if we have a valid session
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-100 via-white to-white flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -243,13 +242,13 @@ const ResetPassword = () => {
           </div>
           <CardTitle className="text-2xl font-bold text-blue-900">Create New Password</CardTitle>
           <CardDescription>
-            Enter a strong password for your account
+            Enter a new password for your account
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handlePasswordReset} className="space-y-4">
+          <form onSubmit={handlePasswordReset} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="password">New Password</Label>
+              <Label htmlFor="password" className="text-sm font-medium">New Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -257,7 +256,7 @@ const ResetPassword = () => {
                   placeholder="Enter your new password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pr-10"
+                  className="pr-10 h-12"
                   required
                   minLength={6}
                 />
@@ -275,27 +274,11 @@ const ResetPassword = () => {
                   )}
                 </Button>
               </div>
-              <div className="text-xs text-gray-500 space-y-1">
-                <p>Password must contain:</p>
-                <ul className="ml-2 space-y-1">
-                  <li className={password.length >= 6 ? 'text-green-600' : ''}>
-                    • At least 6 characters
-                  </li>
-                  <li className={/(?=.*[a-z])/.test(password) ? 'text-green-600' : ''}>
-                    • One lowercase letter
-                  </li>
-                  <li className={/(?=.*[A-Z])/.test(password) ? 'text-green-600' : ''}>
-                    • One uppercase letter
-                  </li>
-                  <li className={/(?=.*\d)/.test(password) ? 'text-green-600' : ''}>
-                    • One number
-                  </li>
-                </ul>
-              </div>
+              <p className="text-xs text-gray-500">Password must be at least 6 characters long</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm New Password</Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
@@ -303,7 +286,7 @@ const ResetPassword = () => {
                   placeholder="Confirm your new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pr-10"
+                  className="pr-10 h-12"
                   required
                   minLength={6}
                 />
@@ -328,7 +311,7 @@ const ResetPassword = () => {
 
             <Button
               type="submit"
-              className="w-full bg-blue-700 hover:bg-blue-800"
+              className="w-full bg-blue-700 hover:bg-blue-800 h-12 text-base"
               disabled={loading || !password || !confirmPassword || password !== confirmPassword}
             >
               {loading ? 'Updating Password...' : 'Update Password'}
