@@ -21,6 +21,8 @@ const MobileApp = () => {
   const { user, loading } = useAuth();
   const [step, setStep] = useState<Step>('loading');
   const [userType, setUserType] = useState<'customer' | 'provider' | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [userAddress, setUserAddress] = useState<string>('');
 
   useEffect(() => {
     console.log('Auth is loading...', loading ? 'true' : 'false');
@@ -52,6 +54,19 @@ const MobileApp = () => {
       setStep('app');
     }
   }, [user, loading]);
+
+  // Get user location when authenticated
+  useEffect(() => {
+    if (user && !userLocation) {
+      const savedLocation = localStorage.getItem('userLocation');
+      const savedAddress = localStorage.getItem('userAddress');
+      
+      if (savedLocation && savedAddress) {
+        setUserLocation(JSON.parse(savedLocation));
+        setUserAddress(savedAddress);
+      }
+    }
+  }, [user, userLocation]);
 
   useEffect(() => {
     console.log('Rendering step:', step);
@@ -131,7 +146,10 @@ const MobileApp = () => {
               />
             )}
             {step === 'app' && user && (
-              <MobileAppMain />
+              <MobileAppMain 
+                userLocation={userLocation}
+                userAddress={userAddress}
+              />
             )}
           </>
         } />
