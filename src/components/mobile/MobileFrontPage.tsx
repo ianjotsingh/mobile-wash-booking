@@ -9,6 +9,24 @@ interface MobileFrontPageProps {
 }
 
 const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
+  const handleCustomerSelect = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    onUserTypeSelect('customer');
+  };
+
+  const handleProviderSelect = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    onUserTypeSelect('provider');
+  };
+
+  const handlePhoneLogin = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    onUserTypeSelect('customer');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-100 via-white to-white flex flex-col">
       <div className="flex-1 px-6 pt-16 pb-8 flex flex-col">
@@ -28,8 +46,9 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
           <Card className="shadow-lg border-2 border-transparent hover:border-blue-200 transition-all">
             <CardContent className="p-6">
               <Button
-                onClick={() => onUserTypeSelect('customer')}
-                className="w-full h-20 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl shadow-lg"
+                type="button"
+                onClick={handleCustomerSelect}
+                className="w-full h-20 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl shadow-lg touch-manipulation"
               >
                 <div className="flex items-center space-x-4">
                   <Car className="h-8 w-8" />
@@ -45,9 +64,10 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
           <Card className="shadow-lg border-2 border-transparent hover:border-blue-200 transition-all">
             <CardContent className="p-6">
               <Button
-                onClick={() => onUserTypeSelect('provider')}
+                type="button"
+                onClick={handleProviderSelect}
                 variant="outline"
-                className="w-full h-20 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 rounded-xl"
+                className="w-full h-20 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 rounded-xl touch-manipulation"
               >
                 <div className="flex items-center space-x-4">
                   <Building2 className="h-8 w-8" />
@@ -68,8 +88,9 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
           </div>
           
           <Button
+            type="button"
             variant="outline"
-            className="w-full h-14 border-2 border-gray-300 text-gray-700 rounded-xl flex items-center justify-center space-x-3"
+            className="w-full h-14 border-2 border-gray-300 text-gray-700 rounded-xl flex items-center justify-center space-x-3 touch-manipulation"
             disabled
           >
             <div className="w-6 h-6 bg-red-500 rounded"></div>
@@ -77,9 +98,10 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
           </Button>
 
           <Button
+            type="button"
             variant="outline"
-            className="w-full h-14 border-2 border-gray-300 text-gray-700 rounded-xl flex items-center justify-center space-x-3"
-            onClick={() => onUserTypeSelect('customer')}
+            className="w-full h-14 border-2 border-gray-300 text-gray-700 rounded-xl flex items-center justify-center space-x-3 touch-manipulation"
+            onClick={handlePhoneLogin}
           >
             <Phone className="h-6 w-6 text-blue-600" />
             <span className="text-lg font-semibold">Continue with Phone</span>

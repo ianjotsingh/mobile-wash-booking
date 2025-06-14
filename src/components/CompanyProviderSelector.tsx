@@ -17,9 +17,7 @@ interface Company {
   distance: number;
   estimatedTime: string;
   pricing: {
-    basic: number;
-    premium: number;
-    deluxe: number;
+    [key: string]: number;
   };
   status: 'approved' | 'pending' | 'rejected';
   location: string;
@@ -51,35 +49,51 @@ const CompanyProviderSelector = ({
   const fetchCompanies = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Fetch companies with their pricing
+      const { data: companiesData, error: companiesError } = await supabase
         .from('companies')
-        .select('*')
+        .select(`
+          *,
+          company_service_pricing(
+            service_id,
+            service_name,
+            base_price,
+            is_available
+          )
+        `)
         .eq('status', 'approved');
 
-      if (error) throw error;
+      if (companiesError) throw companiesError;
 
       // Transform the data to match our interface
-      const transformedCompanies: Company[] = data?.map(company => ({
-        id: company.id,
-        name: company.company_name || 'Unknown Company',
-        description: company.description || 'Professional car wash service',
-        services: company.services || [selectedService],
-        rating: 4.5 + Math.random() * 0.5, // Mock rating
-        reviews: Math.floor(Math.random() * 200) + 50, // Mock reviews
-        distance: Math.round((Math.random() * 10 + 1) * 10) / 10, // Mock distance
-        estimatedTime: `${Math.floor(Math.random() * 30) + 15} mins`,
-        pricing: {
-          basic: 299,
-          premium: 499,
-          deluxe: 699
-        },
-        status: company.status as 'approved',
-        location: `${company.city || 'Mumbai'}, ${company.address || ''}`
-      })) || [];
+      const transformedCompanies: Company[] = companiesData?.map(company => {
+        // Create pricing object from company_service_pricing
+        const pricing: { [key: string]: number } = {};
+        company.company_service_pricing?.forEach((service: any) => {
+          if (service.is_available) {
+            pricing[service.service_id] = service.base_price;
+          }
+        });
 
-      // Filter companies that offer the selected service
+        return {
+          id: company.id,
+          name: company.company_name || 'Unknown Company',
+          description: company.description || 'Professional service provider',
+          services: company.services || [selectedService],
+          rating: 4.2 + Math.random() * 0.8, // Mock rating between 4.2-5.0
+          reviews: Math.floor(Math.random() * 150) + 25, // Mock reviews 25-175
+          distance: Math.round((Math.random() * 8 + 0.5) * 10) / 10, // Mock distance 0.5-8.5km
+          estimatedTime: `${Math.floor(Math.random() * 25) + 10} mins`, // 10-35 mins
+          pricing,
+          status: company.status as 'approved',
+          location: `${company.city || 'Mumbai'}, ${company.address || ''}`
+        };
+      }) || [];
+
+      // Filter companies that have pricing for the selected service
       const filteredCompanies = transformedCompanies.filter(company => 
-        company.services.includes(selectedService)
+        company.pricing[selectedService] !== undefined
       );
 
       setCompanies(filteredCompanies);
@@ -102,20 +116,36 @@ const CompanyProviderSelector = ({
       case 'rating':
         return b.rating - a.rating;
       case 'price':
-        return a.pricing.basic - b.pricing.basic;
+        const priceA = a.pricing[selectedService] || 0;
+        const priceB = b.pricing[selectedService] || 0;
+        return priceA - priceB;
       default:
         return 0;
     }
   });
 
-  const handleProviderSelect = (provider: Company) => {
+  const handleProviderSelect = (provider: Company, e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     setSelectedProvider(provider);
   };
 
-  const handleBookNow = () => {
+  const handleBookNow = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     if (selectedProvider) {
       onProviderSelect(selectedProvider);
     }
+  };
+
+  const handleBackClick = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    onBack();
+  };
+
+  const formatPrice = (priceInPaise: number): string => {
+    return `₹${Math.floor(priceInPaise / 100)}`;
   };
 
   if (loading) {
@@ -145,13 +175,14 @@ const CompanyProviderSelector = ({
         <div className="max-w-md mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <button 
-              onClick={onBack}
-              className="text-gray-600 hover:text-gray-900"
+              type="button"
+              onClick={handleBackClick}
+              className="text-gray-600 hover:text-gray-900 touch-manipulation"
             >
               ← Back
             </button>
             <h1 className="text-lg font-semibold">{selectedService}</h1>
-            <button className="text-gray-600">
+            <button type="button" className="text-gray-600 touch-manipulation">
               <Filter className="h-5 w-5" />
             </button>
           </div>
@@ -167,8 +198,9 @@ const CompanyProviderSelector = ({
             {(['distance', 'rating', 'price'] as const).map((option) => (
               <button
                 key={option}
+                type="button"
                 onClick={() => setSortBy(option)}
-                className={`px-3 py-1 rounded-full text-xs font-medium ${
+                className={`px-3 py-1 rounded-full text-xs font-medium touch-manipulation ${
                   sortBy === option
                     ? 'bg-emerald-100 text-emerald-700'
                     : 'bg-gray-100 text-gray-600'
@@ -187,12 +219,12 @@ const CompanyProviderSelector = ({
         {sortedCompanies.map((company) => (
           <Card 
             key={company.id}
-            className={`cursor-pointer transition-all ${
+            className={`cursor-pointer transition-all touch-manipulation ${
               selectedProvider?.id === company.id 
                 ? 'ring-2 ring-emerald-500 bg-emerald-50' 
                 : 'hover:shadow-md'
             }`}
-            onClick={() => handleProviderSelect(company)}
+            onClick={(e) => handleProviderSelect(company, e)}
           >
             <CardContent className="p-4">
               <div className="flex justify-between items-start mb-2">
@@ -221,12 +253,8 @@ const CompanyProviderSelector = ({
               </div>
 
               <div className="flex items-center justify-between">
-                <div className="flex space-x-2">
-                  {Object.entries(company.pricing).map(([type, price]) => (
-                    <Badge key={type} variant="outline" className="text-xs">
-                      {type}: ₹{price}
-                    </Badge>
-                  ))}
+                <div className="text-lg font-bold text-emerald-600">
+                  {company.pricing[selectedService] ? formatPrice(company.pricing[selectedService]) : 'Contact for pricing'}
                 </div>
               </div>
             </CardContent>
@@ -239,10 +267,11 @@ const CompanyProviderSelector = ({
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4">
           <div className="max-w-md mx-auto">
             <Button 
+              type="button"
               onClick={handleBookNow}
-              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white h-12"
+              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white h-12 touch-manipulation"
             >
-              Book {selectedProvider.name} - ₹{selectedProvider.pricing.basic}+
+              Book {selectedProvider.name} - {selectedProvider.pricing[selectedService] ? formatPrice(selectedProvider.pricing[selectedService]) : 'Get Quote'}
             </Button>
           </div>
         </div>

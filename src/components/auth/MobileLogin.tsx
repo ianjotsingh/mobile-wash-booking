@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,7 +26,10 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
 
-  const handleSendOTP = async () => {
+  const handleSendOTP = async (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    
     if (!phoneNumber || phoneNumber.length < 10) {
       toast({
         title: "Error",
@@ -37,13 +41,9 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
 
     setLoading(true);
     try {
-      // Generate OTP
       const generatedOTP = generateOTP();
-      
-      // Store OTP locally
       storeOTP(phoneNumber, generatedOTP);
 
-      // Send OTP via Twilio
       const { data, error } = await supabase.functions.invoke('send-otp', {
         body: {
           phone: phoneNumber,
@@ -80,7 +80,10 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
     }
   };
 
-  const handleVerifyOTP = async () => {
+  const handleVerifyOTP = async (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    
     if (otp.length !== 6) {
       toast({
         title: "Error",
@@ -92,7 +95,6 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
 
     setLoading(true);
     try {
-      // Verify OTP
       const isValid = verifyOTP(phoneNumber, otp);
       
       if (!isValid) {
@@ -105,7 +107,6 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
         return;
       }
 
-      // OTP is valid, proceed with authentication
       onSuccess();
       toast({
         title: "Success",
@@ -124,7 +125,10 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
     }
   };
 
-  const handleEmailLogin = async () => {
+  const handleEmailLogin = async (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    
     if (!email || !password) {
       toast({
         title: "Error",
@@ -154,6 +158,18 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
       });
     }
     setLoading(false);
+  };
+
+  const handleBackToPhone = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    setStep('phone');
+  };
+
+  const handleEmailStep = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    setStep('email');
   };
 
   return (
@@ -191,9 +207,10 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
                 </div>
               </div>
               <Button
+                type="button"
                 onClick={handleSendOTP}
                 disabled={loading || phoneNumber.length < 10}
-                className="w-full bg-blue-700 hover:bg-blue-900 text-white h-14 rounded-2xl text-lg font-extrabold shadow"
+                className="w-full bg-blue-700 hover:bg-blue-900 text-white h-14 rounded-2xl text-lg font-extrabold shadow touch-manipulation"
               >
                 {loading ? 'Sending OTP...' : 'Send OTP'}
               </Button>
@@ -201,14 +218,20 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
                 or continue with
               </div>
               <div className="space-y-3">
-                <Button variant="outline" className="w-full h-12 rounded-xl flex items-center justify-center text-gray-600 bg-gray-50" disabled>
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  className="w-full h-12 rounded-xl flex items-center justify-center text-gray-600 bg-gray-50 touch-manipulation" 
+                  disabled
+                >
                   <div className="w-5 h-5 bg-red-500 rounded mr-2"></div>
                   Continue with Google
                 </Button>
                 <Button 
+                  type="button"
                   variant="outline" 
-                  className="w-full h-12 rounded-xl flex items-center justify-center text-gray-600 bg-gray-50"
-                  onClick={() => setStep('email')}
+                  className="w-full h-12 rounded-xl flex items-center justify-center text-gray-600 bg-gray-50 touch-manipulation"
+                  onClick={handleEmailStep}
                 >
                   <div className="w-5 h-5 bg-blue-500 rounded mr-2"></div>
                   Continue with Email
@@ -243,16 +266,18 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
                 </InputOTP>
               </div>
               <Button
+                type="button"
                 onClick={handleVerifyOTP}
                 disabled={loading || otp.length !== 6}
-                className="w-full bg-blue-700 hover:bg-blue-900 text-white h-14 rounded-2xl font-bold"
+                className="w-full bg-blue-700 hover:bg-blue-900 text-white h-14 rounded-2xl font-bold touch-manipulation"
               >
                 {loading ? 'Verifying...' : 'Verify OTP'}
               </Button>
               <Button
+                type="button"
                 variant="ghost"
-                onClick={() => setStep('phone')}
-                className="w-full text-blue-500 font-semibold"
+                onClick={handleBackToPhone}
+                className="w-full text-blue-500 font-semibold touch-manipulation"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Change Phone Number
@@ -277,16 +302,18 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
                 className="rounded-xl bg-blue-50"
               />
               <Button
+                type="button"
                 onClick={handleEmailLogin}
                 disabled={loading}
-                className="w-full bg-blue-700 hover:bg-blue-900 text-white h-14 rounded-2xl font-bold"
+                className="w-full bg-blue-700 hover:bg-blue-900 text-white h-14 rounded-2xl font-bold touch-manipulation"
               >
                 {loading ? 'Signing in...' : 'Sign In'}
               </Button>
               <Button
+                type="button"
                 variant="ghost"
-                onClick={() => setStep('phone')}
-                className="w-full text-blue-500"
+                onClick={handleBackToPhone}
+                className="w-full text-blue-500 touch-manipulation"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Phone Login
