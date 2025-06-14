@@ -6,13 +6,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Car, MapPin, Clock } from 'lucide-react';
+import { ArrowLeft, Car, MapPin, Clock, CalendarIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import AuthModal from '@/components/AuthModal';
 import EnhancedLocationSelector from '@/components/EnhancedLocationSelector';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const WashBookingDetails = () => {
   const navigate = useNavigate();
@@ -20,6 +24,7 @@ const WashBookingDetails = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [bookingDate, setBookingDate] = useState<Date | undefined>(undefined);
   const [locationData, setLocationData] = useState<{
     lat: number;
     lng: number;
@@ -88,10 +93,10 @@ const WashBookingDetails = () => {
       return;
     }
 
-    if (!formData.carType || !formData.carNumber || !locationData || !formData.timeSlot || !formData.washPlan) {
+    if (!formData.carType || !formData.carNumber || !locationData || !bookingDate || !formData.timeSlot || !formData.washPlan) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields including location",
+        description: "Please fill in all required fields including date and location",
         variant: "destructive"
       });
       return;
@@ -100,11 +105,6 @@ const WashBookingDetails = () => {
     setLoading(true);
     
     try {
-      // Get tomorrow's date as default
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const defaultDate = tomorrow.toISOString().split('T')[0];
-
       const orderData = {
         user_id: user.id,
         service_type: formData.washPlan,
@@ -113,7 +113,7 @@ const WashBookingDetails = () => {
         zip_code: locationData.zipCode,
         latitude: locationData.lat,
         longitude: locationData.lng,
-        booking_date: defaultDate,
+        booking_date: format(bookingDate, 'yyyy-MM-dd'),
         booking_time: formData.timeSlot.split(' ')[0],
         car_type: formData.carType,
         car_model: formData.carNumber,
@@ -133,7 +133,7 @@ const WashBookingDetails = () => {
 
       toast({
         title: "Booking Confirmed!",
-        description: `Your ${formData.washPlan} has been booked for ${formData.timeSlot}. Nearby companies will be notified.`
+        description: `Your ${formData.washPlan} has been booked for ${format(bookingDate, "PPP")} at ${formData.timeSlot}. Nearby companies will be notified.`
       });
 
       navigate('/order-history');
@@ -148,6 +148,8 @@ const WashBookingDetails = () => {
       setLoading(false);
     }
   };
+
+  const today = new Date();
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -235,6 +237,35 @@ const WashBookingDetails = () => {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Date Selection */}
+          <div>
+            <Label htmlFor="bookingDate">Service Date *</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !bookingDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {bookingDate ? format(bookingDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={bookingDate}
+                  onSelect={setBookingDate}
+                  disabled={(date) => date < today}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Time Slot */}

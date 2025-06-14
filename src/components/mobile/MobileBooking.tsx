@@ -5,11 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Clock, Car, MapPin } from 'lucide-react';
+import { Calendar, Clock, Car, MapPin, CalendarIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import EnhancedLocationSelector from '@/components/EnhancedLocationSelector';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const MobileBooking = () => {
   const [serviceType, setServiceType] = useState('');
@@ -20,7 +24,7 @@ const MobileBooking = () => {
     city: string;
     zipCode: string;
   } | null>(null);
-  const [bookingDate, setBookingDate] = useState('');
+  const [bookingDate, setBookingDate] = useState<Date | undefined>(undefined);
   const [bookingTime, setBookingTime] = useState('');
   const [carType, setCarType] = useState('');
   const [carColor, setCarColor] = useState('');
@@ -76,7 +80,7 @@ const MobileBooking = () => {
         zip_code: location.zipCode,
         latitude: location.lat,
         longitude: location.lng,
-        booking_date: bookingDate,
+        booking_date: format(bookingDate, 'yyyy-MM-dd'),
         booking_time: bookingTime,
         car_type: carType,
         car_color: carColor,
@@ -108,7 +112,7 @@ const MobileBooking = () => {
       // Reset form
       setServiceType('');
       setLocation(null);
-      setBookingDate('');
+      setBookingDate(undefined);
       setBookingTime('');
       setCarType('');
       setCarColor('');
@@ -128,7 +132,7 @@ const MobileBooking = () => {
     }
   };
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date();
   const timeSlots = [
     '09:00', '10:00', '11:00', '12:00',
     '13:00', '14:00', '15:00', '16:00',
@@ -172,16 +176,30 @@ const MobileBooking = () => {
             {/* Date Selection */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Booking Date</label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  type="date"
-                  value={bookingDate}
-                  onChange={(e) => setBookingDate(e.target.value)}
-                  min={today}
-                  className="pl-10"
-                />
-              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !bookingDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {bookingDate ? format(bookingDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={bookingDate}
+                    onSelect={setBookingDate}
+                    disabled={(date) => date < today}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Time Selection */}
