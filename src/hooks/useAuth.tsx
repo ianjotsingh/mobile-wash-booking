@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -83,7 +82,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Check if user exists with this phone number
       const { data: userProfile, error: profileError } = await supabase
         .from('user_profiles')
-        .select('user_id, phone')
+        .select('user_id, phone, full_name')
         .eq('phone', phone)
         .single();
 
@@ -95,36 +94,64 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         };
       }
 
-      // Get the user's email to send a password reset
-      const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userProfile.user_id);
-      
-      if (authError || !authUser.user) {
-        console.error('Could not retrieve user:', authError);
-        return { 
-          data: null, 
-          error: { message: 'Unable to reset password. Please try again.' }
-        };
-      }
+      console.log('Found user profile:', userProfile.user_id);
 
-      // Send password reset email as fallback
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-        authUser.user.email!,
+      // Update the user's password directly using admin function
+      const { error: updateError } = await supabase.auth.admin.updateUserById(
+        userProfile.user_id,
         {
-          redirectTo: `${window.location.origin}/reset-password`
+          password: newPassword
         }
       );
 
-      if (resetError) {
-        console.error('Password reset error:', resetError);
-        return { 
-          data: null, 
-          error: { message: 'Failed to reset password' }
-        };
+      if (updateError) {
+        console.error('Password update error:', updateError);
+        // If admin update fails, try using the user's auth session
+        try {
+          // First get the user's email from auth.users
+          const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userProfile.user_id);
+          
+          if (authError || !authUser.user) {
+            console.error('Could not retrieve user:', authError);
+            return { 
+              data: null, 
+              error: { message: 'Unable to reset password. Please try again.' }
+            };
+          }
+
+          // Send password reset email as fallback
+          const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+            authUser.user.email!,
+            {
+              redirectTo: `${window.location.origin}/reset-password`
+            }
+          );
+
+          if (resetError) {
+            console.error('Password reset email error:', resetError);
+            return { 
+              data: null, 
+              error: { message: 'Unable to reset password. Please contact support.' }
+            };
+          }
+
+          console.log('Password reset email sent as fallback');
+          return { 
+            data: { success: true, method: 'email' }, 
+            error: null 
+          };
+        } catch (fallbackError) {
+          console.error('Fallback reset error:', fallbackError);
+          return { 
+            data: null, 
+            error: { message: 'Unable to reset password. Please contact support.' }
+          };
+        }
       }
 
-      console.log('Password reset email sent successfully');
+      console.log('Password updated successfully for user:', userProfile.user_id);
       return { 
-        data: { success: true }, 
+        data: { success: true, method: 'direct' }, 
         error: null 
       };
     } catch (error) {

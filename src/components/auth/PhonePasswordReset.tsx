@@ -75,8 +75,8 @@ const PhonePasswordReset = ({ onBack, onSuccess }: PhonePasswordResetProps) => {
         });
       } else {
         toast({
-          title: "Password Reset Email Sent",
-          description: "Please check your email for password reset instructions",
+          title: "Password Reset Successful",
+          description: "Your password has been reset successfully. You can now sign in with your new password.",
         });
         onSuccess();
       }
