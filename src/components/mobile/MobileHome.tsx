@@ -79,10 +79,7 @@ const MobileHome = ({ userLocation, userAddress }: MobileHomeProps) => {
   };
 
   const handleQuickBook = () => {
-    if (services.length > 0) {
-      const popularService = services.find(s => s.popular) || services[0];
-      handleServiceSelect(popularService);
-    }
+    window.location.href = '/book-service?service=wash&mobile=true';
   };
 
   const handleSchedule = () => {
@@ -91,7 +88,7 @@ const MobileHome = ({ userLocation, userAddress }: MobileHomeProps) => {
   };
 
   const handleCallMechanic = () => {
-    navigate('/mechanic-request');
+    window.location.href = '/book-service?service=mechanic&mobile=true';
   };
 
   const formatDuration = (minutes: number): string => {

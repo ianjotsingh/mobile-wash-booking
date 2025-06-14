@@ -70,19 +70,11 @@ const Navigation = () => {
   };
 
   const handleMechanicRequest = () => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
-    navigate('/mechanic-request');
+    navigate('/book-service?service=mechanic');
   };
 
   const handleBookNow = () => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
-    navigate('/booking');
+    navigate('/book-service?service=wash');
   };
 
   return (
