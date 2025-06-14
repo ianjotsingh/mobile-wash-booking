@@ -19,7 +19,7 @@ const CompanyRegistration = () => {
   const { signUp } = useAuth();
   const navigate = useNavigate();
   
-  const [authData, setAuthData] = useState({
+  const [authFormData, setAuthFormData] = useState({
     email: '',
     password: '',
     confirmPassword: ''
@@ -33,6 +33,7 @@ const CompanyRegistration = () => {
     description: '',
     experience: '',
     hasMechanic: false,
+    services: [] as string[],
     address: '',
     city: '',
     state: '',
@@ -41,10 +42,21 @@ const CompanyRegistration = () => {
     lng: 0
   });
 
+  const availableServices = [
+    'Basic Wash',
+    'Premium Wash',
+    'Full Detail',
+    'Interior Cleaning',
+    'Exterior Wash',
+    'Wax & Polish',
+    'Engine Cleaning',
+    'Tire Service'
+  ];
+
   const handleAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (authData.password !== authData.confirmPassword) {
+    if (authFormData.password !== authFormData.confirmPassword) {
       toast({
         title: "Error",
         description: "Passwords do not match",
@@ -53,7 +65,7 @@ const CompanyRegistration = () => {
       return;
     }
 
-    if (authData.password.length < 6) {
+    if (authFormData.password.length < 6) {
       toast({
         title: "Error", 
         description: "Password must be at least 6 characters long",
@@ -62,7 +74,7 @@ const CompanyRegistration = () => {
       return;
     }
 
-    setFormData(prev => ({ ...prev, email: authData.email }));
+    setFormData(prev => ({ ...prev, email: authFormData.email }));
     setStep(2);
   };
 
@@ -83,6 +95,15 @@ const CompanyRegistration = () => {
     }));
   };
 
+  const handleServiceToggle = (service: string) => {
+    setFormData(prev => ({
+      ...prev,
+      services: prev.services.includes(service)
+        ? prev.services.filter(s => s !== service)
+        : [...prev.services, service]
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -90,15 +111,24 @@ const CompanyRegistration = () => {
     try {
       console.log('Starting company registration process...');
       
-      // First create the user account without email confirmation
+      if (formData.services.length === 0) {
+        toast({
+          title: "Error",
+          description: "Please select at least one service",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // First create the user account
       const userData = {
         full_name: formData.ownerName,
         role: 'provider'
       };
 
-      const { data: authData, error: authError } = await signUp(
+      const { data: authResult, error: authError } = await signUp(
         formData.email, 
-        authData.password, 
+        authFormData.password, 
         userData
       );
 
@@ -112,7 +142,7 @@ const CompanyRegistration = () => {
         return;
       }
 
-      if (!authData?.user) {
+      if (!authResult?.user) {
         toast({
           title: "Registration Failed", 
           description: "Failed to create user account",
@@ -133,13 +163,14 @@ const CompanyRegistration = () => {
           description: formData.description,
           experience: formData.experience,
           has_mechanic: formData.hasMechanic,
+          services: formData.services,
           address: formData.address,
           city: formData.city,
           state: formData.state,
           zip_code: formData.zipCode,
           latitude: formData.lat,
           longitude: formData.lng,
-          user_id: authData.user.id
+          user_id: authResult.user.id
         }
       });
 
@@ -192,8 +223,8 @@ const CompanyRegistration = () => {
                   <Input
                     type="email"
                     placeholder="Email Address"
-                    value={authData.email}
-                    onChange={(e) => setAuthData(prev => ({ ...prev, email: e.target.value }))}
+                    value={authFormData.email}
+                    onChange={(e) => setAuthFormData(prev => ({ ...prev, email: e.target.value }))}
                     required
                     disabled={loading}
                   />
@@ -203,8 +234,8 @@ const CompanyRegistration = () => {
                   <Input
                     type="password"
                     placeholder="Password (min 6 characters)"
-                    value={authData.password}
-                    onChange={(e) => setAuthData(prev => ({ ...prev, password: e.target.value }))}
+                    value={authFormData.password}
+                    onChange={(e) => setAuthFormData(prev => ({ ...prev, password: e.target.value }))}
                     required
                     minLength={6}
                     disabled={loading}
@@ -215,8 +246,8 @@ const CompanyRegistration = () => {
                   <Input
                     type="password"
                     placeholder="Confirm Password"
-                    value={authData.confirmPassword}
-                    onChange={(e) => setAuthData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    value={authFormData.confirmPassword}
+                    onChange={(e) => setAuthFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
                     required
                     disabled={loading}
                   />
@@ -225,6 +256,17 @@ const CompanyRegistration = () => {
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? 'Processing...' : 'Continue to Company Details'}
                 </Button>
+
+                <div className="text-center">
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    onClick={() => navigate('/mechanic-signup')}
+                    className="text-sm"
+                  >
+                    Register as Individual Mechanic Instead
+                  </Button>
+                </div>
               </form>
             </CardContent>
           </Card>
@@ -344,6 +386,24 @@ const CompanyRegistration = () => {
               </div>
 
               <div>
+                <label className="block text-sm font-medium mb-2">Services Offered *</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {availableServices.map((service) => (
+                    <div key={service} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={service}
+                        checked={formData.services.includes(service)}
+                        onCheckedChange={() => handleServiceToggle(service)}
+                      />
+                      <label htmlFor={service} className="text-sm font-medium">
+                        {service}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium mb-2">Company Description *</label>
                 <Textarea
                   value={formData.description}
@@ -395,7 +455,7 @@ const CompanyRegistration = () => {
                 </Button>
                 <Button 
                   type="submit" 
-                  disabled={loading || !formData.address}
+                  disabled={loading || !formData.address || formData.services.length === 0}
                   className="flex-1"
                 >
                   {loading ? 'Registering...' : 'Complete Registration'}

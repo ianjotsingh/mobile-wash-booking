@@ -13,67 +13,95 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
+    const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const authHeader = req.headers.get('Authorization')!
-    const token = authHeader.replace('Bearer ', '')
-    const { data: user } = await supabase.auth.getUser(token)
+    const {
+      company_name,
+      owner_name,
+      email,
+      phone,
+      description,
+      experience,
+      has_mechanic,
+      services,
+      address,
+      city,
+      state,
+      zip_code,
+      latitude,
+      longitude,
+      user_id
+    } = await req.json()
 
-    if (!user.user) {
-      throw new Error('User not authenticated')
-    }
+    console.log('Registering company with data:', {
+      company_name,
+      owner_name,
+      email,
+      phone,
+      has_mechanic,
+      services,
+      address,
+      city,
+      state,
+      zip_code,
+      latitude,
+      longitude,
+      user_id
+    })
 
-    const companyData = await req.json()
-
-    // Create the company registration
-    const { data: company, error } = await supabase
+    // Insert company data
+    const { data: company, error: companyError } = await supabaseClient
       .from('companies')
       .insert({
-        user_id: user.user.id,
-        company_name: companyData.companyName,
-        owner_name: companyData.ownerName,
-        email: companyData.email,
-        phone: companyData.phone,
-        address: companyData.address,
-        city: companyData.city,
-        zip_code: companyData.zipCode,
-        description: companyData.description,
-        experience: companyData.experience,
-        services: companyData.services,
+        company_name,
+        owner_name,
+        email,
+        phone,
+        description,
+        experience,
+        has_mechanic: has_mechanic || false,
+        services: services || [],
+        address,
+        city,
+        state,
+        zip_code,
+        latitude: latitude || null,
+        longitude: longitude || null,
+        user_id,
         status: 'pending'
       })
       .select()
       .single()
 
-    if (error) {
-      throw error
+    if (companyError) {
+      console.error('Company registration error:', companyError)
+      throw companyError
     }
 
-    // Update user role to company
-    await supabase
-      .from('user_profiles')
-      .update({ role: 'company' })
-      .eq('user_id', user.user.id)
+    console.log('Company registered successfully:', company)
 
     return new Response(
-      JSON.stringify({ company }),
+      JSON.stringify({ 
+        success: true, 
+        company_id: company.id,
+        message: 'Company registered successfully' 
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
       }
     )
+
   } catch (error) {
+    console.error('Registration function error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: 'Company registration failed'
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400 
