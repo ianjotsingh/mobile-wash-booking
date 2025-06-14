@@ -3,13 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Calendar, Clock, Car, Star } from 'lucide-react';
+import { MapPin, Calendar, Clock, Car, Star, DollarSign } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import Navigation from '@/components/Navigation';
 import AuthModal from '@/components/AuthModal';
 import FeedbackModal from '@/components/FeedbackModal';
+import QuoteViewer from '@/components/QuoteViewer';
 
 interface Order {
   id: string;
@@ -31,6 +32,7 @@ interface Order {
 const OrderHistory = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [feedbackModal, setFeedbackModal] = useState<{isOpen: boolean, orderId: string, companyName: string}>({
     isOpen: false,
     orderId: '',
@@ -73,6 +75,7 @@ const OrderHistory = () => {
     switch (status) {
       case 'completed':
         return 'bg-green-100 text-green-800';
+      case 'confirmed':
       case 'in_progress':
         return 'bg-blue-100 text-blue-800';
       case 'pending':
@@ -105,6 +108,10 @@ const OrderHistory = () => {
       orderId: '',
       companyName: ''
     });
+  };
+
+  const toggleOrderExpansion = (orderId: string) => {
+    setExpandedOrder(expandedOrder === orderId ? null : orderId);
   };
 
   if (!user) {
@@ -213,16 +220,35 @@ const OrderHistory = () => {
                     )}
                   </div>
                   
-                  {order.status === 'completed' && (
+                  <div className="mt-4 pt-4 border-t flex justify-between items-center">
+                    <div className="flex space-x-2">
+                      {order.status === 'completed' && (
+                        <Button
+                          onClick={() => openFeedbackModal(order.id)}
+                          variant="outline"
+                          className="flex items-center space-x-2"
+                        >
+                          <Star className="h-4 w-4" />
+                          <span>Rate Service</span>
+                        </Button>
+                      )}
+                      {(order.status === 'pending' || order.status === 'confirmed') && (
+                        <Button
+                          onClick={() => toggleOrderExpansion(order.id)}
+                          variant="outline"
+                          className="flex items-center space-x-2"
+                        >
+                          <DollarSign className="h-4 w-4" />
+                          <span>View Quotes</span>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Expanded section for quotes */}
+                  {expandedOrder === order.id && (
                     <div className="mt-4 pt-4 border-t">
-                      <Button
-                        onClick={() => openFeedbackModal(order.id)}
-                        variant="outline"
-                        className="flex items-center space-x-2"
-                      >
-                        <Star className="h-4 w-4" />
-                        <span>Rate Service</span>
-                      </Button>
+                      <QuoteViewer orderId={order.id} />
                     </div>
                   )}
                 </CardContent>

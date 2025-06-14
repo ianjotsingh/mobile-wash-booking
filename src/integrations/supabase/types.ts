@@ -243,6 +243,7 @@ export type Database = {
           is_read: boolean | null
           message: string
           order_id: string | null
+          quote_id: string | null
           title: string
         }
         Insert: {
@@ -252,6 +253,7 @@ export type Database = {
           is_read?: boolean | null
           message: string
           order_id?: string | null
+          quote_id?: string | null
           title: string
         }
         Update: {
@@ -261,6 +263,7 @@ export type Database = {
           is_read?: boolean | null
           message?: string
           order_id?: string | null
+          quote_id?: string | null
           title?: string
         }
         Relationships: [
@@ -273,6 +276,64 @@ export type Database = {
           },
           {
             foreignKeyName: "notifications_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "order_quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_quotes: {
+        Row: {
+          additional_notes: string | null
+          company_id: string
+          created_at: string
+          estimated_duration: number | null
+          id: string
+          order_id: string
+          quoted_price: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          additional_notes?: string | null
+          company_id: string
+          created_at?: string
+          estimated_duration?: number | null
+          id?: string
+          order_id: string
+          quoted_price: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          additional_notes?: string | null
+          company_id?: string
+          created_at?: string
+          estimated_duration?: number | null
+          id?: string
+          order_id?: string
+          quoted_price?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_quotes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_quotes_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
