@@ -45,19 +45,84 @@ const CompanyMobileDashboard = () => {
     }
   }, [user]);
 
+  // Set up real-time subscription for new orders
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('Setting up real-time subscription for orders...');
+    
+    const channel = supabase
+      .channel('order-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload) => {
+          console.log('New order received:', payload);
+          fetchCompanyOrders(); // Refresh orders when new order is created
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'order_quotes'
+        },
+        (payload) => {
+          console.log('New quote received:', payload);
+          fetchCompanyOrders(); // Refresh orders when new quote is created
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   const fetchCompanyOrders = async () => {
     try {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (!currentUser) return;
 
+      console.log('Fetching company orders for user:', currentUser.id);
+
       // Get company ID
-      const { data: companyData } = await supabase
+      const { data: companyData, error: companyError } = await supabase
         .from('companies')
-        .select('id')
+        .select('id, latitude, longitude')
         .eq('user_id', currentUser.id)
         .single();
 
-      if (!companyData) return;
+      if (companyError) {
+        console.error('Error fetching company:', companyError);
+        return;
+      }
+
+      if (!companyData) {
+        console.log('No company found for user');
+        return;
+      }
+
+      console.log('Company data:', companyData);
+
+      // First, let's fetch all pending orders to see what's available
+      const { data: allOrders, error: ordersError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (ordersError) {
+        console.error('Error fetching all orders:', ordersError);
+      } else {
+        console.log('All pending orders:', allOrders);
+      }
 
       // Fetch orders with quotes from this company
       const { data: quotes, error } = await supabase
@@ -69,14 +134,19 @@ const CompanyMobileDashboard = () => {
             service_type,
             address,
             status,
-            user_id
+            user_id,
+            created_at
           )
         `)
         .eq('company_id', companyData.id)
-        .eq('status', 'accepted')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching quotes:', error);
+        throw error;
+      }
+
+      console.log('Quotes for company:', quotes);
 
       // Get user profile data separately for each order
       const ordersWithCustomerData = await Promise.all(
@@ -103,7 +173,9 @@ const CompanyMobileDashboard = () => {
         })
       );
 
-      setOrders(ordersWithCustomerData.filter(order => order !== null) as Order[]);
+      const validOrders = ordersWithCustomerData.filter(order => order !== null) as Order[];
+      console.log('Processed orders:', validOrders);
+      setOrders(validOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
@@ -212,7 +284,7 @@ const CompanyMobileDashboard = () => {
             <div className="flex items-center space-x-2">
               <DollarSign className="h-5 w-5 text-green-400" />
               <div>
-                <p className="text-2xl font-bold text-white">{formatPrice(stats.todayEarnings)}</p>
+                <p className="text-2xl font-bold text-white">₹{stats.todayEarnings}</p>
                 <p className="text-xs text-gray-400">Today's Earnings</p>
               </div>
             </div>
@@ -247,6 +319,12 @@ const CompanyMobileDashboard = () => {
               <div className="text-center py-8">
                 <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-400">No active orders at the moment</p>
+                <Button 
+                  onClick={fetchCompanyOrders} 
+                  className="mt-4 bg-blue-600 hover:bg-blue-700"
+                >
+                  Refresh Orders
+                </Button>
               </div>
             ) : (
               orders.map((order) => (
@@ -263,7 +341,7 @@ const CompanyMobileDashboard = () => {
                         <p className="text-gray-400 text-sm">{order.customer_name}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-bold text-green-400">{formatPrice(order.amount)}</p>
+                        <p className="text-lg font-bold text-green-400">₹{order.amount}</p>
                         <p className="text-xs text-gray-400">{order.time}</p>
                       </div>
                     </div>
@@ -324,7 +402,7 @@ const CompanyMobileDashboard = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-400">Today</span>
-                    <span className="text-white font-semibold">{formatPrice(stats.todayEarnings)}</span>
+                    <span className="text-white font-semibold">₹{stats.todayEarnings}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">This Week</span>

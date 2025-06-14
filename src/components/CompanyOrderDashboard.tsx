@@ -23,6 +23,8 @@ interface Order {
   total_amount: number;
   user_id: string;
   created_at: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface Quote {
@@ -36,6 +38,7 @@ interface Quote {
 
 const CompanyOrderDashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [company, setCompany] = useState<any>(null);
@@ -50,6 +53,34 @@ const CompanyOrderDashboard = () => {
     }
   }, [user]);
 
+  // Set up real-time subscription
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('Setting up real-time subscription for company orders...');
+    
+    const channel = supabase
+      .channel('company-order-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload) => {
+          console.log('New order received:', payload);
+          fetchNearbyOrders(); // Refresh when new order is created
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up company real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   const fetchCompanyData = async () => {
     try {
       const { data, error } = await supabase
@@ -60,6 +91,7 @@ const CompanyOrderDashboard = () => {
 
       if (error) throw error;
       setCompany(data);
+      console.log('Company data fetched:', data);
     } catch (error) {
       console.error('Error fetching company data:', error);
     }
@@ -67,14 +99,46 @@ const CompanyOrderDashboard = () => {
 
   const fetchNearbyOrders = async () => {
     try {
-      const { data, error } = await supabase
+      // First, fetch orders that we've already quoted on
+      const { data: quotedOrders, error: quotedError } = await supabase
         .from('orders')
         .select('*')
-        .in('status', ['pending', 'confirmed'])
+        .in('status', ['pending', 'confirmed', 'in_progress'])
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setOrders(data || []);
+      if (quotedError) {
+        console.error('Error fetching quoted orders:', quotedError);
+      } else {
+        console.log('Orders with potential quotes:', quotedOrders);
+        setOrders(quotedOrders || []);
+      }
+
+      // Also fetch orders that we haven't quoted on yet (pending orders without our quotes)
+      if (company?.id) {
+        const { data: allPendingOrders, error: pendingError } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false });
+
+        if (pendingError) {
+          console.error('Error fetching pending orders:', pendingError);
+        } else {
+          // Filter out orders we've already quoted on
+          const { data: existingQuotes } = await supabase
+            .from('order_quotes')
+            .select('order_id')
+            .eq('company_id', company.id);
+
+          const quotedOrderIds = existingQuotes?.map(q => q.order_id) || [];
+          const unquotedOrders = allPendingOrders?.filter(order => 
+            !quotedOrderIds.includes(order.id)
+          ) || [];
+
+          console.log('Pending orders without quotes:', unquotedOrders);
+          setPendingOrders(unquotedOrders);
+        }
+      }
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
@@ -92,6 +156,7 @@ const CompanyOrderDashboard = () => {
         .eq('company_id', company.id);
 
       if (error) throw error;
+      console.log('Company quotes:', data);
       setQuotes(data || []);
     } catch (error) {
       console.error('Error fetching quotes:', error);
@@ -107,7 +172,7 @@ const CompanyOrderDashboard = () => {
         .insert({
           order_id: orderId,
           company_id: company.id,
-          quoted_price: price,
+          quoted_price: price * 100, // Convert to paise
           estimated_duration: duration,
           additional_notes: notes
         });
@@ -119,7 +184,10 @@ const CompanyOrderDashboard = () => {
         description: "Your quote has been sent to the customer.",
       });
 
+      // Move the order from pending to quoted
+      setPendingOrders(prev => prev.filter(order => order.id !== orderId));
       fetchMyQuotes();
+      fetchNearbyOrders();
     } catch (error) {
       console.error('Error submitting quote:', error);
       toast({
@@ -186,6 +254,8 @@ const CompanyOrderDashboard = () => {
     );
   }
 
+  const allOrdersToShow = [...pendingOrders, ...orders];
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -196,10 +266,19 @@ const CompanyOrderDashboard = () => {
           <p className="text-gray-600 mt-2">
             Manage incoming orders and provide quotes to customers
           </p>
+          <Button 
+            onClick={() => {
+              fetchNearbyOrders();
+              fetchMyQuotes();
+            }}
+            className="mt-4"
+          >
+            Refresh Orders
+          </Button>
         </div>
 
         <div className="grid gap-6">
-          {orders.length === 0 ? (
+          {allOrdersToShow.length === 0 ? (
             <Card>
               <CardContent className="p-6">
                 <div className="text-center">
@@ -211,8 +290,9 @@ const CompanyOrderDashboard = () => {
               </CardContent>
             </Card>
           ) : (
-            orders.map((order) => {
+            allOrdersToShow.map((order) => {
               const existingQuote = getOrderQuote(order.id);
+              const isPendingOrder = pendingOrders.some(p => p.id === order.id);
               
               return (
                 <Card key={order.id} className="hover:shadow-lg transition-shadow">
@@ -222,6 +302,9 @@ const CompanyOrderDashboard = () => {
                         <CardTitle className="flex items-center gap-2">
                           <Car className="h-5 w-5" />
                           {order.service_type}
+                          {isPendingOrder && (
+                            <Badge className="bg-blue-500 text-white ml-2">New Request</Badge>
+                          )}
                         </CardTitle>
                         <CardDescription>
                           Order #{order.id.slice(0, 8)}
@@ -265,7 +348,7 @@ const CompanyOrderDashboard = () => {
                         <h4 className="font-semibold text-green-800 mb-2">Your Quote</h4>
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
-                            <span className="text-green-700">Price:</span> ₹{existingQuote.quoted_price}
+                            <span className="text-green-700">Price:</span> ₹{Math.floor(existingQuote.quoted_price / 100)}
                           </div>
                           <div>
                             <span className="text-green-700">Duration:</span> {existingQuote.estimated_duration} hours
