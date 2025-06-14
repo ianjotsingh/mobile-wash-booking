@@ -111,7 +111,6 @@ const ServiceSelector = () => {
 
   const handleServiceSelect = (service: Service) => {
     try {
-      // Store only service info, pricing will come from companies
       const serviceData = {
         id: service.id,
         title: service.title,
@@ -124,10 +123,9 @@ const ServiceSelector = () => {
       };
       
       const serviceDataString = JSON.stringify(serviceData);
-      console.log('Storing service data for marketplace selection:', serviceDataString);
+      console.log('Storing service data for booking:', serviceDataString);
       localStorage.setItem('selectedService', serviceDataString);
       
-      // Navigate to booking flow where companies and their pricing will be shown
       navigate('/booking');
     } catch (error) {
       console.error('Error storing service data:', error);
@@ -197,9 +195,8 @@ const ServiceSelector = () => {
         
         <CardContent>
           <div className="flex items-center justify-between mb-4">
-            <span className="text-lg font-medium text-gray-600">Compare Providers</span>
             <div className="flex items-center text-gray-500 text-sm">
-              <Clock className="w-4 h-4 mr-1" />
+              <Clock className="w-4 w-4 mr-1" />
               <span>{service.duration}</span>
             </div>
           </div>
@@ -214,7 +211,7 @@ const ServiceSelector = () => {
           </ul>
           
           <Button className={`w-full ${styling.buttonColor} text-white font-medium transition-all duration-200`}>
-            View Providers & Prices
+            Book This Service
           </Button>
         </CardContent>
       </Card>
@@ -236,7 +233,7 @@ const ServiceSelector = () => {
               </h2>
             </div>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Compare prices from multiple providers in your area
+              Professional car care services at your location
             </p>
           </div>
           
@@ -259,7 +256,7 @@ const ServiceSelector = () => {
               </h2>
             </div>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Find the best rates for automotive repair and maintenance services
+              Expert automotive repair and maintenance services
             </p>
           </div>
           

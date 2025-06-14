@@ -31,6 +31,10 @@ const MobileBooking = () => {
   const { toast } = useToast();
 
   const handleBooking = async () => {
+    console.log('Starting booking process...');
+    console.log('User:', user);
+    console.log('Location:', location);
+    
     if (!user) {
       toast({
         title: "Authentication Required",
@@ -51,7 +55,25 @@ const MobileBooking = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase
+      console.log('Creating order with data:', {
+        user_id: user.id,
+        service_type: serviceType,
+        address: location.address,
+        city: location.city,
+        zip_code: location.zipCode,
+        latitude: location.lat,
+        longitude: location.lng,
+        booking_date: bookingDate,
+        booking_time: bookingTime,
+        car_type: carType,
+        car_color: carColor,
+        car_model: carModel,
+        special_instructions: specialInstructions,
+        total_amount: 0,
+        status: 'pending'
+      });
+
+      const { data, error } = await supabase
         .from('orders')
         .insert({
           user_id: user.id,
@@ -67,11 +89,17 @@ const MobileBooking = () => {
           car_color: carColor,
           car_model: carModel,
           special_instructions: specialInstructions,
-          total_amount: 0, // Will be updated when quote is accepted
+          total_amount: 0,
           status: 'pending'
-        });
+        })
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
+
+      console.log('Order created successfully:', data);
 
       toast({
         title: "Booking Created",
