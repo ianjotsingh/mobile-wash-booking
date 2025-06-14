@@ -42,6 +42,7 @@ const CompanyOrderDashboard = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [company, setCompany] = useState<any>(null);
+  const [debugInfo, setDebugInfo] = useState<any>({});
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -114,23 +115,55 @@ const CompanyOrderDashboard = () => {
 
   const fetchNearbyOrders = async () => {
     try {
-      console.log('Fetching all orders for company dashboard...');
+      console.log('=== DEBUGGING ORDER FETCH ===');
+      console.log('Current user:', user?.id);
+      console.log('Company data:', company);
       
-      // First, fetch ALL orders regardless of location to see what's available
-      const { data: allOrdersData, error: allOrdersError } = await supabase
+      // First, let's check if there are ANY orders in the database at all
+      const { data: allOrdersCheck, error: allOrdersError } = await supabase
+        .from('orders')
+        .select('*');
+
+      console.log('Total orders in database (no filters):', allOrdersCheck?.length || 0);
+      console.log('Sample orders:', allOrdersCheck?.slice(0, 3));
+
+      if (allOrdersError) {
+        console.error('Error fetching all orders:', allOrdersError);
+        setDebugInfo(prev => ({ ...prev, allOrdersError: allOrdersError.message }));
+      }
+
+      // Check if RLS is blocking us
+      const { data: ordersWithRLS, error: rlsError, count } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact' });
+
+      console.log('Orders accessible with current user (RLS applied):', count);
+      console.log('RLS Error:', rlsError);
+
+      setDebugInfo({
+        totalOrdersInDB: allOrdersCheck?.length || 0,
+        ordersAccessibleToUser: count || 0,
+        userRole: user?.email,
+        companyId: company?.id,
+        hasRLSError: !!rlsError,
+        rlsErrorMessage: rlsError?.message
+      });
+
+      // Fetch all orders that we can access
+      const { data: accessibleOrders, error: accessibleError } = await supabase
         .from('orders')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (allOrdersError) {
-        console.error('Error fetching all orders:', allOrdersError);
+      if (accessibleError) {
+        console.error('Error fetching accessible orders:', accessibleError);
       } else {
-        console.log('ALL ORDERS in database:', allOrdersData);
-        setOrders(allOrdersData || []);
+        console.log('Orders accessible to current user:', accessibleOrders);
+        setOrders(accessibleOrders || []);
       }
 
-      // Fetch pending orders that we haven't quoted on yet
-      const { data: pendingOrders, error: pendingError } = await supabase
+      // Fetch pending orders specifically
+      const { data: pendingOrdersData, error: pendingError } = await supabase
         .from('orders')
         .select('*')
         .eq('status', 'pending')
@@ -139,28 +172,29 @@ const CompanyOrderDashboard = () => {
       if (pendingError) {
         console.error('Error fetching pending orders:', pendingError);
       } else {
-        console.log('PENDING ORDERS:', pendingOrders);
+        console.log('Pending orders found:', pendingOrdersData);
         
-        // If we have company data, filter out orders we've already quoted on
-        if (company?.id && pendingOrders) {
+        // Filter out orders we've already quoted on
+        if (company?.id && pendingOrdersData) {
           const { data: existingQuotes } = await supabase
             .from('order_quotes')
             .select('order_id')
             .eq('company_id', company.id);
 
           const quotedOrderIds = existingQuotes?.map(q => q.order_id) || [];
-          const unquotedOrders = pendingOrders.filter(order => 
+          const unquotedOrders = pendingOrdersData.filter(order => 
             !quotedOrderIds.includes(order.id)
           );
 
           console.log('Pending orders without quotes:', unquotedOrders);
           setPendingOrders(unquotedOrders);
         } else {
-          setPendingOrders(pendingOrders || []);
+          setPendingOrders(pendingOrdersData || []);
         }
       }
     } catch (error) {
-      console.error('Error fetching orders:', error);
+      console.error('Error in fetchNearbyOrders:', error);
+      setDebugInfo(prev => ({ ...prev, fetchError: error.message }));
     } finally {
       setLoading(false);
     }
@@ -274,7 +308,6 @@ const CompanyOrderDashboard = () => {
     );
   }
 
-  // Show ALL orders (pending + quoted) in the dashboard
   const allOrdersToShow = [...pendingOrders, ...orders];
 
   return (
@@ -287,6 +320,46 @@ const CompanyOrderDashboard = () => {
           <p className="text-gray-600 mt-2">
             Manage incoming orders and provide quotes to customers
           </p>
+          
+          {/* Debug Information Card */}
+          <Card className="mt-4 bg-blue-50 border-blue-200">
+            <CardHeader>
+              <CardTitle className="text-blue-800">Debug Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <strong>Total Orders in DB:</strong> {debugInfo.totalOrdersInDB || 0}
+                </div>
+                <div>
+                  <strong>Orders Accessible:</strong> {debugInfo.ordersAccessibleToUser || 0}
+                </div>
+                <div>
+                  <strong>User Email:</strong> {debugInfo.userRole}
+                </div>
+                <div>
+                  <strong>Company ID:</strong> {debugInfo.companyId}
+                </div>
+                <div>
+                  <strong>Pending Orders:</strong> {pendingOrders.length}
+                </div>
+                <div>
+                  <strong>Total Orders Shown:</strong> {allOrdersToShow.length}
+                </div>
+              </div>
+              {debugInfo.hasRLSError && (
+                <div className="mt-2 p-2 bg-red-100 rounded text-red-800">
+                  <strong>RLS Error:</strong> {debugInfo.rlsErrorMessage}
+                </div>
+              )}
+              {debugInfo.fetchError && (
+                <div className="mt-2 p-2 bg-red-100 rounded text-red-800">
+                  <strong>Fetch Error:</strong> {debugInfo.fetchError}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          
           <div className="mt-4 space-x-4">
             <Button 
               onClick={() => {
@@ -299,8 +372,10 @@ const CompanyOrderDashboard = () => {
             </Button>
             <Button 
               onClick={() => {
-                console.log('Debug info:', {
+                console.log('Full debug info:', {
+                  user,
                   company,
+                  debugInfo,
                   pendingOrders: pendingOrders.length,
                   allOrders: orders.length,
                   totalToShow: allOrdersToShow.length
@@ -308,7 +383,7 @@ const CompanyOrderDashboard = () => {
               }}
               variant="outline"
             >
-              Debug Info
+              Log Full Debug Info
             </Button>
           </div>
         </div>
@@ -320,16 +395,17 @@ const CompanyOrderDashboard = () => {
                 <div className="text-center">
                   <h3 className="text-lg font-semibold mb-2">No Orders Available</h3>
                   <p className="text-gray-600 mb-4">
-                    There are currently no orders available. This could be because:
+                    Debug info shows: {debugInfo.totalOrdersInDB || 0} total orders in database, 
+                    {debugInfo.ordersAccessibleToUser || 0} accessible to you.
                   </p>
-                  <ul className="text-sm text-gray-500 space-y-1 mb-4">
-                    <li>• No customers have placed orders yet</li>
-                    <li>• All orders have been assigned to other companies</li>
-                    <li>• Orders are outside your service area</li>
-                  </ul>
-                  <p className="text-xs text-gray-400">
-                    Company ID: {company.id}
-                  </p>
+                  <div className="text-sm text-gray-500 space-y-1">
+                    <p>• Check if customers have completed the booking process</p>
+                    <p>• Verify that orders are being created successfully</p>
+                    <p>• Ensure your company is approved and has proper permissions</p>
+                  </div>
+                  <div className="mt-4 text-xs text-gray-400">
+                    Company ID: {company.id} | User: {user?.email}
+                  </div>
                 </div>
               </CardContent>
             </Card>
