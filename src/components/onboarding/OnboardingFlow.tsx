@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import OnboardingSlide from './OnboardingSlide';
-import { Car, MapPin, Shield } from 'lucide-react';
+import { Car, MapPin } from 'lucide-react';
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -14,34 +14,18 @@ const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     {
       icon: (
         <div className="relative">
-          <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mb-4">
-            <Car className="h-10 w-10 text-white" />
-          </div>
-          <div className="absolute -top-2 -right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
-            <MapPin className="h-4 w-4 text-white" />
+          <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+            <div className="w-16 h-16 bg-blue-500 rounded-lg flex items-center justify-center relative">
+              <Car className="h-8 w-8 text-white" />
+              <div className="absolute -top-1 -right-1 w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                <MapPin className="h-3 w-3 text-white" />
+              </div>
+            </div>
           </div>
         </div>
       ),
       title: "Car Wash at Your Location",
       description: "Professional car washing service that comes to you. Schedule a wash at your home, office, or anywhere convenient."
-    },
-    {
-      icon: (
-        <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center">
-          <Shield className="h-10 w-10 text-white" />
-        </div>
-      ),
-      title: "Trusted Professionals",
-      description: "All our service providers are verified and trained professionals who deliver quality service you can trust."
-    },
-    {
-      icon: (
-        <div className="w-20 h-20 bg-purple-500 rounded-full flex items-center justify-center">
-          <MapPin className="h-10 w-10 text-white" />
-        </div>
-      ),
-      title: "Track Your Service",
-      description: "Get real-time updates on your service provider's location and estimated arrival time."
     }
   ];
 
