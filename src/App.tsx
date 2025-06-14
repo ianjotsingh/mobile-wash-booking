@@ -14,33 +14,55 @@ import OrderHistory from "./pages/OrderHistory";
 import MechanicRequest from "./pages/MechanicRequest";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
+import MobileApp from "./components/MobileApp";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <div className="min-h-screen max-w-md mx-auto bg-white shadow-lg">
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/booking" element={<Booking />} />
-              <Route path="/company-signup" element={<CompanySignup />} />
-              <Route path="/mechanic-signup" element={<MechanicSignup />} />
-              <Route path="/company-dashboard" element={<CompanyDashboard />} />
-              <Route path="/order-history" element={<OrderHistory />} />
-              <Route path="/mechanic-request" element={<MechanicRequest />} />
-              <Route path="/admin-dashboard" element={<AdminDashboard />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </div>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  // Check if we want to show mobile app (you can add logic here to detect mobile or use a flag)
+  const showMobileApp = window.location.search.includes('mobile=true');
+
+  if (showMobileApp) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <TooltipProvider>
+            <div className="min-h-screen max-w-md mx-auto bg-white shadow-lg">
+              <Toaster />
+              <Sonner />
+              <MobileApp />
+            </div>
+          </TooltipProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    );
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <div className="min-h-screen max-w-md mx-auto bg-white shadow-lg">
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/booking" element={<Booking />} />
+                <Route path="/company-signup" element={<CompanySignup />} />
+                <Route path="/mechanic-signup" element={<MechanicSignup />} />
+                <Route path="/company-dashboard" element={<CompanyDashboard />} />
+                <Route path="/order-history" element={<OrderHistory />} />
+                <Route path="/mechanic-request" element={<MechanicRequest />} />
+                <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </div>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
