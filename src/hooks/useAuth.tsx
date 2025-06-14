@@ -79,8 +79,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('Sending password reset email to:', email);
       
-      // Get the current domain and construct the full reset URL
-      const baseUrl = window.location.origin;
+      // Use the correct domain for your deployed app
+      const baseUrl = 'https://59c03063-7296-46de-bd6f-e689871dc273.lovableproject.com';
       const redirectTo = `${baseUrl}/reset-password`;
       
       console.log('Reset redirect URL:', redirectTo);
