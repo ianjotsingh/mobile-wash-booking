@@ -349,7 +349,6 @@ export type Database = {
           id: string
           name: string
           popular: boolean | null
-          price: number
         }
         Insert: {
           created_at?: string | null
@@ -359,7 +358,6 @@ export type Database = {
           id?: string
           name: string
           popular?: boolean | null
-          price: number
         }
         Update: {
           created_at?: string | null
@@ -369,7 +367,6 @@ export type Database = {
           id?: string
           name?: string
           popular?: boolean | null
-          price?: number
         }
         Relationships: []
       }

@@ -10,13 +10,12 @@ import AuthModal from './AuthModal';
 interface ServiceCardProps {
   title: string;
   description: string;
-  price: string;
   features: string[];
   duration: string;
   popular?: boolean;
 }
 
-const ServiceCard = ({ title, description, price, features, duration, popular }: ServiceCardProps) => {
+const ServiceCard = ({ title, description, features, duration, popular }: ServiceCardProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -43,7 +42,7 @@ const ServiceCard = ({ title, description, price, features, duration, popular }:
           <CardTitle className="text-xl font-bold text-gray-900">{title}</CardTitle>
           <p className="text-gray-600 text-sm">{description}</p>
           <div className="flex items-center justify-between pt-2">
-            <span className="text-2xl font-bold text-gray-900">{price}</span>
+            <span className="text-lg font-bold text-blue-600">Price on quote</span>
             <div className="flex items-center text-gray-500">
               <Clock className="h-4 w-4 mr-1" />
               <span className="text-sm">{duration}</span>
@@ -66,7 +65,7 @@ const ServiceCard = ({ title, description, price, features, duration, popular }:
               handleBookNow();
             }}
           >
-            Book Now
+            Get Quote
           </Button>
         </CardContent>
       </Card>

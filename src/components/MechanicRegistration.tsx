@@ -22,7 +22,6 @@ const mechanicRegistrationSchema = z.object({
   city: z.string().min(2, 'Please enter your city'),
   zip_code: z.string().min(5, 'Please enter a valid zip code'),
   experience: z.string().min(1, 'Please specify your experience'),
-  availability_hours: z.string().min(1, 'Please specify your availability'),
   specializations: z.array(z.string()).min(1, 'Please select at least one specialization'),
   id_document: z.any().refine((file) => file instanceof File, 'Please upload your Aadhaar or PAN card'),
 });
@@ -59,7 +58,6 @@ const MechanicRegistration = () => {
       city: '',
       zip_code: '',
       experience: '',
-      availability_hours: '',
       specializations: [],
     },
   });
@@ -96,7 +94,7 @@ const MechanicRegistration = () => {
       let documentUrl = '';
       if (documentFile) {
         const fileExt = documentFile.name.split('.').pop();
-        const fileName = `${authData.user.id}-${Date.now()}.${fileExt}`;
+        const fileName = `${authData.user.id}/${Date.now()}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
           .from('mechanic_documents')
@@ -125,7 +123,6 @@ const MechanicRegistration = () => {
         experience: data.experience,
         description: documentUrl ? `Document: ${documentUrl}` : 'No document uploaded',
         hourly_rate: 50000,
-        availability_hours: data.availability_hours,
         specializations: data.specializations,
         status: 'pending'
       };
@@ -159,7 +156,7 @@ const MechanicRegistration = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-2xl mx-auto p-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -169,98 +166,31 @@ const MechanicRegistration = () => {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               {/* Personal Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Personal Information
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="full_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Your full name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email Address</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="your@email.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="Create a secure password" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
-                        <FormControl>
-                          <Input placeholder="10-digit phone number" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Document Upload */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="id_document"
+                  name="full_name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <Upload className="h-4 w-4" />
-                        Upload Aadhaar or PAN Card
-                      </FormLabel>
+                      <FormLabel>Full Name</FormLabel>
                       <FormControl>
-                        <div className="flex items-center gap-4">
-                          <Input
-                            type="file"
-                            accept="image/*,.pdf"
-                            onChange={handleFileChange}
-                            className="cursor-pointer"
-                          />
-                          {documentFile && (
-                            <span className="text-sm text-green-600">
-                              ✓ {documentFile.name}
-                            </span>
-                          )}
-                        </div>
+                        <Input placeholder="Your full name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="your@email.com" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -268,73 +198,15 @@ const MechanicRegistration = () => {
                 />
               </div>
 
-              {/* Address Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Address Information
-                </h3>
-                
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="address"
+                  name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Street Address</FormLabel>
+                      <FormLabel>Password</FormLabel>
                       <FormControl>
-                        <Input placeholder="Complete street address" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>City</FormLabel>
-                        <FormControl>
-                          <Input placeholder="City" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="zip_code"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>ZIP Code</FormLabel>
-                        <FormControl>
-                          <Input placeholder="ZIP Code" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-
-              {/* Professional Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Wrench className="h-5 w-5" />
-                  Professional Information
-                </h3>
-                
-                <FormField
-                  control={form.control}
-                  name="experience"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Years of Experience</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., 5 years" {...field} />
+                        <Input type="password" placeholder="Create password" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -343,67 +215,155 @@ const MechanicRegistration = () => {
 
                 <FormField
                   control={form.control}
-                  name="availability_hours"
+                  name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Availability Hours</FormLabel>
+                      <FormLabel>Phone Number</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., 9 AM - 6 PM" {...field} />
+                        <Input placeholder="10-digit phone number" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
+
+              {/* Address */}
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Complete address" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City</FormLabel>
+                      <FormControl>
+                        <Input placeholder="City" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="zip_code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>ZIP Code</FormLabel>
+                      <FormControl>
+                        <Input placeholder="ZIP Code" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Experience */}
+              <FormField
+                control={form.control}
+                name="experience"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Experience</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., 5 years" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Document Upload */}
+              <FormField
+                control={form.control}
+                name="id_document"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      <Upload className="h-4 w-4" />
+                      Upload Aadhaar or PAN Card
+                    </FormLabel>
+                    <FormControl>
+                      <div className="flex items-center gap-4">
+                        <Input
+                          type="file"
+                          accept="image/*,.pdf"
+                          onChange={handleFileChange}
+                          className="cursor-pointer"
+                        />
+                        {documentFile && (
+                          <span className="text-sm text-green-600">
+                            ✓ {documentFile.name}
+                          </span>
+                        )}
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               {/* Specializations */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Specializations</h3>
-                <FormField
-                  control={form.control}
-                  name="specializations"
-                  render={() => (
-                    <FormItem>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {availableSpecializations.map((specialization) => (
-                          <FormField
-                            key={specialization}
-                            control={form.control}
-                            name="specializations"
-                            render={({ field }) => {
-                              return (
-                                <FormItem
-                                  key={specialization}
-                                  className="flex flex-row items-start space-x-3 space-y-0"
-                                >
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(specialization)}
-                                      onCheckedChange={(checked) => {
-                                        return checked
-                                          ? field.onChange([...field.value, specialization])
-                                          : field.onChange(
-                                              field.value?.filter(
-                                                (value) => value !== specialization
-                                              )
+              <FormField
+                control={form.control}
+                name="specializations"
+                render={() => (
+                  <FormItem>
+                    <FormLabel>Specializations</FormLabel>
+                    <div className="grid grid-cols-2 gap-3">
+                      {availableSpecializations.map((specialization) => (
+                        <FormField
+                          key={specialization}
+                          control={form.control}
+                          name="specializations"
+                          render={({ field }) => {
+                            return (
+                              <FormItem
+                                key={specialization}
+                                className="flex flex-row items-start space-x-3 space-y-0"
+                              >
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes(specialization)}
+                                    onCheckedChange={(checked) => {
+                                      return checked
+                                        ? field.onChange([...field.value, specialization])
+                                        : field.onChange(
+                                            field.value?.filter(
+                                              (value) => value !== specialization
                                             )
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormLabel className="text-sm font-normal">
-                                    {specialization}
-                                  </FormLabel>
-                                </FormItem>
-                              )
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                                          )
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormLabel className="text-sm font-normal">
+                                  {specialization}
+                                </FormLabel>
+                              </FormItem>
+                            )
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <Button
                 type="submit"

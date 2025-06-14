@@ -16,7 +16,6 @@ interface Service {
   id: string;
   name: string;
   description: string;
-  price: number;
   duration: number;
   popular: boolean;
   features: string[];
@@ -33,7 +32,6 @@ const ServiceManagement = () => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    price: '',
     duration: '',
     popular: false,
     features: ''
@@ -71,7 +69,6 @@ const ServiceManagement = () => {
       const serviceData = {
         name: formData.name,
         description: formData.description,
-        price: parseInt(formData.price) * 100, // Convert to paise
         duration: parseInt(formData.duration),
         popular: formData.popular,
         features: formData.features.split(',').map(f => f.trim()).filter(f => f)
@@ -110,7 +107,6 @@ const ServiceManagement = () => {
     setFormData({
       name: '',
       description: '',
-      price: '',
       duration: '',
       popular: false,
       features: ''
@@ -124,7 +120,6 @@ const ServiceManagement = () => {
     setFormData({
       name: service.name,
       description: service.description,
-      price: (service.price / 100).toString(),
       duration: service.duration.toString(),
       popular: service.popular,
       features: service.features?.join(', ') || ''
@@ -179,27 +174,15 @@ const ServiceManagement = () => {
                     required
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="price">Price (₹)</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      value={formData.price}
-                      onChange={(e) => setFormData({...formData, price: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="duration">Duration (minutes)</Label>
-                    <Input
-                      id="duration"
-                      type="number"
-                      value={formData.duration}
-                      onChange={(e) => setFormData({...formData, duration: e.target.value})}
-                      required
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="duration">Duration (minutes)</Label>
+                  <Input
+                    id="duration"
+                    type="number"
+                    value={formData.duration}
+                    onChange={(e) => setFormData({...formData, duration: e.target.value})}
+                    required
+                  />
                 </div>
                 <div>
                   <Label htmlFor="features">Features (comma-separated)</Label>
@@ -255,12 +238,10 @@ const ServiceManagement = () => {
               
               <div className="flex items-center space-x-4 mb-3">
                 <div className="flex items-center space-x-1">
-                  <span className="font-semibold text-emerald-600">₹{(service.price / 100).toFixed(0)}</span>
-                </div>
-                <div className="flex items-center space-x-1">
                   <Clock className="h-4 w-4 text-gray-500" />
                   <span className="text-sm text-gray-600">{service.duration} mins</span>
                 </div>
+                <span className="text-sm text-blue-600 font-medium">Price set by companies</span>
               </div>
 
               {service.features && service.features.length > 0 && (
