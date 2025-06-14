@@ -92,11 +92,19 @@ const UberLikeHero = () => {
     });
   };
 
+  // Add service objects (matching ServiceSelector shape)
   const services = [
-    { id: 'Basic', name: 'Basic', price: '₹299', icon: '🚗' },
-    { id: 'Premium', name: 'Premium', price: '₹499', icon: '✨' },
-    { id: 'Deluxe', name: 'Deluxe', price: '₹599', icon: '💎' }
+    { id: 'Basic', name: 'Basic', title: 'Basic Wash', description: 'Essential exterior wash', price: '₹299', icon: '🚗', category: 'wash' },
+    { id: 'Premium', name: 'Premium', title: 'Premium Wash', description: 'Full exterior + interior clean', price: '₹499', icon: '✨', category: 'wash', popular: true },
+    { id: 'Deluxe', name: 'Deluxe', title: 'Full Detailing', description: 'Complete inside-out clean & polish', price: '₹599', icon: '💎', category: 'wash' }
   ];
+
+  // Find full service object by selectedService, fallback to Premium
+  const getSelectedServiceObject = () => {
+    const found = services.find((s) => s.id === selectedService || s.name === selectedService);
+    // Default to Premium service if not found
+    return found || services[1];
+  };
 
   const handleBookNow = () => {
     if (!user) {
@@ -113,12 +121,30 @@ const UberLikeHero = () => {
       return;
     }
     
-    // Store selected location and service for booking flow
+    // Use the new full object format for storing selectedService
+    const serviceObj = getSelectedServiceObject();
+    // Match ServiceSelector's localStorage format
+    const localStorageService = {
+      id: serviceObj.id,
+      title: serviceObj.title,
+      description: serviceObj.description,
+      price: serviceObj.price,
+      features: [
+        serviceObj.id === 'Basic'
+          ? 'Exterior wash, Tire cleaning, Basic drying'
+          : serviceObj.id === 'Premium'
+          ? 'Exterior wash, Interior vacuuming, Dashboard cleaning, Tire shine'
+          : 'Complete wash, Wax application, Deep interior cleaning, Polish'
+      ],
+      duration: serviceObj.id === 'Basic' ? '30 mins' : serviceObj.id === 'Premium' ? '60 mins' : '90 mins',
+      category: 'wash',
+      popular: serviceObj.popular || false
+    };
+    localStorage.setItem('selectedService', JSON.stringify(localStorageService));
+    
     if (selectedLocation) {
       localStorage.setItem('selectedLocation', JSON.stringify(selectedLocation));
     }
-    localStorage.setItem('selectedService', selectedService);
-    
     navigate('/booking');
   };
 
@@ -137,7 +163,8 @@ const UberLikeHero = () => {
       return;
     }
     
-    // Store selected location for mechanic request
+    // You can consider similar uniformity for mechanic service if mechanic booking uses selectedService
+    // For now, just store location
     if (selectedLocation) {
       localStorage.setItem('selectedLocation', JSON.stringify(selectedLocation));
     }
