@@ -24,105 +24,111 @@ const ResetPassword = () => {
 
   useEffect(() => {
     const handlePasswordReset = async () => {
-      console.log('Starting password reset flow...');
+      console.log('Password reset page loaded');
       console.log('Current URL:', window.location.href);
+      console.log('Search params:', Object.fromEntries(searchParams.entries()));
       
       setCheckingSession(true);
       
-      // Get URL parameters
-      const accessToken = searchParams.get('access_token');
-      const refreshToken = searchParams.get('refresh_token');
-      const type = searchParams.get('type');
+      // Check if we have error parameters
       const error = searchParams.get('error');
       const errorDescription = searchParams.get('error_description');
       
-      console.log('URL params:', { 
-        hasAccessToken: !!accessToken, 
-        hasRefreshToken: !!refreshToken, 
-        type,
-        error,
-        errorDescription
-      });
-
-      // Check for errors in URL
       if (error) {
-        console.error('Error in URL:', error, errorDescription);
+        console.error('URL contains error:', error, errorDescription);
         setCheckingSession(false);
+        setIsValidSession(false);
         toast({
           title: "Reset Link Error",
           description: errorDescription || "The reset link has an error. Please request a new password reset.",
           variant: "destructive"
         });
-        setTimeout(() => navigate('/'), 3000);
         return;
       }
-      
-      // Check if we have the required parameters for password reset
+
+      // Get the tokens from URL
+      const accessToken = searchParams.get('access_token');
+      const refreshToken = searchParams.get('refresh_token');
+      const type = searchParams.get('type');
+
+      console.log('URL parameters:', { 
+        hasAccessToken: !!accessToken, 
+        hasRefreshToken: !!refreshToken, 
+        type 
+      });
+
+      // Validate required parameters
       if (!accessToken || type !== 'recovery') {
-        console.error('Missing required parameters. AccessToken:', !!accessToken, 'Type:', type);
+        console.error('Missing required parameters for password reset');
         setCheckingSession(false);
+        setIsValidSession(false);
         toast({
           title: "Invalid Reset Link",
-          description: "This password reset link is invalid or has expired. Please request a new one.",
+          description: "This password reset link is invalid. Please request a new one.",
           variant: "destructive"
         });
-        setTimeout(() => navigate('/'), 3000);
         return;
       }
 
       try {
-        console.log('Setting up session with tokens...');
+        console.log('Setting session with provided tokens...');
         
-        // Set the session using the tokens from the URL
+        // Set the session using the tokens
         const { data, error: sessionError } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken || ''
         });
-        
+
+        console.log('Session setup result:', {
+          hasUser: !!data.user,
+          hasSession: !!data.session,
+          error: sessionError?.message
+        });
+
         if (sessionError) {
-          console.error('Session setup error:', sessionError);
+          console.error('Session error:', sessionError);
           setCheckingSession(false);
+          setIsValidSession(false);
           toast({
             title: "Session Error",
-            description: "Unable to verify reset link. The link may have expired. Please request a new password reset.",
+            description: "Unable to verify your reset link. Please request a new password reset.",
             variant: "destructive"
           });
-          setTimeout(() => navigate('/'), 3000);
           return;
         }
 
         if (data.session && data.user) {
-          console.log('Valid session established for user:', data.user.email);
+          console.log('Valid session established for:', data.user.email);
           setIsValidSession(true);
           setCheckingSession(false);
           toast({
             title: "Ready to Reset Password",
-            description: `You can now create a new password for ${data.user.email}`,
+            description: `You can now set a new password for ${data.user.email}`,
           });
         } else {
-          console.error('No valid session created');
+          console.error('Session setup did not return valid user/session');
           setCheckingSession(false);
+          setIsValidSession(false);
           toast({
             title: "Session Error",
             description: "Could not establish a valid session. Please request a new password reset.",
             variant: "destructive"
           });
-          setTimeout(() => navigate('/'), 3000);
         }
       } catch (error) {
-        console.error('Unexpected error during session setup:', error);
+        console.error('Error during session setup:', error);
         setCheckingSession(false);
+        setIsValidSession(false);
         toast({
           title: "Unexpected Error",
-          description: "An error occurred while processing your reset link. Please try requesting a new password reset.",
+          description: "An error occurred while processing your reset link. Please try again.",
           variant: "destructive"
         });
-        setTimeout(() => navigate('/'), 3000);
       }
     };
 
     handlePasswordReset();
-  }, [searchParams, navigate, toast]);
+  }, [searchParams, toast]);
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,8 +188,8 @@ const ResetPassword = () => {
         console.log('Password updated successfully');
         setIsSuccess(true);
         toast({
-          title: "Password Updated Successfully!",
-          description: "Your password has been changed. You will be redirected to login.",
+          title: "Password Updated!",
+          description: "Your password has been changed successfully. Redirecting to login...",
         });
         
         // Sign out and redirect after a delay
@@ -248,7 +254,7 @@ const ResetPassword = () => {
     );
   }
 
-  // Main password reset form - only show if we have a valid session
+  // Invalid session state
   if (!isValidSession) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-red-100 via-white to-white flex items-center justify-center p-4">
@@ -260,13 +266,13 @@ const ResetPassword = () => {
               </div>
               <h2 className="text-xl font-bold text-red-800 mb-2">Invalid Reset Link</h2>
               <p className="text-gray-600 mb-4">
-                This password reset link is invalid or has expired. Please request a new one.
+                This password reset link is invalid or has expired. Please request a new one from the login page.
               </p>
               <Button
                 onClick={() => navigate('/')}
                 className="w-full bg-blue-600 hover:bg-blue-700"
               >
-                Go to Login
+                Back to Login
               </Button>
             </div>
           </CardContent>
@@ -275,6 +281,7 @@ const ResetPassword = () => {
     );
   }
 
+  // Password reset form
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-100 via-white to-white flex items-center justify-center p-4">
       <Card className="w-full max-w-md">

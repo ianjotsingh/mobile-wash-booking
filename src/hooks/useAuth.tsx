@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -151,8 +152,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('Sending password reset email to:', email);
       
-      // Use the correct URL format for password reset
-      const redirectTo = `${window.location.origin}/reset-password`;
+      // Get the current origin and construct the reset URL
+      const currentOrigin = window.location.origin;
+      const redirectTo = `${currentOrigin}/reset-password`;
       
       console.log('Reset redirect URL:', redirectTo);
       
