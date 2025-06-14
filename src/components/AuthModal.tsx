@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,8 @@ interface AuthModalProps {
 const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const { signIn, signUp, resetPassword } = useAuth();
   const { toast } = useToast();
 
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
@@ -34,6 +34,8 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
     fullName: '',
     phone: ''
   });
+
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,6 +151,48 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
     setLoading(false);
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotPasswordEmail) {
+      toast({
+        title: "Error",
+        description: "Please enter your email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { data, error } = await resetPassword(forgotPasswordEmail);
+
+      if (error) {
+        console.error('Password reset error:', error);
+        toast({
+          title: "Error",
+          description: "Failed to send reset email. Please try again.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Reset Email Sent",
+          description: "Please check your email for password reset instructions."
+        });
+        setShowForgotPassword(false);
+        setForgotPasswordEmail('');
+      }
+    } catch (error) {
+      console.error('Unexpected password reset error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    }
+    setLoading(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -159,98 +203,142 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
           <DialogTitle>Welcome to WashCart</DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="login" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Login</TabsTrigger>
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="login">
-            <form onSubmit={handleLogin} className="space-y-4">
+        {!showForgotPassword ? (
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="login">
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <Label htmlFor="login-email">Email</Label>
+                  <Input
+                    id="login-email"
+                    type="email"
+                    value={loginData.email}
+                    onChange={(e) => setLoginData({...loginData, email: e.target.value})}
+                    required
+                    disabled={loading}
+                    placeholder="Enter your email"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="login-password">Password</Label>
+                  <Input
+                    id="login-password"
+                    type="password"
+                    value={loginData.password}
+                    onChange={(e) => setLoginData({...loginData, password: e.target.value})}
+                    required
+                    disabled={loading}
+                    placeholder="Enter your password"
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'Logging in...' : 'Login'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => setShowForgotPassword(true)}
+                  disabled={loading}
+                >
+                  Forgot Password?
+                </Button>
+              </form>
+            </TabsContent>
+            
+            <TabsContent value="signup">
+              <form onSubmit={handleSignup} className="space-y-4">
+                <div>
+                  <Label htmlFor="signup-name">Full Name</Label>
+                  <Input
+                    id="signup-name"
+                    value={signupData.fullName}
+                    onChange={(e) => setSignupData({...signupData, fullName: e.target.value})}
+                    required
+                    disabled={loading}
+                    placeholder="Your full name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="signup-email">Email</Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    value={signupData.email}
+                    onChange={(e) => setSignupData({...signupData, email: e.target.value})}
+                    required
+                    disabled={loading}
+                    placeholder="your@email.com"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="signup-phone">Phone (Optional)</Label>
+                  <Input
+                    id="signup-phone"
+                    type="tel"
+                    value={signupData.phone}
+                    onChange={(e) => setSignupData({...signupData, phone: e.target.value})}
+                    disabled={loading}
+                    placeholder="Your phone number"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="signup-password">Password</Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    value={signupData.password}
+                    onChange={(e) => setSignupData({...signupData, password: e.target.value})}
+                    required
+                    disabled={loading}
+                    placeholder="Create a secure password"
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'Creating account...' : 'Create Account'}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <div className="space-y-4">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold">Reset Password</h3>
+              <p className="text-sm text-gray-600">Enter your email to receive reset instructions</p>
+            </div>
+            <form onSubmit={handleForgotPassword} className="space-y-4">
               <div>
-                <Label htmlFor="login-email">Email</Label>
+                <Label htmlFor="forgot-email">Email</Label>
                 <Input
-                  id="login-email"
+                  id="forgot-email"
                   type="email"
-                  value={loginData.email}
-                  onChange={(e) => setLoginData({...loginData, email: e.target.value})}
+                  value={forgotPasswordEmail}
+                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
                   required
                   disabled={loading}
                   placeholder="Enter your email"
                 />
               </div>
-              <div>
-                <Label htmlFor="login-password">Password</Label>
-                <Input
-                  id="login-password"
-                  type="password"
-                  value={loginData.password}
-                  onChange={(e) => setLoginData({...loginData, password: e.target.value})}
-                  required
-                  disabled={loading}
-                  placeholder="Enter your password"
-                />
-              </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Logging in...' : 'Login'}
+                {loading ? 'Sending...' : 'Send Reset Email'}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => setShowForgotPassword(false)}
+                disabled={loading}
+              >
+                Back to Login
               </Button>
             </form>
-          </TabsContent>
-          
-          <TabsContent value="signup">
-            <form onSubmit={handleSignup} className="space-y-4">
-              <div>
-                <Label htmlFor="signup-name">Full Name</Label>
-                <Input
-                  id="signup-name"
-                  value={signupData.fullName}
-                  onChange={(e) => setSignupData({...signupData, fullName: e.target.value})}
-                  required
-                  disabled={loading}
-                  placeholder="Your full name"
-                />
-              </div>
-              <div>
-                <Label htmlFor="signup-email">Email</Label>
-                <Input
-                  id="signup-email"
-                  type="email"
-                  value={signupData.email}
-                  onChange={(e) => setSignupData({...signupData, email: e.target.value})}
-                  required
-                  disabled={loading}
-                  placeholder="your@email.com"
-                />
-              </div>
-              <div>
-                <Label htmlFor="signup-phone">Phone (Optional)</Label>
-                <Input
-                  id="signup-phone"
-                  type="tel"
-                  value={signupData.phone}
-                  onChange={(e) => setSignupData({...signupData, phone: e.target.value})}
-                  disabled={loading}
-                  placeholder="Your phone number"
-                />
-              </div>
-              <div>
-                <Label htmlFor="signup-password">Password</Label>
-                <Input
-                  id="signup-password"
-                  type="password"
-                  value={signupData.password}
-                  onChange={(e) => setSignupData({...signupData, password: e.target.value})}
-                  required
-                  disabled={loading}
-                  placeholder="Create a secure password"
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Creating account...' : 'Create Account'}
-              </Button>
-            </form>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

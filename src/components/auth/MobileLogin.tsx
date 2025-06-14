@@ -11,14 +11,14 @@ interface MobileLoginProps {
 }
 
 const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => {
-  const [step, setStep] = useState<'main' | 'email'>('main');
+  const [step, setStep] = useState<'main' | 'email' | 'forgot-password'>('main');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resetPassword } = useAuth();
   const { toast } = useToast();
 
   const handleEmailAuth = async (e?: React.FormEvent) => {
@@ -142,6 +142,50 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
     }
   };
 
+  const handleForgotPassword = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    
+    if (!email) {
+      toast({
+        title: "Error",
+        description: "Please enter your email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      const result = await resetPassword(email);
+      
+      if (result.error) {
+        console.error('Password reset error:', result.error);
+        toast({
+          title: "Error",
+          description: "Failed to send reset email. Please try again.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Reset Email Sent",
+          description: "Please check your email for password reset instructions.",
+        });
+        setStep('email');
+        setIsSignup(false);
+      }
+    } catch (error) {
+      console.error('Password reset error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleBackToMain = () => {
     setStep('main');
     setEmail('');
@@ -154,6 +198,10 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
   const handleEmailStep = (signup = false) => {
     setIsSignup(signup);
     setStep('email');
+  };
+
+  const handleForgotPasswordStep = () => {
+    setStep('forgot-password');
   };
 
   return (
@@ -251,6 +299,17 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
                 {loading ? (isSignup ? 'Creating Account...' : 'Signing In...') : (isSignup ? 'Create Account' : 'Sign In')}
               </Button>
 
+              {!isSignup && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleForgotPasswordStep}
+                  className="w-full text-blue-500 touch-manipulation"
+                >
+                  Forgot Password?
+                </Button>
+              )}
+
               <Button
                 type="button"
                 variant="ghost"
@@ -259,6 +318,42 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Login Options
+              </Button>
+            </form>
+          )}
+
+          {step === 'forgot-password' && (
+            <form onSubmit={handleForgotPassword} className="space-y-6">
+              <div className="text-center mb-6">
+                <h2 className="text-xl font-bold text-blue-900 mb-2">Reset Password</h2>
+                <p className="text-gray-600 text-sm">Enter your email to receive reset instructions</p>
+              </div>
+
+              <Input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="rounded-xl bg-blue-50"
+                required
+              />
+
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-blue-700 hover:bg-blue-900 text-white h-14 rounded-2xl font-bold touch-manipulation"
+              >
+                {loading ? 'Sending...' : 'Send Reset Email'}
+              </Button>
+
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setStep('email')}
+                className="w-full text-blue-500 touch-manipulation"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Sign In
               </Button>
             </form>
           )}
