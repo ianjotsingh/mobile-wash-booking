@@ -23,15 +23,14 @@ const ResetPassword = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const setupSession = async () => {
-      console.log('Setting up password reset session...');
+    const handlePasswordReset = async () => {
+      console.log('Starting password reset flow...');
       console.log('Current URL:', window.location.href);
-      console.log('Search params:', Object.fromEntries(searchParams));
       
       setCheckingSession(true);
       
-      // Check for different possible parameter formats
-      const accessToken = searchParams.get('access_token') || searchParams.get('token');
+      // Get URL parameters
+      const accessToken = searchParams.get('access_token');
       const refreshToken = searchParams.get('refresh_token');
       const type = searchParams.get('type');
       const error = searchParams.get('error');
@@ -45,9 +44,9 @@ const ResetPassword = () => {
         errorDescription
       });
 
-      // Check for errors in URL first
+      // Check for errors in URL
       if (error) {
-        console.log('Error in URL parameters:', error, errorDescription);
+        console.error('Error in URL:', error, errorDescription);
         setCheckingSession(false);
         toast({
           title: "Reset Link Error",
@@ -58,13 +57,13 @@ const ResetPassword = () => {
         return;
       }
       
-      // Check if we have the required tokens
+      // Check if we have the required parameters for password reset
       if (!accessToken || type !== 'recovery') {
-        console.log('Missing required parameters for password reset');
+        console.error('Missing required parameters. AccessToken:', !!accessToken, 'Type:', type);
         setCheckingSession(false);
         toast({
           title: "Invalid Reset Link",
-          description: "This password reset link is invalid or has expired. Please request a new one from the login page.",
+          description: "This password reset link is invalid or has expired. Please request a new one.",
           variant: "destructive"
         });
         setTimeout(() => navigate('/'), 3000);
@@ -72,17 +71,16 @@ const ResetPassword = () => {
       }
 
       try {
-        // Attempt to set the session using the tokens from the URL
-        const sessionData = {
+        console.log('Setting up session with tokens...');
+        
+        // Set the session using the tokens from the URL
+        const { data, error: sessionError } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken || ''
-        };
+        });
         
-        console.log('Attempting to set session with tokens...');
-        const { data, error } = await supabase.auth.setSession(sessionData);
-        
-        if (error) {
-          console.error('Session setup error:', error);
+        if (sessionError) {
+          console.error('Session setup error:', sessionError);
           setCheckingSession(false);
           toast({
             title: "Session Error",
@@ -94,7 +92,7 @@ const ResetPassword = () => {
         }
 
         if (data.session && data.user) {
-          console.log('Session established successfully for user:', data.user.email);
+          console.log('Valid session established for user:', data.user.email);
           setIsValidSession(true);
           setCheckingSession(false);
           toast({
@@ -102,7 +100,7 @@ const ResetPassword = () => {
             description: `You can now create a new password for ${data.user.email}`,
           });
         } else {
-          console.log('No valid session created despite no error');
+          console.error('No valid session created');
           setCheckingSession(false);
           toast({
             title: "Session Error",
@@ -123,10 +121,10 @@ const ResetPassword = () => {
       }
     };
 
-    setupSession();
+    handlePasswordReset();
   }, [searchParams, navigate, toast]);
 
-  const handlePasswordReset = async (e: React.FormEvent) => {
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!isValidSession) {
@@ -250,7 +248,33 @@ const ResetPassword = () => {
     );
   }
 
-  // Main password reset form
+  // Main password reset form - only show if we have a valid session
+  if (!isValidSession) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-red-100 via-white to-white flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-red-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">❌</span>
+              </div>
+              <h2 className="text-xl font-bold text-red-800 mb-2">Invalid Reset Link</h2>
+              <p className="text-gray-600 mb-4">
+                This password reset link is invalid or has expired. Please request a new one.
+              </p>
+              <Button
+                onClick={() => navigate('/')}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                Go to Login
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-100 via-white to-white flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -264,7 +288,7 @@ const ResetPassword = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handlePasswordReset} className="space-y-6">
+          <form onSubmit={handlePasswordUpdate} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium">New Password</Label>
               <div className="relative">
