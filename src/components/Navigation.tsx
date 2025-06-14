@@ -87,62 +87,87 @@ const Navigation = () => {
 
   return (
     <>
-      <nav className="bg-black/95 backdrop-blur-sm border-b border-gray-800 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link to="/" className="flex items-center space-x-2">
+      <nav className="bg-black/95 backdrop-blur-sm border-b border-gray-800 sticky top-0 z-50 w-full">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="flex justify-between items-center h-16 w-full">
+            {/* Logo */}
+            <Link 
+              to="/" 
+              className="flex items-center gap-2 h-16"
+              style={{ minHeight: '4rem' }}
+            >
               <Car className="h-8 w-8 text-emerald-400" />
-              <span className="text-xl font-bold text-white">WashCart</span>
+              <span className="text-xl font-bold text-white align-middle">WashCart</span>
             </Link>
             
-            <div className="hidden md:flex items-center space-x-8">
-              <Link to="/" className="text-gray-300 hover:text-emerald-400 transition-colors">
+            {/* Menu Links */}
+            <div className="hidden md:flex items-center space-x-7 h-16">
+              <Link
+                to="/"
+                className="text-gray-300 hover:text-emerald-400 transition-colors flex items-center h-16 px-2"
+                style={{ minHeight: '4rem', alignItems: 'center', display: 'flex' }}
+              >
                 Home
               </Link>
               <button 
                 onClick={scrollToServices}
-                className="text-gray-300 hover:text-emerald-400 transition-colors cursor-pointer"
+                className="text-gray-300 hover:text-emerald-400 transition-colors cursor-pointer flex items-center h-16 px-2"
+                style={{ minHeight: '4rem', alignItems: 'center', display: 'flex' }}
               >
                 Services
               </button>
-              <Link to="/company-signup" className="text-gray-300 hover:text-emerald-400 transition-colors">
+              <Link
+                to="/company-signup"
+                className="text-gray-300 hover:text-emerald-400 transition-colors flex items-center h-16 px-2"
+                style={{ minHeight: '4rem', alignItems: 'center', display: 'flex' }}
+              >
                 Partner With Us
               </Link>
               <button 
                 onClick={handleMechanicRequest}
-                className="text-gray-300 hover:text-emerald-400 transition-colors cursor-pointer"
+                className="text-gray-300 hover:text-emerald-400 transition-colors cursor-pointer flex items-center h-16 px-2"
+                style={{ minHeight: '4rem', alignItems: 'center', display: 'flex' }}
               >
                 Call Mechanic
               </button>
               {/* Company Dashboard link for approved companies */}
               {isCompany && (
-                <Link to="/company-dashboard" className="text-gray-300 hover:text-emerald-400 transition-colors">
+                <Link
+                  to="/company-dashboard"
+                  className="text-gray-300 hover:text-emerald-400 transition-colors flex items-center h-16 px-2"
+                  style={{ minHeight: '4rem', alignItems: 'center', display: 'flex' }}
+                >
                   Company Dashboard
                 </Link>
               )}
               {/* Admin Dashboard link for admin users */}
               {isAdmin && (
-                <Link to="/admin-dashboard" className="text-gray-300 hover:text-emerald-400 transition-colors flex items-center space-x-1">
-                  <Shield className="h-4 w-4" />
+                <Link
+                  to="/admin-dashboard"
+                  className="text-gray-300 hover:text-emerald-400 transition-colors flex items-center h-16 px-2"
+                  style={{ minHeight: '4rem', alignItems: 'center', display: 'flex' }}
+                >
+                  <Shield className="h-4 w-4 mr-1" />
                   <span>Admin</span>
                 </Link>
               )}
             </div>
             
-            <div className="flex items-center space-x-4">
+            {/* User Profile Section + Book Button */}
+            <div className="flex items-center space-x-4 h-16">
               {user ? (
-                <div className="flex items-center space-x-4">
-                  <Link to="/order-history">
+                <div className="flex items-center space-x-4 h-16">
+                  <Link to="/order-history" className="h-10 flex items-center">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex items-center space-x-1 border-gray-600 text-gray-300 hover:bg-gray-800"
+                      className="flex items-center space-x-1 border-gray-600 text-gray-300 hover:bg-gray-800 h-10"
                     >
                       <History className="h-4 w-4" />
                       <span>Orders</span>
                     </Button>
                   </Link>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-2 h-10">
                     <User className="h-5 w-5 text-gray-400" />
                     <span className="text-gray-300 text-sm">{user.email || user.phone}</span>
                   </div>
@@ -150,7 +175,7 @@ const Navigation = () => {
                     variant="outline"
                     size="sm"
                     onClick={signOut}
-                    className="flex items-center space-x-1 border-gray-600 text-gray-300 hover:bg-gray-800"
+                    className="flex items-center space-x-1 border-gray-600 text-gray-300 hover:bg-gray-800 h-10"
                   >
                     <LogOut className="h-4 w-4" />
                     <span>Logout</span>
@@ -158,14 +183,14 @@ const Navigation = () => {
                 </div>
               ) : (
                 <AuthModal>
-                  <Button variant="outline" className="border-emerald-600 text-emerald-400 hover:bg-emerald-600 hover:text-white">
+                  <Button variant="outline" className="border-emerald-600 text-emerald-400 hover:bg-emerald-600 hover:text-white h-10">
                     Login
                   </Button>
                 </AuthModal>
               )}
               <Button 
                 onClick={handleBookNow}
-                className="bg-emerald-500 hover:bg-emerald-600 text-black font-semibold"
+                className="bg-emerald-500 hover:bg-emerald-600 text-black font-semibold h-10 px-4 rounded-md flex items-center"
               >
                 Book Now
               </Button>
