@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -140,13 +139,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('Starting signup process for:', email);
       
-      // Sign up without email confirmation - completely disable it
+      // Sign up with autoConfirm enabled - no email confirmation needed
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: userData,
-          emailRedirectTo: undefined // No email redirect
+          emailRedirectTo: undefined // Disable email redirect completely
         }
       });
       
@@ -158,16 +157,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       
       if (error) {
-        // If user already exists, try to sign them in
-        if (error.message.includes('User already registered')) {
-          console.log('User exists, trying to sign in...');
-          return await signIn(email, password);
-        }
+        console.error('Signup error:', error);
         return { data: null, error };
       }
       
-      // Return success immediately - no email confirmation needed
-      console.log('User created successfully without email confirmation');
+      // Check if user was created but session is null (waiting for confirmation)
+      if (data.user && !data.session) {
+        // User was created but needs confirmation - let's try to sign them in directly
+        console.log('User created but no session, attempting direct sign in...');
+        const signInResult = await signIn(email, password);
+        return signInResult;
+      }
+      
+      console.log('User created successfully with session');
       return { data, error: null };
       
     } catch (error) {
@@ -189,6 +191,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         session: !!data.session,
         error: error?.message 
       });
+      
+      if (error) {
+        console.error('Sign in error details:', error);
+        // If user exists but can't sign in, it might be unconfirmed
+        if (error.message.includes('Invalid login credentials')) {
+          console.log('Checking if user exists but is unconfirmed...');
+          // Try to resend confirmation or handle unconfirmed user
+          return { data: null, error: { message: 'Please check your email and password. If you just signed up, your account may need to be verified.' } };
+        }
+      }
       
       return { data, error };
     } catch (error) {
