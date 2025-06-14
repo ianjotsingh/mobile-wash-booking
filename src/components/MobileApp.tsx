@@ -23,22 +23,27 @@ const MobileApp = () => {
     // Don't do anything while auth is loading
     if (loading) return;
 
+    console.log('Auth state changed - User:', user);
+    
     // Check if user has completed onboarding before
     const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
     const hasLocationSet = localStorage.getItem('userLocationSet');
     
     if (user) {
-      // User is logged in
-      if (hasCompletedOnboarding && hasLocationSet) {
+      // User is logged in - go directly to location or app
+      console.log('User is authenticated, checking location...');
+      if (hasLocationSet) {
+        console.log('Location is set, going to app');
         setCurrentStep('app');
-      } else if (hasCompletedOnboarding) {
-        setCurrentStep('location');
       } else {
+        console.log('Location not set, going to location step');
         setCurrentStep('location');
-        localStorage.setItem('hasCompletedOnboarding', 'true');
       }
+      // Mark onboarding as complete since user is authenticated
+      localStorage.setItem('hasCompletedOnboarding', 'true');
     } else {
       // User is not logged in
+      console.log('User not authenticated');
       if (hasCompletedOnboarding) {
         setCurrentStep('front');
       } else {
@@ -48,26 +53,32 @@ const MobileApp = () => {
   }, [user, loading]);
 
   const handleOnboardingComplete = () => {
+    console.log('Onboarding completed');
     localStorage.setItem('hasCompletedOnboarding', 'true');
     setCurrentStep('front');
   };
 
   const handleUserTypeSelect = (userType: 'customer' | 'provider') => {
+    console.log('User type selected:', userType);
     setSelectedUserType(userType);
     setCurrentStep('login');
   };
 
   const handleLoginSuccess = () => {
-    setCurrentStep('location');
+    console.log('Login successful, proceeding to location');
+    // The useEffect will handle the redirect when user state changes
+    // No need to manually set step here
   };
 
   const handleLocationPermission = (location: { lat: number; lng: number }) => {
+    console.log('Location permission granted:', location);
     setUserLocation(location);
     setUserAddress('Current Location');
     setCurrentStep('confirm-location');
   };
 
   const handleManualLocationEntry = () => {
+    console.log('Manual location entry selected');
     setCurrentStep('confirm-location');
   };
 

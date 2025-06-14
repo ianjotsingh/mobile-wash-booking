@@ -37,43 +37,55 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
     setLoading(true);
     try {
       if (isSignup) {
+        console.log('Attempting signup for:', email);
         const userData = {
           full_name: fullName,
           role: userType,
           ...(phoneNumber && { phone: phoneNumber })
         };
 
-        const { error } = await signUp(email, password, userData);
+        const { data, error } = await signUp(email, password, userData);
+        console.log('Signup result:', { data, error });
+        
         if (error) {
+          console.error('Signup error:', error);
           toast({
             title: "Signup Failed",
             description: error.message,
             variant: "destructive"
           });
         } else {
-          onSuccess();
+          console.log('Signup successful!');
           toast({
             title: "Success",
-            description: "Account created successfully!",
+            description: "Account created successfully! You can now sign in.",
           });
+          // After successful signup, automatically call onSuccess
+          onSuccess();
         }
       } else {
-        const { error } = await signIn(email, password);
+        console.log('Attempting login for:', email);
+        const { data, error } = await signIn(email, password);
+        console.log('Login result:', { data, error });
+        
         if (error) {
+          console.error('Login error:', error);
           toast({
             title: "Login Failed",
             description: error.message,
             variant: "destructive"
           });
         } else {
-          onSuccess();
+          console.log('Login successful!');
           toast({
             title: "Success",
             description: "Logged in successfully!",
           });
+          onSuccess();
         }
       }
     } catch (error) {
+      console.error('Auth error:', error);
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -162,6 +174,7 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
                 onChange={(e) => setPassword(e.target.value)}
                 className="rounded-xl bg-blue-50"
                 required
+                minLength={6}
               />
 
               {isSignup && (
