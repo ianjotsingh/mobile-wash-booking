@@ -161,10 +161,10 @@ const MobileApp = () => {
         <Route path="/mechanic/signup" element={<MechanicSignup />} />
         <Route path="/mechanic/request" element={<MechanicRequest />} />
         
-        {/* Dashboard Routes - Require Authentication */}
+        {/* Dashboard Routes - Redirect companies to mobile dashboard */}
         <Route 
           path="/company/dashboard" 
-          element={user ? <CompanyDashboard /> : <Navigate to="/" />} 
+          element={user && isCompany ? <CompanyMobileDashboard /> : user ? <CompanyDashboard /> : <Navigate to="/" />} 
         />
         <Route 
           path="/admin/dashboard" 
