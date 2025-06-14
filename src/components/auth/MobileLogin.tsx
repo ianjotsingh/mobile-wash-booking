@@ -66,11 +66,12 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
             console.log('User exists, trying sign in...');
             result = await signIn(email, password);
             
-            if (!result.error) {
+            if (!result.error && result.data?.session) {
               toast({
                 title: "Success",
                 description: "Signed in successfully!",
               });
+              // Call onSuccess immediately when we have a session
               setTimeout(() => onSuccess(), 100);
               return;
             }
@@ -87,12 +88,28 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
             variant: "destructive"
           });
         } else {
-          console.log('Signup successful for:', email);
-          toast({
-            title: "Success",
-            description: "Account created successfully!",
-          });
-          setTimeout(() => onSuccess(), 100);
+          console.log('Signup result:', result);
+          
+          if (result.needsConfirmation) {
+            toast({
+              title: "Account Created",
+              description: "Please check your email to confirm your account, then sign in.",
+            });
+          } else if (result.data?.session) {
+            toast({
+              title: "Success",
+              description: "Account created successfully!",
+            });
+            // Call onSuccess immediately when we have a session
+            setTimeout(() => onSuccess(), 100);
+          } else {
+            // Account created but no session - user needs to sign in
+            toast({
+              title: "Account Created",
+              description: "Account created! Please sign in to continue.",
+            });
+            setIsSignup(false); // Switch to sign in mode
+          }
         }
       } else {
         console.log('Starting login process for:', email);
@@ -115,12 +132,13 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
             description: errorMessage,
             variant: "destructive"
           });
-        } else {
+        } else if (result.data?.session) {
           console.log('Login successful for:', email);
           toast({
             title: "Success",
             description: "Logged in successfully!",
           });
+          // Call onSuccess immediately when we have a session
           setTimeout(() => onSuccess(), 100);
         }
       }

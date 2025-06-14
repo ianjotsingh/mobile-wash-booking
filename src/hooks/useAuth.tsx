@@ -60,18 +60,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signUp = async (email: string, password: string, userData: any) => {
     try {
-      console.log('Attempting sign up for:', email);
-      
-      // First, check if user already exists
-      const { data: existingUser } = await supabase.auth.signInWithPassword({
-        email,
-        password: 'dummy-password-check'
-      });
-      
-      if (existingUser?.user) {
-        console.log('User already exists, attempting sign in instead');
-        return await signIn(email, password);
-      }
+      console.log('Starting signup process for:', email);
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -82,7 +71,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       });
       
-      console.log('Sign up result:', { 
+      console.log('Signup result:', { 
         user: data.user?.email, 
         session: !!data.session,
         error: error?.message 
@@ -97,17 +86,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { data: null, error };
       }
       
-      // If signup successful but no session (email confirmation required), 
-      // try to sign in to get the session
+      // If we have a user but no session, the user needs email confirmation
       if (data.user && !data.session) {
-        console.log('Signup successful, attempting auto sign-in...');
+        console.log('User created but needs email confirmation');
+        // For development/testing, we'll try to sign in anyway
         const signInResult = await signIn(email, password);
-        return signInResult.error ? { data, error: null } : signInResult;
+        if (signInResult.data?.session) {
+          return signInResult;
+        }
+        // Return success but indicate email confirmation needed
+        return { 
+          data, 
+          error: null, 
+          needsConfirmation: true 
+        };
       }
       
       return { data, error };
     } catch (error) {
-      console.error('Sign up error:', error);
+      console.error('Signup error:', error);
       return { data: null, error };
     }
   };
