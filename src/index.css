@@ -5,65 +5,96 @@
 
 @layer base {
   :root {
-    --background: 0 0% 3%;
-    --foreground: 0 0% 98%;
+    /* Main Brand Colors - Trust & Reliability */
+    --primary-blue: #1e40af;
+    --primary-orange: #f97316;
+    --primary-gradient: linear-gradient(135deg, #1e40af 0%, #f97316 100%);
+    
+    /* Car Wash Services - Clean & Fresh */
+    --wash-primary: #3b82f6;
+    --wash-secondary: #06b6d4;
+    --wash-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    --wash-light: #dbeafe;
+    
+    /* Mechanic Services - Strong & Reliable */
+    --mechanic-primary: #f97316;
+    --mechanic-secondary: #ea580c;
+    --mechanic-gradient: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    --mechanic-light: #fed7aa;
+    
+    /* Emergency Services - Urgent & Attention-grabbing */
+    --emergency-primary: #dc2626;
+    --emergency-secondary: #b91c1c;
+    --emergency-gradient: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    
+    /* Success & Positive Actions */
+    --success-green: #10b981;
+    --success-light: #d1fae5;
+    
+    /* Premium & Special Offers */
+    --premium-gold: #fbbf24;
+    --premium-purple: #8b5cf6;
+    --premium-gradient: linear-gradient(135deg, #fbbf24 0%, #8b5cf6 100%);
+    
+    /* Status Indicators */
+    --status-available: #10b981;
+    --status-busy: #f59e0b;
+    --status-offline: #6b7280;
+    
+    /* Clean & Modern Backgrounds */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-tertiary: #f1f5f9;
+    
+    /* Text Colors */
+    --text-primary: #1f2937;
+    --text-secondary: #6b7280;
+    --text-light: #9ca3af;
+    --text-white: #ffffff;
 
-    --card: 0 0% 3%;
-    --card-foreground: 0 0% 98%;
-
-    --popover: 0 0% 3%;
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-
-    --secondary: 0 0% 9%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 0 0% 9%;
-    --muted-foreground: 0 0% 63.9%;
-
-    --accent: 0 0% 9%;
-    --accent-foreground: 0 0% 98%;
-
+    /* Shadcn variables */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 0 0% 3%;
-    --foreground: 0 0% 98%;
-
-    --card: 0 0% 3%;
-    --card-foreground: 0 0% 98%;
-
-    --popover: 0 0% 3%;
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-
-    --secondary: 0 0% 9%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 0 0% 9%;
-    --muted-foreground: 0 0% 63.9%;
-
-    --accent: 0 0% 9%;
-    --accent-foreground: 0 0% 98%;
-
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
   }
 }
 
@@ -76,13 +107,127 @@
     @apply bg-background text-foreground;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   }
+}
 
-  html {
-    @apply dark;
+/* Custom utility classes for the new color scheme */
+@layer utilities {
+  .bg-wash-gradient {
+    background: var(--wash-gradient);
+  }
+  
+  .bg-mechanic-gradient {
+    background: var(--mechanic-gradient);
+  }
+  
+  .bg-emergency-gradient {
+    background: var(--emergency-gradient);
+  }
+  
+  .bg-premium-gradient {
+    background: var(--premium-gradient);
+  }
+  
+  .bg-primary-gradient {
+    background: var(--primary-gradient);
+  }
+  
+  .text-wash-primary {
+    color: var(--wash-primary);
+  }
+  
+  .text-mechanic-primary {
+    color: var(--mechanic-primary);
+  }
+  
+  .text-emergency-primary {
+    color: var(--emergency-primary);
+  }
+  
+  .bg-wash-light {
+    background-color: var(--wash-light);
+  }
+  
+  .bg-mechanic-light {
+    background-color: var(--mechanic-light);
+  }
+  
+  .border-wash-primary {
+    border-color: var(--wash-primary);
+  }
+  
+  .border-mechanic-primary {
+    border-color: var(--mechanic-primary);
+  }
+  
+  .border-emergency-primary {
+    border-color: var(--emergency-primary);
   }
 }
 
-/* Uber-like animations */
+/* Button styles */
+@layer components {
+  .btn-primary {
+    background: var(--mechanic-gradient);
+    color: white;
+    box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+    transition: all 0.3s ease;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+  }
+  
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
+  }
+  
+  .btn-secondary {
+    background: var(--wash-gradient);
+    color: white;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    transition: all 0.3s ease;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+  }
+  
+  .btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  }
+  
+  .status-available {
+    background: var(--status-available);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  
+  .status-busy {
+    background: var(--status-busy);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  
+  .status-emergency {
+    background: var(--emergency-primary);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    animation: pulse 2s infinite;
+  }
+}
+
+/* Animations */
 @keyframes slideInUp {
   from {
     transform: translateY(100%);
@@ -103,10 +248,23 @@
   }
 }
 
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
 .slide-in-up {
   animation: slideInUp 0.3s ease-out;
 }
 
 .fade-in {
   animation: fadeIn 0.3s ease-out;
+}
+
+.pulse-emergency {
+  animation: pulse 2s infinite;
 }

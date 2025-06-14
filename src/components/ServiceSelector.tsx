@@ -148,78 +148,111 @@ const ServiceSelector = () => {
     }
   };
 
-  const ServiceCard = ({ service }: { service: Service }) => (
-    <Card 
-      className={`relative cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 ${
-        service.popular ? 'ring-2 ring-emerald-400' : ''
-      } ${service.emergency ? 'ring-2 ring-red-400' : ''}`}
-      onClick={() => handleServiceSelect(service)}
-    >
-      {service.popular && (
-        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-          <span className="bg-emerald-400 text-black px-3 py-1 rounded-full text-xs font-semibold flex items-center space-x-1">
-            <Star className="w-3 h-3" />
+  const ServiceCard = ({ service }: { service: Service }) => {
+    const getCardStyling = () => {
+      if (service.emergency) {
+        return {
+          cardClass: "relative cursor-pointer transition-all duration-300 hover:shadow-2xl hover:scale-105 bg-gradient-to-br from-red-50 to-red-100 border-2 border-emergency-primary",
+          badge: "absolute -top-3 left-1/2 transform -translate-x-1/2 bg-emergency-gradient text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg pulse-emergency",
+          icon: "w-5 h-5 text-red-600",
+          priceColor: "text-red-600"
+        };
+      } else if (service.category === 'wash') {
+        return {
+          cardClass: "relative cursor-pointer transition-all duration-300 hover:shadow-2xl hover:scale-105 bg-wash-light border-2 border-wash-primary",
+          badge: service.popular ? "absolute -top-3 left-1/2 transform -translate-x-1/2 bg-premium-gradient text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg" : "",
+          icon: "w-5 h-5 text-wash-primary",
+          priceColor: "text-wash-primary"
+        };
+      } else {
+        return {
+          cardClass: "relative cursor-pointer transition-all duration-300 hover:shadow-2xl hover:scale-105 bg-mechanic-light border-2 border-mechanic-primary",
+          badge: service.popular ? "absolute -top-3 left-1/2 transform -translate-x-1/2 bg-premium-gradient text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg" : "",
+          icon: "w-5 h-5 text-mechanic-primary",
+          priceColor: "text-mechanic-primary"
+        };
+      }
+    };
+
+    const styling = getCardStyling();
+
+    return (
+      <Card 
+        className={styling.cardClass}
+        onClick={() => handleServiceSelect(service)}
+      >
+        {(service.popular && styling.badge) && (
+          <div className={styling.badge}>
+            <Star className="w-3 h-3 inline mr-1" />
             <span>Most Popular</span>
-          </span>
-        </div>
-      )}
-      {service.emergency && (
-        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-          <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center space-x-1">
-            <Zap className="w-3 h-3" />
+          </div>
+        )}
+        {service.emergency && (
+          <div className={styling.badge}>
+            <Zap className="w-3 h-3 inline mr-1" />
             <span>Emergency</span>
-          </span>
-        </div>
-      )}
-      
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center justify-between">
-          <span className="text-lg font-bold">{service.title}</span>
-          <div className="flex items-center space-x-1">
-            {service.category === 'wash' ? (
-              <Car className="w-5 h-5 text-blue-600" />
-            ) : (
-              <Wrench className="w-5 h-5 text-orange-600" />
-            )}
           </div>
-        </CardTitle>
-        <p className="text-gray-600 text-sm">{service.description}</p>
-      </CardHeader>
-      
-      <CardContent>
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-2xl font-bold text-gray-900">{service.price}</span>
-          <div className="flex items-center text-gray-500 text-sm">
-            <Clock className="w-4 h-4 mr-1" />
-            <span>{service.duration}</span>
+        )}
+        
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center justify-between">
+            <span className="text-lg font-bold text-gray-800">{service.title}</span>
+            <div className="flex items-center space-x-1">
+              {service.category === 'wash' ? (
+                <Car className={styling.icon} />
+              ) : (
+                <Wrench className={styling.icon} />
+              )}
+            </div>
+          </CardTitle>
+          <p className="text-gray-600 text-sm">{service.description}</p>
+        </CardHeader>
+        
+        <CardContent>
+          <div className="flex items-center justify-between mb-4">
+            <span className={`text-2xl font-bold ${styling.priceColor}`}>{service.price}</span>
+            <div className="flex items-center text-gray-500 text-sm">
+              <Clock className="w-4 h-4 mr-1" />
+              <span>{service.duration}</span>
+            </div>
           </div>
-        </div>
-        
-        <ul className="space-y-2 mb-4">
-          {service.features.map((feature, index) => (
-            <li key={index} className="flex items-center text-sm text-gray-600">
-              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></div>
-              {feature}
-            </li>
-          ))}
-        </ul>
-        
-        <Button className="w-full bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white font-semibold">
-          Book Now
-        </Button>
-      </CardContent>
-    </Card>
-  );
+          
+          <ul className="space-y-2 mb-4">
+            {service.features.map((feature, index) => (
+              <li key={index} className="flex items-center text-sm text-gray-600">
+                <div className={`w-1.5 h-1.5 rounded-full mr-2 ${
+                  service.category === 'wash' ? 'bg-blue-500' : 'bg-orange-500'
+                }`}></div>
+                {feature}
+              </li>
+            ))}
+          </ul>
+          
+          <Button className={`w-full font-semibold transition-all duration-300 ${
+            service.category === 'wash' 
+              ? 'bg-wash-gradient hover:shadow-lg hover:shadow-blue-500/25' 
+              : 'bg-mechanic-gradient hover:shadow-lg hover:shadow-orange-500/25'
+          } text-white`}>
+            Book Now
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-orange-50 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Car Wash Services Section */}
         <section className="mb-16">
           <div className="text-center mb-12">
             <div className="flex items-center justify-center space-x-3 mb-4">
-              <Car className="w-8 h-8 text-blue-600" />
-              <h2 className="text-4xl font-bold text-gray-900">Car Wash Services</h2>
+              <div className="p-3 bg-wash-gradient rounded-full">
+                <Car className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+                Car Wash Services
+              </h2>
             </div>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Professional car wash services delivered to your location with premium care and attention to detail
@@ -237,8 +270,12 @@ const ServiceSelector = () => {
         <section>
           <div className="text-center mb-12">
             <div className="flex items-center justify-center space-x-3 mb-4">
-              <Wrench className="w-8 h-8 text-orange-600" />
-              <h2 className="text-4xl font-bold text-gray-900">Mechanic Services</h2>
+              <div className="p-3 bg-mechanic-gradient rounded-full">
+                <Wrench className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-orange-800 bg-clip-text text-transparent">
+                Mechanic Services
+              </h2>
             </div>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Expert automotive repair and maintenance services with certified mechanics available 24/7
@@ -253,10 +290,12 @@ const ServiceSelector = () => {
         </section>
 
         {/* Service Areas */}
-        <section className="mt-16 bg-white rounded-2xl p-8 shadow-lg">
+        <section className="mt-16 bg-white rounded-2xl p-8 shadow-2xl border border-gray-100">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center space-x-2 mb-4">
-              <MapPin className="w-6 h-6 text-emerald-600" />
+              <div className="p-2 bg-emerald-100 rounded-full">
+                <MapPin className="w-6 h-6 text-emerald-600" />
+              </div>
               <h3 className="text-2xl font-bold text-gray-900">Service Areas</h3>
             </div>
             <p className="text-gray-600">We provide services across major cities in India</p>
@@ -264,7 +303,7 @@ const ServiceSelector = () => {
           
           <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-4 text-center">
             {['Delhi NCR', 'Mumbai', 'Bangalore', 'Hyderabad', 'Chennai', 'Pune', 'Kolkata', 'Ahmedabad', 'Jaipur', 'Lucknow'].map((city) => (
-              <div key={city} className="p-3 bg-gray-50 rounded-lg">
+              <div key={city} className="p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
                 <span className="text-sm font-medium text-gray-700">{city}</span>
               </div>
             ))}

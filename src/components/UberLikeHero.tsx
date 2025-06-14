@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -147,40 +148,48 @@ const UberLikeHero = () => {
 
   return (
     <>
-      <div className="relative min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
-        {/* Background Pattern */}
+      <div className="relative min-h-screen bg-primary-gradient flex items-center justify-center overflow-hidden">
+        {/* Enhanced Background Pattern */}
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMyNTI1MjUiIGZpbGwtb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIxLjUiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-20"></div>
+        
+        {/* Floating Elements */}
+        <div className="absolute top-20 left-10 w-20 h-20 bg-white/10 rounded-full blur-xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-10 w-32 h-32 bg-orange-300/20 rounded-full blur-2xl animate-pulse delay-700"></div>
         
         <div className="relative z-10 w-full max-w-md mx-auto px-6">
           <div className="text-center mb-12 fade-in">
-            <h1 className="text-4xl font-bold text-white mb-4">
-              Car Wash on
+            <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
+              Car Wash & 
               <br />
-              <span className="text-emerald-400">Demand</span>
+              <span className="bg-gradient-to-r from-yellow-400 to-orange-300 bg-clip-text text-transparent">
+                Mechanic Services
+              </span>
+              <br />
+              <span className="text-2xl font-normal text-blue-100">on Demand</span>
             </h1>
-            <p className="text-gray-300 text-lg">
-              Premium car wash services at your doorstep
+            <p className="text-blue-100 text-lg leading-relaxed">
+              Premium automotive services at your doorstep with trusted professionals
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-2xl slide-in-up">
+          <div className="bg-white rounded-3xl p-8 shadow-2xl backdrop-blur-sm slide-in-up">
             <div className="space-y-6">
               {/* Location Input */}
               <div className="relative">
-                <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl">
-                  <MapPin className="h-5 w-5 text-gray-600 flex-shrink-0" />
+                <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-2xl border-2 border-transparent focus-within:border-blue-300 transition-colors">
+                  <MapPin className="h-5 w-5 text-blue-600 flex-shrink-0" />
                   <Input
                     placeholder="Search for your location in India..."
                     value={pickupLocation}
                     onChange={(e) => handleLocationSearch(e.target.value)}
-                    className="border-none bg-transparent text-black placeholder-gray-500 focus-visible:ring-0 flex-1"
+                    className="border-none bg-transparent text-black placeholder-gray-500 focus-visible:ring-0 flex-1 text-base"
                   />
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={detectCurrentLocation}
                     disabled={loading}
-                    className="text-emerald-600 hover:text-emerald-700 flex-shrink-0"
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex-shrink-0 rounded-xl"
                   >
                     {loading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -192,9 +201,9 @@ const UberLikeHero = () => {
 
                 {/* Search Loading */}
                 {searchLoading && (
-                  <div className="absolute top-full left-0 right-0 bg-white border rounded-xl shadow-lg z-50 p-3 mt-2">
+                  <div className="absolute top-full left-0 right-0 bg-white border-2 border-blue-100 rounded-2xl shadow-xl z-50 p-4 mt-2">
                     <div className="flex items-center space-x-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
                       <span className="text-sm text-gray-600">Searching locations...</span>
                     </div>
                   </div>
@@ -202,15 +211,15 @@ const UberLikeHero = () => {
 
                 {/* Search Results */}
                 {showResults && searchResults.length > 0 && !searchLoading && (
-                  <div className="absolute top-full left-0 right-0 bg-white border rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto mt-2">
+                  <div className="absolute top-full left-0 right-0 bg-white border-2 border-blue-100 rounded-2xl shadow-xl z-50 max-h-60 overflow-y-auto mt-2">
                     {searchResults.map((location, index) => (
                       <div
                         key={index}
-                        className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 transition-colors"
+                        className="p-4 hover:bg-blue-50 cursor-pointer border-b last:border-b-0 transition-colors rounded-2xl"
                         onClick={() => selectLocation(location)}
                       >
-                        <div className="flex items-start space-x-2">
-                          <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <div className="flex items-start space-x-3">
+                          <MapPin className="h-4 w-4 text-blue-400 mt-1 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-gray-900 text-sm truncate">
                               {location.address}
@@ -227,7 +236,7 @@ const UberLikeHero = () => {
 
                 {/* No Results */}
                 {showResults && searchResults.length === 0 && !searchLoading && pickupLocation.length > 2 && (
-                  <div className="absolute top-full left-0 right-0 bg-white border rounded-xl shadow-lg z-50 p-3 mt-2">
+                  <div className="absolute top-full left-0 right-0 bg-white border-2 border-red-100 rounded-2xl shadow-xl z-50 p-4 mt-2">
                     <div className="text-sm text-gray-500 text-center">
                       No locations found. Try a different search term.
                     </div>
@@ -236,25 +245,25 @@ const UberLikeHero = () => {
               </div>
 
               {/* Service Selection */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-4">
                 {services.map((service) => (
                   <div
                     key={service.id}
-                    className={`p-4 border rounded-xl text-center cursor-pointer transition-colors ${
+                    className={`p-4 border-2 rounded-2xl text-center cursor-pointer transition-all duration-300 ${
                       selectedService === service.id
-                        ? 'border-2 border-emerald-400 bg-emerald-50'
-                        : 'border hover:bg-gray-50'
+                        ? 'border-blue-400 bg-blue-50 shadow-lg transform scale-105'
+                        : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'
                     }`}
                     onClick={() => setSelectedService(service.id)}
                   >
-                    <div className="text-2xl mb-2">{service.icon}</div>
-                    <div className={`text-sm font-medium ${
-                      selectedService === service.id ? 'text-emerald-700' : 'text-gray-900'
+                    <div className="text-3xl mb-2">{service.icon}</div>
+                    <div className={`text-sm font-semibold ${
+                      selectedService === service.id ? 'text-blue-700' : 'text-gray-900'
                     }`}>
                       {service.name}
                     </div>
-                    <div className={`text-xs ${
-                      selectedService === service.id ? 'text-emerald-600' : 'text-gray-500'
+                    <div className={`text-xs font-medium ${
+                      selectedService === service.id ? 'text-blue-600' : 'text-gray-500'
                     }`}>
                       {service.price}
                     </div>
@@ -263,10 +272,10 @@ const UberLikeHero = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <Button
                   onClick={handleBookNow}
-                  className="w-full bg-black text-white hover:bg-gray-800 h-14 text-lg font-semibold rounded-xl"
+                  className="w-full bg-wash-gradient hover:shadow-xl hover:shadow-blue-500/25 text-white h-14 text-lg font-bold rounded-2xl transition-all duration-300 transform hover:scale-105"
                   disabled={!pickupLocation.trim()}
                 >
                   Book Car Wash
@@ -274,23 +283,26 @@ const UberLikeHero = () => {
                 
                 <Button
                   onClick={handleCallMechanic}
-                  variant="outline"
-                  className="w-full border-emerald-500 text-emerald-600 hover:bg-emerald-50 h-12 text-base font-semibold rounded-xl"
+                  className="w-full bg-mechanic-gradient hover:shadow-xl hover:shadow-orange-500/25 text-white h-12 text-base font-semibold rounded-2xl transition-all duration-300 transform hover:scale-105"
                   disabled={!pickupLocation.trim()}
                 >
-                  <Wrench className="h-4 w-4 mr-2" />
+                  <Wrench className="h-5 w-5 mr-2" />
                   Call Mechanic
                 </Button>
               </div>
 
               {/* Stats */}
-              <div className="flex justify-center space-x-8 pt-4">
+              <div className="flex justify-center space-x-8 pt-6 border-t border-gray-100">
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1">
-                    <Clock className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium text-gray-900">30 min</span>
+                    <Clock className="h-4 w-4 text-orange-500" />
+                    <span className="text-sm font-bold text-gray-900">30 min</span>
                   </div>
-                  <div className="text-xs text-gray-500">Average time</div>
+                  <div className="text-xs text-gray-500 font-medium">Average Response</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-sm font-bold text-emerald-600">4.8★</div>
+                  <div className="text-xs text-gray-500 font-medium">Rating</div>
                 </div>
               </div>
             </div>
