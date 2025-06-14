@@ -99,69 +99,68 @@ const MobileLogin = ({ onSuccess }: MobileLoginProps) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-100 via-white to-white flex flex-col">
-      {/* Main Content */}
-      <div className="flex-1 px-4 pt-4 pb-8">
-        <div className="bg-white bg-opacity-95 rounded-3xl shadow-2xl p-8 mx-auto max-w-sm mt-12 slide-in">
+      <div className="flex-1 px-4 pt-4 pb-8 flex items-center justify-center">
+        <div className="bg-white bg-opacity-100 rounded-3xl shadow-2xl p-8 mx-auto max-w-sm mt-6 w-full">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <span className="text-3xl font-bold text-white tracking-wide drop-shadow">WC</span>
+            <div className="w-20 h-20 bg-gradient-to-br from-blue-700 to-blue-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <span className="text-4xl font-bold text-white tracking-wide drop-shadow select-none">WC</span>
             </div>
-            <h1 className="text-2xl font-extrabold text-blue-800 mb-2">Welcome to WashCart</h1>
+            <h1 className="text-3xl font-extrabold text-blue-900 mb-2">Welcome to WashCart</h1>
             <p className="text-gray-500 text-base font-medium">Your Vehicle Service, On-Demand</p>
           </div>
-
           {/* User Type Tabs */}
-          <div className="mb-6">
-            <Tabs value={userType} onValueChange={(value) => setUserType(value as 'customer' | 'provider')}>
-              <TabsList className="grid w-full grid-cols-2 bg-blue-100 p-1 rounded-xl">
-                <TabsTrigger 
-                  value="customer" 
-                  className="rounded-lg data-[state=active]:bg-blue-500 data-[state=active]:text-white font-semibold text-base"
+          <div className="mb-6 w-full">
+            <Tabs
+              value={userType}
+              onValueChange={(value) =>
+                setUserType(value as 'customer' | 'provider')
+              }
+            >
+              <TabsList className="w-full grid grid-cols-2 bg-blue-100 p-1 rounded-xl gap-2">
+                <TabsTrigger
+                  value="customer"
+                  className="rounded-xl data-[state=active]:bg-blue-700 data-[state=active]:text-white font-bold text-lg h-11 transition"
                 >
                   Customer
                 </TabsTrigger>
-                <TabsTrigger 
+                <TabsTrigger
                   value="provider"
-                  className="rounded-lg data-[state=active]:bg-blue-500 data-[state=active]:text-white font-semibold text-base"
+                  className="rounded-xl data-[state=active]:bg-blue-700 data-[state=active]:text-white font-bold text-lg h-11 transition"
                 >
                   Service Provider
                 </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
-
           {/* Step Content */}
           {step === 'phone' && (
-            <div className="space-y-6">
+            <div className="space-y-7">
               <div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 text-left">Enter your phone number</h3>
+                <h3 className="text-lg font-semibold text-gray-800 mb-3 text-left">Enter your phone number</h3>
                 <div className="flex">
                   <div className="flex items-center px-3 py-2 border border-r-0 border-gray-200 rounded-l-xl bg-blue-50">
-                    <span className="text-sm font-medium">🇮🇳 +91</span>
+                    <span className="text-base font-bold">🇮🇳 +91</span>
                   </div>
                   <Input
                     type="tel"
                     placeholder="Phone number"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
-                    className="rounded-l-none rounded-r-xl bg-blue-50"
+                    className="rounded-l-none rounded-r-xl bg-blue-50 text-lg"
                   />
                 </div>
               </div>
-              
               <Button
                 onClick={handleSendOTP}
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-xl text-lg font-bold shadow"
+                className="w-full bg-blue-700 hover:bg-blue-900 text-white h-14 rounded-2xl text-lg font-extrabold shadow"
               >
                 {loading ? 'Sending OTP...' : 'Send OTP'}
               </Button>
-
-              <div className="text-center mt-2">
-                <span className="text-gray-400 text-sm">or continue with</span>
+              <div className="text-center text-gray-400 text-sm select-none">
+                or continue with
               </div>
-
               <div className="space-y-3">
                 <Button variant="outline" className="w-full h-12 rounded-xl flex items-center justify-center text-gray-600 bg-gray-50" disabled>
                   <div className="w-5 h-5 bg-red-500 rounded mr-2"></div>
@@ -175,7 +174,7 @@ const MobileLogin = ({ onSuccess }: MobileLoginProps) => {
             </div>
           )}
           {step === 'otp' && (
-            <div className="space-y-6 text-center">
+            <div className="space-y-7 text-center">
               <div>
                 <h3 className="text-lg font-semibold mb-2 text-blue-700">Enter OTP</h3>
                 <p className="text-gray-600">
@@ -202,7 +201,7 @@ const MobileLogin = ({ onSuccess }: MobileLoginProps) => {
               <Button
                 onClick={handleVerifyOTP}
                 disabled={loading || otp.length !== 6}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-xl font-bold"
+                className="w-full bg-blue-700 hover:bg-blue-900 text-white h-14 rounded-2xl font-bold"
               >
                 {loading ? 'Verifying...' : 'Verify OTP'}
               </Button>
@@ -217,28 +216,24 @@ const MobileLogin = ({ onSuccess }: MobileLoginProps) => {
           )}
           {step === 'email' && (
             <div className="space-y-6">
-              <div>
-                <Input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="rounded-xl bg-blue-50"
-                />
-              </div>
-              <div>
-                <Input
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="rounded-xl bg-blue-50"
-                />
-              </div>
+              <Input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="rounded-xl bg-blue-50"
+              />
+              <Input
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="rounded-xl bg-blue-50"
+              />
               <Button
                 onClick={handleEmailLogin}
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-xl font-bold"
+                className="w-full bg-blue-700 hover:bg-blue-900 text-white h-14 rounded-2xl font-bold"
               >
                 {loading ? 'Signing in...' : 'Sign In'}
               </Button>
@@ -251,7 +246,6 @@ const MobileLogin = ({ onSuccess }: MobileLoginProps) => {
               </Button>
             </div>
           )}
-
           {/* Terms */}
           <p className="text-xs text-gray-400 text-center mt-6 select-none">
             By continuing, you agree to our{' '}
