@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,6 +57,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       subscription.unsubscribe();
     };
   }, []);
+
+  const signOut = async () => {
+    try {
+      console.log('Signing out...');
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Sign out error:', error);
+      } else {
+        console.log('Signed out successfully');
+        // Clear any cached data
+        localStorage.removeItem('userLocationSet');
+        localStorage.removeItem('hasCompletedOnboarding');
+      }
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    try {
+      console.log('Sending password reset email to:', email);
+      
+      // Get the current domain and construct the full reset URL
+      const baseUrl = window.location.origin;
+      const redirectTo = `${baseUrl}/reset-password`;
+      
+      console.log('Reset redirect URL:', redirectTo);
+      
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectTo,
+      });
+      
+      console.log('Password reset result:', { 
+        data, 
+        error: error?.message,
+        redirectUrl: redirectTo 
+      });
+      
+      return { data, error };
+    } catch (error) {
+      console.error('Password reset error:', error);
+      return { data: null, error };
+    }
+  };
 
   const signUp = async (email: string, password: string, userData: any) => {
     try {
@@ -127,45 +170,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return { data, error };
     } catch (error) {
       console.error('Sign in error:', error);
-      return { data: null, error };
-    }
-  };
-
-  const signOut = async () => {
-    try {
-      console.log('Signing out...');
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Sign out error:', error);
-      } else {
-        console.log('Signed out successfully');
-        // Clear any cached data
-        localStorage.removeItem('userLocationSet');
-        localStorage.removeItem('hasCompletedOnboarding');
-      }
-    } catch (error) {
-      console.error('Sign out error:', error);
-    }
-  };
-
-  const resetPassword = async (email: string) => {
-    try {
-      console.log('Sending password reset email to:', email);
-      
-      // Use the current site URL for the redirect
-      const siteUrl = window.location.origin;
-      const redirectTo = `${siteUrl}/reset-password`;
-      
-      console.log('Reset redirect URL:', redirectTo);
-      
-      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectTo
-      });
-      
-      console.log('Password reset result:', { data, error: error?.message });
-      return { data, error };
-    } catch (error) {
-      console.error('Password reset error:', error);
       return { data: null, error };
     }
   };

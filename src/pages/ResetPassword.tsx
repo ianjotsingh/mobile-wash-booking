@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -26,28 +25,45 @@ const ResetPassword = () => {
     const handlePasswordReset = async () => {
       console.log('Password reset page loaded');
       console.log('Full URL:', window.location.href);
+      console.log('Search params:', window.location.search);
+      console.log('Hash:', window.location.hash);
       
-      // Get all URL parameters
+      setCheckingSession(true);
+
+      // Get parameters from both URL search and hash
       const urlParams = new URLSearchParams(window.location.search);
-      const fragment = window.location.hash.substring(1);
-      const fragmentParams = new URLSearchParams(fragment);
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
       
-      // Check both URL search params and fragment for tokens
-      const accessToken = urlParams.get('access_token') || fragmentParams.get('access_token');
-      const refreshToken = urlParams.get('refresh_token') || fragmentParams.get('refresh_token');
-      const type = urlParams.get('type') || fragmentParams.get('type');
-      const error = urlParams.get('error') || fragmentParams.get('error');
-      const errorDescription = urlParams.get('error_description') || fragmentParams.get('error_description');
+      // Check for tokens in both locations
+      const accessToken = urlParams.get('access_token') || 
+                         hashParams.get('access_token') ||
+                         searchParams.get('access_token');
+      
+      const refreshToken = urlParams.get('refresh_token') || 
+                          hashParams.get('refresh_token') ||
+                          searchParams.get('refresh_token');
+      
+      const type = urlParams.get('type') || 
+                   hashParams.get('type') ||
+                   searchParams.get('type');
+      
+      const error = urlParams.get('error') || 
+                    hashParams.get('error') ||
+                    searchParams.get('error');
+      
+      const errorDescription = urlParams.get('error_description') || 
+                              hashParams.get('error_description') ||
+                              searchParams.get('error_description');
 
       console.log('Extracted parameters:', {
         accessToken: accessToken ? 'present' : 'missing',
         refreshToken: refreshToken ? 'present' : 'missing',
         type,
         error,
-        errorDescription
+        errorDescription,
+        hasSearchParams: window.location.search.length > 0,
+        hasHashParams: window.location.hash.length > 0
       });
-
-      setCheckingSession(true);
 
       // Handle errors first
       if (error) {
@@ -62,23 +78,36 @@ const ResetPassword = () => {
         return;
       }
 
-      // Check if we have the required parameters
-      if (!accessToken || type !== 'recovery') {
-        console.error('Missing required parameters:', { accessToken: !!accessToken, type });
+      // Check if this is a recovery request
+      if (type !== 'recovery') {
+        console.error('Invalid type parameter:', type);
         setCheckingSession(false);
         setIsValidSession(false);
         toast({
           title: "Invalid Reset Link",
-          description: "This password reset link is invalid or missing required parameters. Please request a new one.",
+          description: "This link is not a valid password reset link. Please request a new one.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Check if we have access token
+      if (!accessToken) {
+        console.error('Missing access token');
+        setCheckingSession(false);
+        setIsValidSession(false);
+        toast({
+          title: "Invalid Reset Link", 
+          description: "This password reset link is missing required parameters. Please request a new one.",
           variant: "destructive"
         });
         return;
       }
 
       try {
-        console.log('Setting session with tokens...');
+        console.log('Setting session with access token...');
         
-        // Set the session with the tokens from the URL
+        // Set the session using the tokens
         const { data, error: sessionError } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken || ''
@@ -133,7 +162,7 @@ const ResetPassword = () => {
     };
 
     handlePasswordReset();
-  }, [toast]);
+  }, [toast, searchParams]);
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -271,7 +300,7 @@ const ResetPassword = () => {
               </div>
               <h2 className="text-xl font-bold text-red-800 mb-2">Invalid Reset Link</h2>
               <p className="text-gray-600 mb-4">
-                This password reset link is invalid or has expired. Please request a new one from the login page.
+                This password reset link is invalid, missing parameters, or has expired. Please request a new one from the login page.
               </p>
               <Button
                 onClick={() => navigate('/')}
