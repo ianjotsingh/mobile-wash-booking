@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,21 +21,23 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/booking" element={<Booking />} />
-            <Route path="/company-signup" element={<CompanySignup />} />
-            <Route path="/mechanic-signup" element={<MechanicSignup />} />
-            <Route path="/company-dashboard" element={<CompanyDashboard />} />
-            <Route path="/order-history" element={<OrderHistory />} />
-            <Route path="/mechanic-request" element={<MechanicRequest />} />
-            <Route path="/admin-dashboard" element={<AdminDashboard />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <div className="min-h-screen max-w-md mx-auto bg-white shadow-lg">
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/booking" element={<Booking />} />
+              <Route path="/company-signup" element={<CompanySignup />} />
+              <Route path="/mechanic-signup" element={<MechanicSignup />} />
+              <Route path="/company-dashboard" element={<CompanyDashboard />} />
+              <Route path="/order-history" element={<OrderHistory />} />
+              <Route path="/mechanic-request" element={<MechanicRequest />} />
+              <Route path="/admin-dashboard" element={<AdminDashboard />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </div>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>

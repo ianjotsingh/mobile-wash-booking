@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -101,10 +102,10 @@ const CompanyProviderSelector = ({ serviceId, serviceTitle, onCompanySelect, onB
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto p-6">
-          <div className="space-y-4">
+        <div className="max-w-md mx-auto p-4">
+          <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded animate-pulse"></div>
+              <div key={i} className="h-24 bg-gray-200 rounded-lg animate-pulse"></div>
             ))}
           </div>
         </div>
@@ -114,25 +115,23 @@ const CompanyProviderSelector = ({ serviceId, serviceTitle, onCompanySelect, onB
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      {/* Mobile Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-md mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" onClick={onBack} className="flex items-center space-x-2">
-                <ArrowLeft className="h-4 w-4" />
-                <span>Back</span>
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{serviceTitle} Providers</h1>
-                <p className="text-gray-600">{filteredCompanies.length} providers available</p>
-              </div>
+            <Button variant="ghost" onClick={onBack} className="flex items-center space-x-2 p-2">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="text-center flex-1">
+              <h1 className="text-lg font-semibold text-gray-900 truncate">{serviceTitle}</h1>
+              <p className="text-sm text-gray-600">{filteredCompanies.length} providers</p>
             </div>
+            <div className="w-10"></div>
           </div>
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Mobile Filters */}
       <ProviderFilters
         filters={filters}
         onFiltersChange={setFilters}
@@ -140,84 +139,88 @@ const CompanyProviderSelector = ({ serviceId, serviceTitle, onCompanySelect, onB
         activeFiltersCount={activeFiltersCount}
       />
 
-      {/* Company List */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="space-y-4">
+      {/* Mobile Company List */}
+      <div className="max-w-md mx-auto px-4 py-4">
+        <div className="space-y-3">
           {filteredCompanies.length === 0 ? (
             <Card>
-              <CardContent className="p-8 text-center">
+              <CardContent className="p-6 text-center">
                 <div className="text-gray-500">
-                  <p className="text-lg font-medium">No providers found</p>
-                  <p className="text-sm">Try adjusting your filters to see more results</p>
+                  <p className="font-medium">No providers found</p>
+                  <p className="text-sm">Try adjusting your filters</p>
                 </div>
               </CardContent>
             </Card>
           ) : (
             filteredCompanies.map((company) => (
-              <Card key={company.id} className="hover:shadow-lg transition-shadow cursor-pointer">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-xl font-semibold text-gray-900">{company.company_name}</h3>
-                        {company.available && (
-                          <Badge variant="default" className="bg-green-500">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Available
+              <Card key={company.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    {/* Company Header */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h3 className="font-semibold text-gray-900 truncate">{company.company_name}</h3>
+                          {company.available && (
+                            <Badge variant="default" className="bg-green-500 text-xs">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Available
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center space-x-3 text-xs text-gray-600 mb-2">
+                          <div className="flex items-center space-x-1">
+                            <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                            <span>{company.rating?.toFixed(1)}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <MapPin className="h-3 w-3" />
+                            <span>{company.distance?.toFixed(1)} km</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Clock className="h-3 w-3" />
+                            <span>~30 min</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-1 text-xs text-gray-600">
+                          <Phone className="h-3 w-3" />
+                          <span>{company.phone}</span>
+                        </div>
+                      </div>
+
+                      <div className="text-right ml-3">
+                        <div className="text-xl font-bold text-gray-900">
+                          ₹{(company.base_price / 100).toFixed(0)}
+                        </div>
+                        <div className="text-xs text-gray-500 mb-2">base price</div>
+                      </div>
+                    </div>
+
+                    {/* Services */}
+                    {company.services && company.services.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {company.services.slice(0, 2).map((service, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {service}
+                          </Badge>
+                        ))}
+                        {company.services.length > 2 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{company.services.length - 2}
                           </Badge>
                         )}
                       </div>
-                      
-                      <div className="flex items-center space-x-4 mb-3 text-sm text-gray-600">
-                        <div className="flex items-center space-x-1">
-                          <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                          <span>{company.rating?.toFixed(1)} rating</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <MapPin className="h-4 w-4" />
-                          <span>{company.city} • {company.distance?.toFixed(1)} km away</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Clock className="h-4 w-4" />
-                          <span>~30 min arrival</span>
-                        </div>
-                      </div>
+                    )}
 
-                      <div className="flex items-center space-x-1 text-sm text-gray-600">
-                        <Phone className="h-4 w-4" />
-                        <span>{company.phone}</span>
-                      </div>
-
-                      {company.services && company.services.length > 0 && (
-                        <div className="mt-3">
-                          <div className="flex flex-wrap gap-1">
-                            {company.services.slice(0, 3).map((service, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {service}
-                              </Badge>
-                            ))}
-                            {company.services.length > 3 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{company.services.length - 3} more
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="text-right ml-6">
-                      <div className="text-2xl font-bold text-gray-900">
-                        ₹{(company.base_price / 100).toFixed(0)}
-                      </div>
-                      <div className="text-sm text-gray-500 mb-4">for {serviceTitle}</div>
-                      <Button 
-                        onClick={() => onCompanySelect(company)}
-                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-6"
-                      >
-                        Select Provider
-                      </Button>
-                    </div>
+                    {/* Action Button */}
+                    <Button 
+                      onClick={() => onCompanySelect(company)}
+                      className="w-full bg-black hover:bg-gray-800 text-white h-10"
+                    >
+                      Select Provider
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

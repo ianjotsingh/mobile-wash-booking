@@ -31,36 +31,36 @@ const ServiceCard = ({ title, description, price, features, duration, popular }:
 
   return (
     <>
-      <Card className={`relative bg-gray-800 border-gray-700 text-white cursor-pointer hover:bg-gray-750 transition-colors ${popular ? 'ring-2 ring-emerald-400' : ''}`} onClick={handleBookNow}>
+      <Card className={`relative bg-white border-gray-200 cursor-pointer hover:shadow-md transition-all duration-200 ${popular ? 'ring-2 ring-green-400' : ''}`} onClick={handleBookNow}>
         {popular && (
-          <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-            <span className="bg-emerald-400 text-black px-4 py-1 rounded-full text-sm font-semibold">
+          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+            <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
               Most Popular
             </span>
           </div>
         )}
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-emerald-400">{title}</CardTitle>
-          <p className="text-gray-400">{description}</p>
-          <div className="flex items-center space-x-4">
-            <span className="text-3xl font-bold text-white">{price}</span>
-            <div className="flex items-center text-gray-400">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xl font-bold text-gray-900">{title}</CardTitle>
+          <p className="text-gray-600 text-sm">{description}</p>
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-2xl font-bold text-gray-900">{price}</span>
+            <div className="flex items-center text-gray-500">
               <Clock className="h-4 w-4 mr-1" />
-              <span>{duration}</span>
+              <span className="text-sm">{duration}</span>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <ul className="space-y-3 mb-6">
+        <CardContent className="pt-0">
+          <ul className="space-y-2 mb-4">
             {features.map((feature, index) => (
               <li key={index} className="flex items-center space-x-2">
-                <Check className="h-5 w-5 text-emerald-400 flex-shrink-0" />
-                <span className="text-gray-300">{feature}</span>
+                <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                <span className="text-gray-700 text-sm">{feature}</span>
               </li>
             ))}
           </ul>
           <Button 
-            className={`w-full ${popular ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-gray-700 hover:bg-gray-600'} text-white font-semibold`}
+            className={`w-full ${popular ? 'bg-green-500 hover:bg-green-600' : 'bg-black hover:bg-gray-800'} text-white font-semibold h-11 rounded-xl`}
             onClick={(e) => {
               e.stopPropagation();
               handleBookNow();
