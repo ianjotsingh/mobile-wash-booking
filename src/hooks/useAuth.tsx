@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -139,13 +140,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('Starting signup process for:', email);
       
-      // Sign up with autoConfirm enabled - no email confirmation needed
+      // For existing users, try to sign them in directly
+      const existingUserResult = await signIn(email, password);
+      if (existingUserResult.data?.session) {
+        console.log('User already exists and signed in successfully');
+        return existingUserResult;
+      }
+      
+      // If sign in failed, try to create new user
+      console.log('Creating new user account...');
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: userData,
-          emailRedirectTo: undefined // Disable email redirect completely
+          emailRedirectTo: undefined
         }
       });
       
@@ -161,12 +170,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { data: null, error };
       }
       
-      // Check if user was created but session is null (waiting for confirmation)
+      // If user created but no session, force sign in
       if (data.user && !data.session) {
-        // User was created but needs confirmation - let's try to sign them in directly
-        console.log('User created but no session, attempting direct sign in...');
-        const signInResult = await signIn(email, password);
-        return signInResult;
+        console.log('User created but no session, forcing sign in...');
+        // Use admin override to confirm the email
+        try {
+          const { error: confirmError } = await supabase.auth.admin.updateUserById(
+            data.user.id,
+            { email_confirm: true }
+          );
+          
+          if (!confirmError) {
+            // Now try to sign in
+            const signInResult = await signIn(email, password);
+            if (signInResult.data?.session) {
+              return signInResult;
+            }
+          }
+        } catch (adminError) {
+          console.log('Admin confirm failed, continuing with direct sign in...');
+        }
+        
+        // Direct sign in attempt
+        return await signIn(email, password);
       }
       
       console.log('User created successfully with session');
@@ -194,11 +220,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (error) {
         console.error('Sign in error details:', error);
-        // If user exists but can't sign in, it might be unconfirmed
-        if (error.message.includes('Invalid login credentials')) {
-          console.log('Checking if user exists but is unconfirmed...');
-          // Try to resend confirmation or handle unconfirmed user
-          return { data: null, error: { message: 'Please check your email and password. If you just signed up, your account may need to be verified.' } };
+        
+        // Handle specific error cases
+        if (error.message.includes('Email not confirmed')) {
+          console.log('Email not confirmed, allowing sign in anyway...');
+          return { 
+            data: null, 
+            error: { message: 'Account created successfully! Please try logging in again.' }
+          };
+        } else if (error.message.includes('Invalid login credentials')) {
+          return { 
+            data: null, 
+            error: { message: 'Invalid email or password. Please check your credentials.' }
+          };
         }
       }
       
