@@ -25,6 +25,8 @@ interface BookingData {
   carColor?: string;
   issueDescription?: string;
   specialInstructions: string;
+  bookingDate: string;
+  bookingTime: string;
 }
 
 const BookingForm = () => {
@@ -38,6 +40,11 @@ const BookingForm = () => {
   const serviceType = searchParams.get('service') || 'wash';
   const isWashService = serviceType === 'wash';
   
+  // Get tomorrow's date as default
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const defaultDate = tomorrow.toISOString().split('T')[0];
+  
   const [formData, setFormData] = useState<BookingData>({
     serviceType: isWashService ? 'Car Wash' : 'Mechanic Service',
     name: '',
@@ -49,7 +56,9 @@ const BookingForm = () => {
     carModel: '',
     carColor: '',
     issueDescription: '',
-    specialInstructions: ''
+    specialInstructions: '',
+    bookingDate: defaultDate,
+    bookingTime: '10:00'
   });
 
   useEffect(() => {
@@ -71,7 +80,7 @@ const BookingForm = () => {
     }
 
     // Validate required fields
-    if (!formData.name || !formData.phone || !formData.address || !formData.city) {
+    if (!formData.name || !formData.phone || !formData.address || !formData.city || !formData.bookingDate || !formData.bookingTime) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
@@ -95,20 +104,17 @@ const BookingForm = () => {
       const orderData = {
         user_id: user.id,
         service_type: formData.serviceType,
-        customer_name: formData.name,
-        phone: formData.phone,
         address: formData.address,
         city: formData.city,
-        zip_code: formData.zipCode,
-        special_instructions: formData.specialInstructions,
+        zip_code: formData.zipCode || '',
+        booking_date: formData.bookingDate,
+        booking_time: formData.bookingTime,
+        car_type: formData.carType || '',
+        car_model: formData.carModel || '',
+        car_color: formData.carColor || '',
+        special_instructions: formData.specialInstructions || null,
         status: 'pending',
-        ...(isWashService ? {
-          car_type: formData.carType,
-          car_model: formData.carModel,
-          car_color: formData.carColor
-        } : {
-          issue_description: formData.issueDescription
-        })
+        total_amount: 0 // Will be calculated later
       };
 
       const { data, error } = await supabase
@@ -118,9 +124,20 @@ const BookingForm = () => {
 
       if (error) throw error;
 
+      // Store customer details in a separate table or use the existing data
+      // For now, we'll store phone and name in special_instructions as a workaround
+      const updateData = {
+        special_instructions: `Customer: ${formData.name}, Phone: ${formData.phone}${formData.specialInstructions ? `, Additional: ${formData.specialInstructions}` : ''}${!isWashService && formData.issueDescription ? `, Issue: ${formData.issueDescription}` : ''}`
+      };
+
+      await supabase
+        .from('orders')
+        .update(updateData)
+        .eq('id', data[0].id);
+
       toast({
         title: "Booking Confirmed!",
-        description: `Your ${isWashService ? 'car wash' : 'mechanic'} service has been booked successfully.`
+        description: `Your ${isWashService ? 'car wash' : 'mechanic'} service has been booked for ${formData.bookingDate} at ${formData.bookingTime}.`
       });
 
       navigate('/order-history');
@@ -203,6 +220,47 @@ const BookingForm = () => {
                       required
                     />
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Booking Schedule */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900">Schedule</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="bookingDate">Preferred Date *</Label>
+                  <Input
+                    id="bookingDate"
+                    type="date"
+                    value={formData.bookingDate}
+                    onChange={(e) => handleInputChange('bookingDate', e.target.value)}
+                    min={defaultDate}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="bookingTime">Preferred Time *</Label>
+                  <Select onValueChange={(value) => handleInputChange('bookingTime', value)} value={formData.bookingTime}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="08:00">8:00 AM</SelectItem>
+                      <SelectItem value="09:00">9:00 AM</SelectItem>
+                      <SelectItem value="10:00">10:00 AM</SelectItem>
+                      <SelectItem value="11:00">11:00 AM</SelectItem>
+                      <SelectItem value="12:00">12:00 PM</SelectItem>
+                      <SelectItem value="13:00">1:00 PM</SelectItem>
+                      <SelectItem value="14:00">2:00 PM</SelectItem>
+                      <SelectItem value="15:00">3:00 PM</SelectItem>
+                      <SelectItem value="16:00">4:00 PM</SelectItem>
+                      <SelectItem value="17:00">5:00 PM</SelectItem>
+                      <SelectItem value="18:00">6:00 PM</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>
