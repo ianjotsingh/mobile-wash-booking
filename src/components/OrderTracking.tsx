@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, Clock, Car, MapPin, Phone, MessageCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import FeedbackModal from './FeedbackModal';
 
 interface Order {
   id: string;
@@ -26,10 +27,13 @@ interface OrderTrackingProps {
 const OrderTracking = ({ orderId }: OrderTrackingProps) => {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchOrder();
+    checkFeedbackStatus();
     subscribeToOrderUpdates();
   }, [orderId]);
 
@@ -55,6 +59,24 @@ const OrderTracking = ({ orderId }: OrderTrackingProps) => {
     }
   };
 
+  const checkFeedbackStatus = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from('feedback')
+        .select('id')
+        .eq('order_id', orderId)
+        .eq('user_id', user.id)
+        .single();
+
+      setFeedbackSubmitted(!!data);
+    } catch (error) {
+      // No feedback found, which is expected for new completed orders
+    }
+  };
+
   const subscribeToOrderUpdates = () => {
     const channel = supabase
       .channel('order-updates')
@@ -67,11 +89,20 @@ const OrderTracking = ({ orderId }: OrderTrackingProps) => {
           filter: `id=eq.${orderId}`
         },
         (payload) => {
-          setOrder(payload.new as Order);
+          const newOrder = payload.new as Order;
+          setOrder(newOrder);
+          
           toast({
             title: "Order Update",
-            description: `Your order status has been updated to ${payload.new.status}`,
+            description: `Your order status has been updated to ${newOrder.status}`,
           });
+
+          // Show feedback modal when order is completed
+          if (newOrder.status === 'completed' && !feedbackSubmitted) {
+            setTimeout(() => {
+              setShowFeedbackModal(true);
+            }, 1000); // Small delay for better UX
+          }
         }
       )
       .subscribe();
@@ -131,117 +162,158 @@ const OrderTracking = ({ orderId }: OrderTrackingProps) => {
   ];
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {/* Order Status Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Order Tracking</span>
-            <Badge className={getStatusColor(order.status)}>
-              {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-            </Badge>
-          </CardTitle>
-          <p className="text-gray-600">Order #{order.id.slice(0, 8)}</p>
-        </CardHeader>
-        <CardContent>
-          {/* Status Message */}
-          <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-blue-800 font-medium">{getStatusMessage(order.status)}</p>
-          </div>
+    <>
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* Order Status Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Order Tracking</span>
+              <Badge className={getStatusColor(order.status)}>
+                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+              </Badge>
+            </CardTitle>
+            <p className="text-gray-600">Order #{order.id.slice(0, 8)}</p>
+          </CardHeader>
+          <CardContent>
+            {/* Status Message */}
+            <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+              <p className="text-blue-800 font-medium">{getStatusMessage(order.status)}</p>
+            </div>
 
-          {/* Progress Steps */}
-          <div className="space-y-4">
-            {statusSteps.map((step, index) => {
-              const isCompleted = index + 1 <= currentStep;
-              const isCurrent = index + 1 === currentStep;
-              const IconComponent = step.icon;
+            {/* Progress Steps */}
+            <div className="space-y-4">
+              {statusSteps.map((step, index) => {
+                const isCompleted = index + 1 <= currentStep;
+                const isCurrent = index + 1 === currentStep;
+                const IconComponent = step.icon;
 
-              return (
-                <div key={step.key} className="flex items-center space-x-4">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    isCompleted 
-                      ? 'bg-emerald-500 text-white' 
-                      : isCurrent 
-                      ? 'bg-blue-500 text-white' 
-                      : 'bg-gray-200 text-gray-500'
-                  }`}>
-                    <IconComponent className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <div className={`font-medium ${
-                      isCompleted || isCurrent ? 'text-gray-900' : 'text-gray-500'
+                return (
+                  <div key={step.key} className="flex items-center space-x-4">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      isCompleted 
+                        ? 'bg-emerald-500 text-white' 
+                        : isCurrent 
+                        ? 'bg-blue-500 text-white' 
+                        : 'bg-gray-200 text-gray-500'
                     }`}>
-                      {step.label}
+                      <IconComponent className="h-5 w-5" />
                     </div>
-                    {isCurrent && (
-                      <div className="text-sm text-blue-600">Current status</div>
+                    <div className="flex-1">
+                      <div className={`font-medium ${
+                        isCompleted || isCurrent ? 'text-gray-900' : 'text-gray-500'
+                      }`}>
+                        {step.label}
+                      </div>
+                      {isCurrent && (
+                        <div className="text-sm text-blue-600">Current status</div>
+                      )}
+                    </div>
+                    {isCompleted && (
+                      <CheckCircle className="h-5 w-5 text-emerald-500" />
                     )}
                   </div>
-                  {isCompleted && (
-                    <CheckCircle className="h-5 w-5 text-emerald-500" />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+                );
+              })}
+            </div>
 
-      {/* Order Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Order Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="text-sm text-gray-500">Service</div>
-              <div className="font-medium">{order.service_type}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Amount</div>
-              <div className="font-medium">₹{(order.total_amount / 100).toFixed(0)}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Date & Time</div>
-              <div className="font-medium">
-                {new Date(order.booking_date).toLocaleDateString()} at {order.booking_time}
+            {/* Show feedback button for completed orders */}
+            {order.status === 'completed' && !feedbackSubmitted && (
+              <div className="mt-6 p-4 bg-green-50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium text-green-800">Service Completed!</h4>
+                    <p className="text-sm text-green-600">How was your experience?</p>
+                  </div>
+                  <Button 
+                    onClick={() => setShowFeedbackModal(true)}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Rate Service
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {feedbackSubmitted && order.status === 'completed' && (
+              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                <p className="text-blue-800 font-medium">Thank you for your feedback!</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Order Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Order Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-sm text-gray-500">Service</div>
+                <div className="font-medium">{order.service_type}</div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Amount</div>
+                <div className="font-medium">₹{(order.total_amount / 100).toFixed(0)}</div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Date & Time</div>
+                <div className="font-medium">
+                  {new Date(order.booking_date).toLocaleDateString()} at {order.booking_time}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Vehicle</div>
+                <div className="font-medium">{order.car_color} {order.car_model}</div>
               </div>
             </div>
+            
             <div>
-              <div className="text-sm text-gray-500">Vehicle</div>
-              <div className="font-medium">{order.car_color} {order.car_model}</div>
-            </div>
-          </div>
-          
-          <div>
-            <div className="text-sm text-gray-500 mb-1">Location</div>
-            <div className="flex items-center space-x-2">
-              <MapPin className="h-4 w-4 text-gray-400" />
-              <span className="font-medium">{order.address}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Action Buttons */}
-      {order.status !== 'completed' && order.status !== 'cancelled' && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex space-x-3">
-              <Button variant="outline" className="flex-1">
-                <Phone className="h-4 w-4 mr-2" />
-                Call Provider
-              </Button>
-              <Button variant="outline" className="flex-1">
-                <MessageCircle className="h-4 w-4 mr-2" />
-                Chat Support
-              </Button>
+              <div className="text-sm text-gray-500 mb-1">Location</div>
+              <div className="flex items-center space-x-2">
+                <MapPin className="h-4 w-4 text-gray-400" />
+                <span className="font-medium">{order.address}</span>
+              </div>
             </div>
           </CardContent>
         </Card>
-      )}
-    </div>
+
+        {/* Action Buttons */}
+        {order.status !== 'completed' && order.status !== 'cancelled' && (
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex space-x-3">
+                <Button variant="outline" className="flex-1">
+                  <Phone className="h-4 w-4 mr-2" />
+                  Call Provider
+                </Button>
+                <Button variant="outline" className="flex-1">
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Chat Support
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Feedback Modal */}
+      <FeedbackModal
+        isOpen={showFeedbackModal}
+        onClose={() => {
+          setShowFeedbackModal(false);
+          setFeedbackSubmitted(true);
+        }}
+        orderId={orderId}
+        orderDetails={{
+          service_type: order.service_type,
+          address: order.address,
+          total_amount: order.total_amount
+        }}
+      />
+    </>
   );
 };
 

@@ -1,12 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bell, MapPin, Clock, Check, DollarSign } from 'lucide-react';
+import { Bell, MapPin, Clock, Check, DollarSign, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import QuoteModal from './QuoteModal';
+import FeedbackModal from './FeedbackModal';
 
 interface Notification {
   id: string;
@@ -27,12 +27,22 @@ interface Order {
   booking_time: string;
   car_model: string;
   car_color: string;
+  total_amount: number;
 }
 
 const NotificationCenter = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [quoteModal, setQuoteModal] = useState<{
+    isOpen: boolean;
+    orderId: string;
+    orderDetails: Order | null;
+  }>({
+    isOpen: false,
+    orderId: '',
+    orderDetails: null
+  });
+  const [feedbackModal, setFeedbackModal] = useState<{
     isOpen: boolean;
     orderId: string;
     orderDetails: Order | null;
@@ -120,6 +130,33 @@ const NotificationCenter = () => {
       });
 
       // Mark notification as read
+      markAsRead(notification.id);
+    } catch (error) {
+      console.error('Error fetching order details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load order details",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleProvideFeedback = async (notification: Notification) => {
+    try {
+      const { data: orderData, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', notification.order_id)
+        .single();
+
+      if (error) throw error;
+
+      setFeedbackModal({
+        isOpen: true,
+        orderId: notification.order_id,
+        orderDetails: orderData
+      });
+
       markAsRead(notification.id);
     } catch (error) {
       console.error('Error fetching order details:', error);
@@ -240,6 +277,16 @@ const NotificationCenter = () => {
                           Quote
                         </Button>
                       )}
+                      {notification.title.includes('Share Your Feedback') && notification.order_id && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleProvideFeedback(notification)}
+                          className="flex items-center gap-1 bg-green-600 hover:bg-green-700"
+                        >
+                          <Star className="h-3 w-3" />
+                          Feedback
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -256,6 +303,15 @@ const NotificationCenter = () => {
           orderId={quoteModal.orderId}
           companyId={companyId}
           orderDetails={quoteModal.orderDetails}
+        />
+      )}
+
+      {feedbackModal.orderDetails && (
+        <FeedbackModal
+          isOpen={feedbackModal.isOpen}
+          onClose={() => setFeedbackModal({ isOpen: false, orderId: '', orderDetails: null })}
+          orderId={feedbackModal.orderId}
+          orderDetails={feedbackModal.orderDetails}
         />
       )}
     </>

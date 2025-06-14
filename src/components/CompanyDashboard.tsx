@@ -1,166 +1,62 @@
+
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { 
+  MapPin, 
+  Phone, 
+  Mail, 
+  Building, 
+  Clock, 
+  DollarSign,
+  TrendingUp,
+  Bell,
+  Star
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import CompanyStatusBanner from './CompanyStatusBanner';
 import NotificationCenter from './NotificationCenter';
-import OrderCard from './dashboard/OrderCard';
-import RecentOrdersCard from './dashboard/RecentOrdersCard';
-import MechanicRequestsCard from './dashboard/MechanicRequestsCard';
-import DashboardHeader from './dashboard/DashboardHeader';
 
-interface Order {
+interface Company {
   id: string;
-  user_id: string;
-  service_type: string;
-  address: string;
-  city: string;
-  zip_code: string;
-  car_type: string;
-  car_model: string;
-  car_color: string;
-  booking_date: string;
-  booking_time: string;
-  total_amount: number;
-  status: string;
-  special_instructions?: string;
-  created_at: string;
-  latitude?: number;
-  longitude?: number;
-}
-
-interface MechanicRequest {
-  id: string;
-  problem_description: string;
-  car_model: string;
+  company_name: string;
+  owner_name: string;
+  email: string;
   phone: string;
   address: string;
   city: string;
-  zip_code: string;
-  status: string;
-  created_at: string;
+  status: 'pending' | 'approved' | 'rejected';
+  services: string[];
+}
+
+interface DashboardStats {
+  totalOrders: number;
+  completedOrders: number;
+  pendingQuotes: number;
+  totalRevenue: number;
+  averageRating: number;
 }
 
 const CompanyDashboard = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [mechanicRequests, setMechanicRequests] = useState<MechanicRequest[]>([]);
+  const [company, setCompany] = useState<Company | null>(null);
+  const [stats, setStats] = useState<DashboardStats>({
+    totalOrders: 0,
+    completedOrders: 0,
+    pendingQuotes: 0,
+    totalRevenue: 0,
+    averageRating: 0
+  });
   const [loading, setLoading] = useState(true);
-  const [company, setCompany] = useState<any>(null);
-  const [isAuthorized, setIsAuthorized] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
-  const navigate = useNavigate();
 
-  const checkCompanyAuthorization = async () => {
-    try {
-      if (!user) {
-        console.log('No user found, redirecting to home');
-        navigate('/');
-        return;
-      }
+  useEffect(() => {
+    fetchCompanyData();
+    fetchDashboardStats();
+  }, []);
 
-      // Check if user has a company record
-      const { data: companyData, error } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error || !companyData) {
-        console.log('No company record found for user, redirecting to company signup');
-        toast({
-          title: "Access Denied",
-          description: "You need to register as a company to access this dashboard.",
-          variant: "destructive"
-        });
-        navigate('/company-signup');
-        return;
-      }
-
-      if (companyData.status === 'pending') {
-        toast({
-          title: "Registration Pending",
-          description: "Your company registration is under review. Please wait for approval.",
-          variant: "destructive"
-        });
-        navigate('/');
-        return;
-      }
-
-      if (companyData.status === 'rejected') {
-        toast({
-          title: "Registration Rejected",
-          description: "Your company registration has been rejected. Please contact support.",
-          variant: "destructive"
-        });
-        navigate('/');
-        return;
-      }
-
-      // User is authorized
-      setCompany(companyData);
-      setIsAuthorized(true);
-    } catch (error) {
-      console.error('Error checking company authorization:', error);
-      toast({
-        title: "Error",
-        description: "Failed to verify company access. Please try again.",
-        variant: "destructive"
-      });
-      navigate('/');
-    }
-  };
-
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      console.log('Fetching orders...');
-      
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching orders:', error);
-        throw error;
-      }
-
-      console.log('Orders fetched:', data);
-      setOrders(data || []);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch orders. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchMechanicRequests = async () => {
-    try {
-      console.log('Fetching mechanic requests...');
-      const { data, error } = await supabase
-        .from('mechanic_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching mechanic requests:', error);
-        throw error;
-      }
-
-      console.log('Mechanic requests fetched:', data);
-      setMechanicRequests(data || []);
-    } catch (error) {
-      console.error('Error fetching mechanic requests:', error);
-    }
-  };
-
-  const fetchCompanyInfo = async () => {
+  const fetchCompanyData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -171,143 +67,238 @@ const CompanyDashboard = () => {
         .eq('user_id', user.id)
         .single();
 
-      if (error) {
-        console.error('Error fetching company info:', error);
-        return;
-      }
-
-      console.log('Company info fetched:', data);
+      if (error) throw error;
       setCompany(data);
     } catch (error) {
-      console.error('Error fetching company info:', error);
-    }
-  };
-
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: newStatus })
-        .eq('id', orderId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `Order status updated to ${newStatus}`
-      });
-
-      // Refresh orders
-      fetchOrders();
-    } catch (error) {
-      console.error('Error updating order:', error);
+      console.error('Error fetching company data:', error);
       toast({
         title: "Error",
-        description: "Failed to update order status",
+        description: "Failed to load company information",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    checkCompanyAuthorization();
-  }, [user]);
+  const fetchDashboardStats = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-  useEffect(() => {
-    if (isAuthorized) {
-      fetchOrders();
-      fetchMechanicRequests();
+      // Get company ID
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
 
-      // Set up real-time subscription for orders
-      const ordersChannel = supabase
-        .channel('orders-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'orders'
-          },
-          (payload) => {
-            console.log('Order update received:', payload);
-            fetchOrders(); // Refresh orders when changes occur
-          }
-        )
-        .subscribe();
+      if (!companyData) return;
 
-      // Set up real-time subscription for mechanic requests
-      const mechanicChannel = supabase
-        .channel('mechanic-requests-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'mechanic_requests'
-          },
-          (payload) => {
-            console.log('Mechanic request update received:', payload);
-            fetchMechanicRequests(); // Refresh mechanic requests when changes occur
-            
-            // Show toast notification for new mechanic requests
-            if (payload.eventType === 'INSERT') {
-              toast({
-                title: "New Mechanic Request",
-                description: "A new mechanic request has been received!",
-              });
-            }
-          }
-        )
-        .subscribe();
+      // Fetch various stats
+      const [quotesResult, ordersResult, feedbackResult] = await Promise.all([
+        supabase
+          .from('order_quotes')
+          .select('*')
+          .eq('company_id', companyData.id),
+        supabase
+          .from('order_quotes')
+          .select('quoted_price, orders(status)')
+          .eq('company_id', companyData.id)
+          .eq('status', 'accepted'),
+        supabase
+          .from('feedback')
+          .select('rating')
+          .in('order_id', 
+            supabase
+              .from('order_quotes')
+              .select('order_id')
+              .eq('company_id', companyData.id)
+              .eq('status', 'accepted')
+          )
+      ]);
 
-      return () => {
-        supabase.removeChannel(ordersChannel);
-        supabase.removeChannel(mechanicChannel);
-      };
+      const totalQuotes = quotesResult.data?.length || 0;
+      const pendingQuotes = quotesResult.data?.filter(q => q.status === 'pending').length || 0;
+      const acceptedOrders = ordersResult.data || [];
+      const completedOrders = acceptedOrders.filter(o => o.orders?.status === 'completed').length;
+      const totalRevenue = acceptedOrders.reduce((sum, order) => sum + (order.quoted_price || 0), 0);
+      
+      const ratings = feedbackResult.data?.map(f => f.rating) || [];
+      const averageRating = ratings.length > 0 
+        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length 
+        : 0;
+
+      setStats({
+        totalOrders: acceptedOrders.length,
+        completedOrders,
+        pendingQuotes,
+        totalRevenue,
+        averageRating
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
     }
-  }, [isAuthorized, toast]);
+  };
 
-  if (loading || !isAuthorized) {
+  if (loading) {
     return (
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="text-center">
-          {loading ? 'Verifying access...' : 'Redirecting...'}
+      <div className="container mx-auto p-6">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-32 bg-gray-200 rounded"></div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-24 bg-gray-200 rounded"></div>
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="max-w-7xl mx-auto p-6">
-      <DashboardHeader />
+  if (!company) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <p className="text-gray-600">Company information not found</p>
+            <Button className="mt-4" onClick={() => window.location.href = '/company-signup'}>
+              Register Company
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-      <div className="grid lg:grid-cols-3 gap-6 mb-8">
-        <div className="lg:col-span-1">
-          <NotificationCenter />
-        </div>
-        <div className="lg:col-span-2">
-          <RecentOrdersCard orders={orders} />
-        </div>
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Company Dashboard</h1>
+        <Badge variant="outline" className="text-sm">
+          {company.status === 'approved' ? '🟢 Active' : '🟡 Inactive'}
+        </Badge>
       </div>
 
-      {/* Show mechanic requests only if company offers mechanic services */}
-      {company?.has_mechanic && (
-        <div className="mb-8">
-          <MechanicRequestsCard 
-            requests={mechanicRequests} 
-            onRequestUpdate={fetchMechanicRequests}
-          />
+      {/* Company Status Banner */}
+      <CompanyStatusBanner 
+        status={company.status} 
+        companyName={company.company_name}
+      />
+
+      {/* Dashboard Stats */}
+      {company.status === 'approved' && (
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Total Orders</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="h-4 w-4 text-blue-600" />
+                <span className="text-2xl font-bold">{stats.totalOrders}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Completed</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-2">
+                <Clock className="h-4 w-4 text-green-600" />
+                <span className="text-2xl font-bold">{stats.completedOrders}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Pending Quotes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-2">
+                <Bell className="h-4 w-4 text-yellow-600" />
+                <span className="text-2xl font-bold">{stats.pendingQuotes}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Revenue</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-2">
+                <DollarSign className="h-4 w-4 text-emerald-600" />
+                <span className="text-2xl font-bold">₹{(stats.totalRevenue / 100).toFixed(0)}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Rating</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-2">
+                <Star className="h-4 w-4 text-yellow-600" />
+                <span className="text-2xl font-bold">
+                  {stats.averageRating > 0 ? stats.averageRating.toFixed(1) : 'N/A'}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
-      <div className="grid gap-6">
-        {orders.map((order) => (
-          <OrderCard 
-            key={order.id} 
-            order={order} 
-            onStatusUpdate={updateOrderStatus}
-          />
-        ))}
+      {/* Company Information */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building className="h-5 w-5" />
+              Company Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-gray-600">Company Name</label>
+              <p className="font-medium">{company.company_name}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-600">Owner</label>
+              <p className="font-medium">{company.owner_name}</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Mail className="h-4 w-4 text-gray-400" />
+              <span>{company.email}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Phone className="h-4 w-4 text-gray-400" />
+              <span>{company.phone}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <MapPin className="h-4 w-4 text-gray-400" />
+              <span>{company.address}, {company.city}</span>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-600">Services</label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {company.services.map((service, index) => (
+                  <Badge key={index} variant="secondary">
+                    {service}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Notifications Panel */}
+        <NotificationCenter />
       </div>
     </div>
   );

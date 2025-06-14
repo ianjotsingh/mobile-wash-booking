@@ -1,78 +1,69 @@
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
 interface FeedbackModalProps {
   isOpen: boolean;
   onClose: () => void;
   orderId: string;
-  companyName: string;
+  orderDetails: {
+    service_type: string;
+    address: string;
+    total_amount: number;
+  };
 }
 
-const FeedbackModal = ({ isOpen, onClose, orderId, companyName }: FeedbackModalProps) => {
+const FeedbackModal = ({ isOpen, onClose, orderId, orderDetails }: FeedbackModalProps) => {
   const [rating, setRating] = useState(0);
+  const [hoveredRating, setHoveredRating] = useState(0);
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSubmitFeedback = async () => {
     if (rating === 0) {
       toast({
-        title: "Rating Required",
-        description: "Please provide a rating before submitting.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to submit feedback.",
+        title: "Please provide a rating",
+        description: "Rating is required to submit feedback",
         variant: "destructive"
       });
       return;
     }
 
     setLoading(true);
-
     try {
-      // Use type casting to insert into feedback table since TypeScript types aren't updated yet
-      const { error } = await (supabase as any)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { error } = await supabase
         .from('feedback')
         .insert({
           order_id: orderId,
           user_id: user.id,
-          rating: rating,
-          comment: comment || null
+          rating,
+          comment: comment.trim() || null
         });
 
       if (error) throw error;
 
       toast({
-        title: "Thank you!",
-        description: "Your feedback has been submitted successfully."
+        title: "Thank you for your feedback!",
+        description: "Your feedback helps us improve our services"
       });
 
-      // Reset form
+      onClose();
       setRating(0);
       setComment('');
-      onClose();
     } catch (error) {
-      console.error('Feedback submission error:', error);
+      console.error('Error submitting feedback:', error);
       toast({
         title: "Error",
-        description: "Failed to submit feedback. Please try again.",
+        description: "Failed to submit feedback",
         variant: "destructive"
       });
     } finally {
@@ -82,65 +73,89 @@ const FeedbackModal = ({ isOpen, onClose, orderId, companyName }: FeedbackModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Rate Your Service</DialogTitle>
+          <DialogTitle>Rate Your Experience</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        
+        <div className="space-y-6">
           <div className="text-center">
-            <p className="text-gray-600 mb-4">
-              How was your experience with {companyName}?
-            </p>
-            <div className="flex justify-center space-x-2 mb-4">
+            <div className="bg-green-50 p-4 rounded-lg mb-4">
+              <h3 className="font-medium text-green-800">Service Completed!</h3>
+              <p className="text-sm text-green-600 mt-1">
+                {orderDetails.service_type} at {orderDetails.address}
+              </p>
+              <p className="text-sm font-medium text-green-700 mt-2">
+                Total: ₹{(orderDetails.total_amount / 100).toFixed(0)}
+              </p>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <p className="text-sm text-gray-600 mb-3">How was your experience?</p>
+            <div className="flex justify-center space-x-1">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
-                  type="button"
                   onClick={() => setRating(star)}
-                  className="p-1"
+                  onMouseEnter={() => setHoveredRating(star)}
+                  onMouseLeave={() => setHoveredRating(0)}
+                  className="p-1 transition-colors"
                 >
                   <Star
                     className={`h-8 w-8 ${
-                      star <= rating
-                        ? 'text-yellow-400 fill-current'
+                      star <= (hoveredRating || rating)
+                        ? 'fill-yellow-400 text-yellow-400'
                         : 'text-gray-300'
                     }`}
                   />
                 </button>
               ))}
             </div>
-          </div>
-          
-          <div>
-            <Label htmlFor="comment">Additional Comments (Optional)</Label>
-            <Textarea
-              id="comment"
-              placeholder="Share your experience..."
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              className="mt-2"
-              rows={4}
-            />
+            {rating > 0 && (
+              <p className="text-sm text-gray-600 mt-2">
+                {rating === 1 && "Poor"}
+                {rating === 2 && "Fair"}
+                {rating === 3 && "Good"}
+                {rating === 4 && "Very Good"}
+                {rating === 5 && "Excellent"}
+              </p>
+            )}
           </div>
 
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="outline"
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Additional Comments (Optional)
+            </label>
+            <Textarea
+              placeholder="Tell us about your experience..."
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              rows={3}
+              maxLength={500}
+            />
+            <p className="text-xs text-gray-500">
+              {comment.length}/500 characters
+            </p>
+          </div>
+
+          <div className="flex space-x-2">
+            <Button 
+              onClick={handleSubmitFeedback} 
+              disabled={loading || rating === 0}
+              className="flex-1"
+            >
+              {loading ? 'Submitting...' : 'Submit Feedback'}
+            </Button>
+            <Button 
+              variant="outline" 
               onClick={onClose}
               className="flex-1"
             >
               Skip
             </Button>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-emerald-500 hover:bg-emerald-600"
-            >
-              {loading ? 'Submitting...' : 'Submit Feedback'}
-            </Button>
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
