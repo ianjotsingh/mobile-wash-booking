@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +7,8 @@ import { ArrowLeft, Phone } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { generateOTP, storeOTP, verifyOTP } from '@/utils/otpService';
 
 interface MobileLoginProps {
   onSuccess: () => void;
@@ -25,45 +26,102 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
   const { toast } = useToast();
 
   const handleSendOTP = async () => {
-    if (!phoneNumber) {
+    if (!phoneNumber || phoneNumber.length < 10) {
       toast({
         title: "Error",
-        description: "Please enter a valid phone number",
+        description: "Please enter a valid 10-digit phone number",
         variant: "destructive"
       });
       return;
     }
 
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      // Generate OTP
+      const generatedOTP = generateOTP();
+      
+      // Store OTP locally
+      storeOTP(phoneNumber, generatedOTP);
+
+      // Send OTP via Twilio
+      const { data, error } = await supabase.functions.invoke('send-otp', {
+        body: {
+          phone: phoneNumber,
+          otp: generatedOTP
+        }
+      });
+
+      if (error) {
+        console.error('Error sending OTP:', error);
+        toast({
+          title: "Error",
+          description: "Failed to send OTP. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('OTP sent successfully:', data);
       setStep('otp');
       toast({
         title: "OTP Sent",
-        description: "Verification code sent to your phone"
+        description: `Verification code sent to +91${phoneNumber}`,
       });
-    }, 1000);
+
+    } catch (error) {
+      console.error('Error sending OTP:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send OTP. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerifyOTP = async () => {
     if (otp.length !== 6) {
       toast({
         title: "Error",
-        description: "Please enter the complete OTP",
+        description: "Please enter the complete 6-digit OTP",
         variant: "destructive"
       });
       return;
     }
 
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      // Verify OTP
+      const isValid = verifyOTP(phoneNumber, otp);
+      
+      if (!isValid) {
+        toast({
+          title: "Invalid OTP",
+          description: "The OTP you entered is incorrect or has expired. Please try again.",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+
+      // OTP is valid, proceed with authentication
       onSuccess();
       toast({
         title: "Success",
-        description: "Phone number verified successfully"
+        description: "Phone number verified successfully",
       });
-    }, 1000);
+
+    } catch (error) {
+      console.error('Error verifying OTP:', error);
+      toast({
+        title: "Error",
+        description: "Failed to verify OTP. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEmailLogin = async () => {
@@ -128,12 +186,13 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     className="rounded-l-none rounded-r-xl bg-blue-50 text-lg"
+                    maxLength={10}
                   />
                 </div>
               </div>
               <Button
                 onClick={handleSendOTP}
-                disabled={loading}
+                disabled={loading || phoneNumber.length < 10}
                 className="w-full bg-blue-700 hover:bg-blue-900 text-white h-14 rounded-2xl text-lg font-extrabold shadow"
               >
                 {loading ? 'Sending OTP...' : 'Send OTP'}
