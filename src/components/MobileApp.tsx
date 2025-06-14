@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import MobileAppMain from './mobile/MobileAppMain';
 import OnboardingFlow from './onboarding/OnboardingFlow';
 import MobileFrontPage from './mobile/MobileFrontPage';
@@ -17,6 +18,7 @@ import ResetPassword from '@/pages/ResetPassword';
 import WashBookingDetails from '@/pages/WashBookingDetails';
 import MechanicRequestForm from '@/pages/MechanicRequestForm';
 import OrderHistory from '@/pages/OrderHistory';
+import CompanyMobileDashboard from './dashboard/CompanyMobileDashboard';
 
 type Step = 'loading' | 'onboarding' | 'front' | 'login' | 'app';
 
@@ -26,17 +28,53 @@ const MobileApp = () => {
   const [userType, setUserType] = useState<'customer' | 'provider' | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [userAddress, setUserAddress] = useState<string>('');
+  const [isCompany, setIsCompany] = useState(false);
+  const [checkingCompany, setCheckingCompany] = useState(false);
+
+  // Check if user is a company when they log in
+  useEffect(() => {
+    const checkUserCompanyStatus = async () => {
+      if (!user) {
+        setIsCompany(false);
+        return;
+      }
+
+      setCheckingCompany(true);
+      try {
+        const { data: companyData, error } = await supabase
+          .from('companies')
+          .select('id, status')
+          .eq('user_id', user.id)
+          .single();
+
+        if (!error && companyData) {
+          console.log('User is a company:', companyData.id);
+          setIsCompany(true);
+        } else {
+          console.log('User is not a company');
+          setIsCompany(false);
+        }
+      } catch (error) {
+        console.error('Error checking company status:', error);
+        setIsCompany(false);
+      } finally {
+        setCheckingCompany(false);
+      }
+    };
+
+    checkUserCompanyStatus();
+  }, [user]);
 
   useEffect(() => {
     console.log('Auth is loading...', loading ? 'true' : 'false');
     
-    if (loading) {
-      console.log('Still loading auth...');
+    if (loading || checkingCompany) {
+      console.log('Still loading auth or checking company status...');
       setStep('loading');
       return;
     }
 
-    console.log('Auth state evaluation - User:', user ? user.email : 'undefined', 'Loading:', loading);
+    console.log('Auth state evaluation - User:', user ? user.email : 'undefined', 'Loading:', loading, 'IsCompany:', isCompany);
 
     const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding') === 'true';
     const hasLocationSet = localStorage.getItem('userLocationSet');
@@ -56,7 +94,7 @@ const MobileApp = () => {
       console.log('User authenticated, going to app');
       setStep('app');
     }
-  }, [user, loading]);
+  }, [user, loading, isCompany, checkingCompany]);
 
   // Get user location when authenticated
   useEffect(() => {
@@ -154,10 +192,16 @@ const MobileApp = () => {
               />
             )}
             {step === 'app' && user && (
-              <MobileAppMain 
-                userLocation={userLocation}
-                userAddress={userAddress}
-              />
+              <>
+                {isCompany ? (
+                  <CompanyMobileDashboard />
+                ) : (
+                  <MobileAppMain 
+                    userLocation={userLocation}
+                    userAddress={userAddress}
+                  />
+                )}
+              </>
             )}
           </>
         } />
