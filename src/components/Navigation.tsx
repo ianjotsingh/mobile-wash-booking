@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Car, User, LogOut, History, Building2 } from 'lucide-react';
+import { Car, User, LogOut, History, Building2, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import AuthModal from './AuthModal';
@@ -11,31 +11,43 @@ const Navigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isCompany, setIsCompany] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
-    const checkIfCompany = async () => {
+    const checkUserRole = async () => {
       if (!user) {
         setIsCompany(false);
+        setIsAdmin(false);
         return;
       }
 
       try {
-        const { data, error } = await supabase
+        // Check if user is a company
+        const { data: companyData, error: companyError } = await supabase
           .from('companies')
           .select('status')
           .eq('user_id', user.id)
           .single();
 
-        // Only show dashboard link if company exists and is approved
-        setIsCompany(!error && data && data.status === 'approved');
+        setIsCompany(!companyError && companyData && companyData.status === 'approved');
+
+        // Check if user is admin
+        const { data: profileData, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
+
+        setIsAdmin(!profileError && profileData && profileData.role === 'admin');
       } catch (error) {
-        console.error('Error checking company status:', error);
+        console.error('Error checking user role:', error);
         setIsCompany(false);
+        setIsAdmin(false);
       }
     };
 
-    checkIfCompany();
+    checkUserRole();
   }, [user]);
 
   const scrollToServices = () => {
@@ -95,10 +107,17 @@ const Navigation = () => {
               >
                 Call Mechanic
               </button>
-              {/* Only show Company Dashboard link to approved companies */}
+              {/* Company Dashboard link for approved companies */}
               {isCompany && (
                 <Link to="/company-dashboard" className="text-gray-300 hover:text-emerald-400 transition-colors">
                   Company Dashboard
+                </Link>
+              )}
+              {/* Admin Dashboard link for admin users */}
+              {isAdmin && (
+                <Link to="/admin-dashboard" className="text-gray-300 hover:text-emerald-400 transition-colors flex items-center space-x-1">
+                  <Shield className="h-4 w-4" />
+                  <span>Admin</span>
                 </Link>
               )}
             </div>

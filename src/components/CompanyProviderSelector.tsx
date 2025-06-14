@@ -1,23 +1,24 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Star, MapPin, Clock, User, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Star, MapPin, Clock, Phone, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { formatPrice } from '@/utils/pricingCalculator';
+import { useToast } from '@/hooks/use-toast';
+import ProviderFilters from './ProviderFilters';
+import { useProviderFilters } from '@/hooks/useProviderFilters';
 
 interface Company {
   id: string;
   company_name: string;
-  rating?: number;
-  reviewCount?: number;
-  distance?: number;
-  estimatedArrival: string;
-  base_price: number;
-  is_available: boolean;
+  phone: string;
   city: string;
-  address: string;
+  base_price: number;
+  rating?: number;
+  distance?: number;
+  available?: boolean;
+  services?: string[];
 }
 
 interface CompanyProviderSelectorProps {
@@ -27,206 +28,204 @@ interface CompanyProviderSelectorProps {
   onBack: () => void;
 }
 
-const CompanyProviderSelector = ({ 
-  serviceId, 
-  serviceTitle, 
-  onCompanySelect, 
-  onBack 
-}: CompanyProviderSelectorProps) => {
+const CompanyProviderSelector = ({ serviceId, serviceTitle, onCompanySelect, onBack }: CompanyProviderSelectorProps) => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const { toast } = useToast();
+
+  const {
+    filters,
+    setFilters,
+    filteredCompanies,
+    activeFiltersCount,
+    clearFilters
+  } = useProviderFilters(companies);
 
   useEffect(() => {
-    fetchCompaniesForService();
+    fetchCompanies();
   }, [serviceId]);
 
-  const fetchCompaniesForService = async () => {
+  const fetchCompanies = async () => {
     try {
-      console.log('Fetching companies for service:', serviceId);
-      
-      const { data, error } = await supabase
-        .from('company_service_pricing')
+      // Get approved companies with their service pricing
+      const { data: companiesData, error: companiesError } = await supabase
+        .from('companies')
         .select(`
-          *,
-          companies!inner (
-            id,
-            company_name,
-            city,
-            address,
-            status
-          )
+          id,
+          company_name,
+          phone,
+          city,
+          services
         `)
+        .eq('status', 'approved');
+
+      if (companiesError) throw companiesError;
+
+      // Get pricing for this specific service
+      const { data: pricingData, error: pricingError } = await supabase
+        .from('company_service_pricing')
+        .select('company_id, base_price')
         .eq('service_id', serviceId)
-        .eq('is_available', true)
-        .eq('companies.status', 'approved');
+        .eq('is_available', true);
 
-      if (error) {
-        console.error('Error fetching companies:', error);
-        return;
-      }
+      if (pricingError) throw pricingError;
 
-      console.log('Fetched company pricing data:', data);
+      // Combine company data with pricing
+      const companiesWithPricing = companiesData
+        .map(company => {
+          const pricing = pricingData.find(p => p.company_id === company.id);
+          if (!pricing) return null;
 
-      const companiesWithPricing = data?.map(item => ({
-        id: item.companies.id,
-        company_name: item.companies.company_name,
-        city: item.companies.city,
-        address: item.companies.address,
-        base_price: item.base_price,
-        is_available: item.is_available,
-        rating: 4.2 + Math.random() * 0.8, // Mock rating for demo
-        reviewCount: Math.floor(50 + Math.random() * 200),
-        distance: Math.round((Math.random() * 15 + 1) * 10) / 10,
-        estimatedArrival: `${Math.floor(Math.random() * 30 + 15)} mins`
-      })) || [];
+          return {
+            ...company,
+            base_price: pricing.base_price,
+            rating: 4.2 + Math.random() * 0.8, // Mock rating
+            distance: Math.random() * 10, // Mock distance
+            available: Math.random() > 0.2 // Mock availability
+          };
+        })
+        .filter(Boolean) as Company[];
 
-      // Sort by price (lowest first)
-      companiesWithPricing.sort((a, b) => a.base_price - b.base_price);
-      
       setCompanies(companiesWithPricing);
     } catch (error) {
-      console.error('Error in fetchCompaniesForService:', error);
+      console.error('Error fetching companies:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch service providers",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCompanySelect = (company: Company) => {
-    setSelectedCompany(company);
-  };
-
-  const handleContinueBooking = () => {
-    if (selectedCompany) {
-      onCompanySelect(selectedCompany);
-    }
-  };
-
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Finding providers in your area...</p>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto p-6">
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-32 bg-gray-200 rounded animate-pulse"></div>
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="flex items-center mb-6">
-        <Button 
-          variant="ghost" 
-          onClick={onBack}
-          className="mr-4 p-2"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{serviceTitle}</h1>
-          <p className="text-gray-600">Choose from {companies.length} available providers</p>
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" onClick={onBack} className="flex items-center space-x-2">
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back</span>
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{serviceTitle} Providers</h1>
+                <p className="text-gray-600">{filteredCompanies.length} providers available</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {companies.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <User className="w-8 h-8 text-gray-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No providers available</h3>
-          <p className="text-gray-600">No service providers are currently available for this service in your area.</p>
-        </div>
-      ) : (
-        <>
-          {/* Companies List */}
-          <div className="space-y-4 mb-6">
-            {companies.map((company) => (
-              <Card
-                key={company.id}
-                className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-                  selectedCompany?.id === company.id
-                    ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-300'
-                    : 'bg-white border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => handleCompanySelect(company)}
-              >
+      {/* Filters */}
+      <ProviderFilters
+        filters={filters}
+        onFiltersChange={setFilters}
+        onClearFilters={clearFilters}
+        activeFiltersCount={activeFiltersCount}
+      />
+
+      {/* Company List */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="space-y-4">
+          {filteredCompanies.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <div className="text-gray-500">
+                  <p className="text-lg font-medium">No providers found</p>
+                  <p className="text-sm">Try adjusting your filters to see more results</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            filteredCompanies.map((company) => (
+              <Card key={company.id} className="hover:shadow-lg transition-shadow cursor-pointer">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-4 flex-1">
-                      <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                        <User className="w-6 h-6 text-gray-600" />
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <h3 className="text-xl font-semibold text-gray-900">{company.company_name}</h3>
+                        {company.available && (
+                          <Badge variant="default" className="bg-green-500">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Available
+                          </Badge>
+                        )}
                       </div>
                       
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="font-semibold text-lg text-gray-900">{company.company_name}</h3>
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-blue-600">
-                              {formatPrice(company.base_price)}
-                            </div>
-                            <div className="text-sm text-gray-500">+ taxes</div>
-                          </div>
+                      <div className="flex items-center space-x-4 mb-3 text-sm text-gray-600">
+                        <div className="flex items-center space-x-1">
+                          <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                          <span>{company.rating?.toFixed(1)} rating</span>
                         </div>
-                        
-                        <div className="flex items-center space-x-4 mb-3">
-                          <div className="flex items-center space-x-1">
-                            <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                            <span className="text-sm text-gray-600">
-                              {company.rating?.toFixed(1)} ({company.reviewCount} reviews)
-                            </span>
-                          </div>
-                          
-                          <div className="flex items-center space-x-1">
-                            <MapPin className="w-4 h-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">{company.distance} km away</span>
-                          </div>
-                          
-                          <div className="flex items-center space-x-1">
-                            <Clock className="w-4 h-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">Arrives in {company.estimatedArrival}</span>
-                          </div>
+                        <div className="flex items-center space-x-1">
+                          <MapPin className="h-4 w-4" />
+                          <span>{company.city} • {company.distance?.toFixed(1)} km away</span>
                         </div>
-                        
-                        <div className="text-sm text-gray-600">
-                          {company.city} • {company.address}
+                        <div className="flex items-center space-x-1">
+                          <Clock className="h-4 w-4" />
+                          <span>~30 min arrival</span>
                         </div>
                       </div>
+
+                      <div className="flex items-center space-x-1 text-sm text-gray-600">
+                        <Phone className="h-4 w-4" />
+                        <span>{company.phone}</span>
+                      </div>
+
+                      {company.services && company.services.length > 0 && (
+                        <div className="mt-3">
+                          <div className="flex flex-wrap gap-1">
+                            {company.services.slice(0, 3).map((service, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {service}
+                              </Badge>
+                            ))}
+                            {company.services.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{company.services.length - 3} more
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    
-                    {selectedCompany?.id === company.id && (
-                      <div className="ml-4">
-                        <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                          <div className="w-2 h-2 bg-white rounded-full"></div>
-                        </div>
+
+                    <div className="text-right ml-6">
+                      <div className="text-2xl font-bold text-gray-900">
+                        ₹{(company.base_price / 100).toFixed(0)}
                       </div>
-                    )}
+                      <div className="text-sm text-gray-500 mb-4">for {serviceTitle}</div>
+                      <Button 
+                        onClick={() => onCompanySelect(company)}
+                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-6"
+                      >
+                        Select Provider
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-
-          {/* Continue Button */}
-          {selectedCompany && (
-            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 -mx-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Selected: {selectedCompany.company_name}</p>
-                  <p className="font-semibold text-lg">{formatPrice(selectedCompany.base_price)}</p>
-                </div>
-                <Button 
-                  onClick={handleContinueBooking}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-8"
-                >
-                  Continue Booking
-                </Button>
-              </div>
-            </div>
+            ))
           )}
-        </>
-      )}
+        </div>
+      </div>
     </div>
   );
 };
