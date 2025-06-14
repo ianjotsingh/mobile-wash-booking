@@ -64,16 +64,17 @@ const OrderTracking = ({ orderId }: OrderTrackingProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Use a simple query without specific typing
       const { data } = await supabase
-        .from('feedback')
-        .select('id')
-        .eq('order_id', orderId)
-        .eq('user_id', user.id)
-        .single();
+        .rpc('check_feedback_exists', { 
+          order_id_param: orderId, 
+          user_id_param: user.id 
+        });
 
       setFeedbackSubmitted(!!data);
     } catch (error) {
       // No feedback found, which is expected for new completed orders
+      console.log('No feedback found or error checking feedback:', error);
     }
   };
 

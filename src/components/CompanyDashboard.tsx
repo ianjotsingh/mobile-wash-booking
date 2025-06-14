@@ -96,7 +96,7 @@ const CompanyDashboard = () => {
       if (!companyData) return;
 
       // Fetch various stats
-      const [quotesResult, ordersResult, feedbackResult] = await Promise.all([
+      const [quotesResult, ordersResult] = await Promise.all([
         supabase
           .from('order_quotes')
           .select('*')
@@ -105,17 +105,7 @@ const CompanyDashboard = () => {
           .from('order_quotes')
           .select('quoted_price, orders(status)')
           .eq('company_id', companyData.id)
-          .eq('status', 'accepted'),
-        supabase
-          .from('feedback')
-          .select('rating')
-          .in('order_id', 
-            supabase
-              .from('order_quotes')
-              .select('order_id')
-              .eq('company_id', companyData.id)
-              .eq('status', 'accepted')
-          )
+          .eq('status', 'accepted')
       ]);
 
       const totalQuotes = quotesResult.data?.length || 0;
@@ -124,10 +114,15 @@ const CompanyDashboard = () => {
       const completedOrders = acceptedOrders.filter(o => o.orders?.status === 'completed').length;
       const totalRevenue = acceptedOrders.reduce((sum, order) => sum + (order.quoted_price || 0), 0);
       
-      const ratings = feedbackResult.data?.map(f => f.rating) || [];
-      const averageRating = ratings.length > 0 
-        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length 
-        : 0;
+      // For average rating, we'll calculate it separately to avoid complex queries
+      let averageRating = 0;
+      try {
+        const { data: feedbackData } = await supabase
+          .rpc('get_company_average_rating', { company_id: companyData.id });
+        averageRating = feedbackData || 0;
+      } catch (error) {
+        console.log('Could not fetch rating data:', error);
+      }
 
       setStats({
         totalOrders: acceptedOrders.length,

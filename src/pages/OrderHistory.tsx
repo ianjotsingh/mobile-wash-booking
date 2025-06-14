@@ -33,10 +33,18 @@ const OrderHistory = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
-  const [feedbackModal, setFeedbackModal] = useState<{isOpen: boolean, orderId: string, companyName: string}>({
+  const [feedbackModal, setFeedbackModal] = useState<{
+    isOpen: boolean;
+    orderId: string;
+    orderDetails: {
+      service_type: string;
+      address: string;
+      total_amount: number;
+    } | null;
+  }>({
     isOpen: false,
     orderId: '',
-    companyName: ''
+    orderDetails: null
   });
   const { user } = useAuth();
   const { toast } = useToast();
@@ -94,11 +102,15 @@ const OrderHistory = () => {
     return `₹${(amount / 100).toFixed(0)}`;
   };
 
-  const openFeedbackModal = (orderId: string, companyName: string = 'WashCart Service') => {
+  const openFeedbackModal = (order: Order) => {
     setFeedbackModal({
       isOpen: true,
-      orderId,
-      companyName
+      orderId: order.id,
+      orderDetails: {
+        service_type: order.service_type,
+        address: order.address,
+        total_amount: order.total_amount
+      }
     });
   };
 
@@ -106,7 +118,7 @@ const OrderHistory = () => {
     setFeedbackModal({
       isOpen: false,
       orderId: '',
-      companyName: ''
+      orderDetails: null
     });
   };
 
@@ -224,7 +236,7 @@ const OrderHistory = () => {
                     <div className="flex space-x-2">
                       {order.status === 'completed' && (
                         <Button
-                          onClick={() => openFeedbackModal(order.id)}
+                          onClick={() => openFeedbackModal(order)}
                           variant="outline"
                           className="flex items-center space-x-2"
                         >
@@ -258,12 +270,14 @@ const OrderHistory = () => {
         )}
       </div>
 
-      <FeedbackModal
-        isOpen={feedbackModal.isOpen}
-        onClose={closeFeedbackModal}
-        orderId={feedbackModal.orderId}
-        companyName={feedbackModal.companyName}
-      />
+      {feedbackModal.orderDetails && (
+        <FeedbackModal
+          isOpen={feedbackModal.isOpen}
+          onClose={closeFeedbackModal}
+          orderId={feedbackModal.orderId}
+          orderDetails={feedbackModal.orderDetails}
+        />
+      )}
     </div>
   );
 };

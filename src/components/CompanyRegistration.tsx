@@ -59,14 +59,16 @@ const CompanyRegistration = () => {
     }));
   };
 
-  const handleLocationSelect = (selectedLocation: {latitude: number; longitude: number; address: string}) => {
+  const handleLocationSelect = (selectedLocation: { lat: number; lng: number; address: string; city: string; zipCode: string }) => {
     setLocation({
-      latitude: selectedLocation.latitude,
-      longitude: selectedLocation.longitude
+      latitude: selectedLocation.lat,
+      longitude: selectedLocation.lng
     });
     setFormData(prev => ({
       ...prev,
-      address: selectedLocation.address
+      address: selectedLocation.address,
+      city: selectedLocation.city,
+      zipCode: selectedLocation.zipCode
     }));
   };
 
