@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -148,38 +147,27 @@ const UberLikeHero = () => {
 
   return (
     <>
-      <div className="relative min-h-screen bg-primary-gradient flex items-center justify-center overflow-hidden">
-        {/* Enhanced Background Pattern */}
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMyNTI1MjUiIGZpbGwtb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIxLjUiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-20"></div>
-        
-        {/* Floating Elements */}
-        <div className="absolute top-20 left-10 w-20 h-20 bg-white/10 rounded-full blur-xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-10 w-32 h-32 bg-orange-300/20 rounded-full blur-2xl animate-pulse delay-700"></div>
-        
+      <div className="relative min-h-screen bg-white flex items-center justify-center">
         <div className="relative z-10 w-full max-w-md mx-auto px-6">
           <div className="text-center mb-12 fade-in">
-            <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
-              Car Wash & 
+            <h1 className="text-4xl font-bold text-black mb-4 leading-tight">
+              Car services at your
               <br />
-              <span className="bg-gradient-to-r from-yellow-400 to-orange-300 bg-clip-text text-transparent">
-                Mechanic Services
-              </span>
-              <br />
-              <span className="text-2xl font-normal text-blue-100">on Demand</span>
+              <span className="text-black">fingertips</span>
             </h1>
-            <p className="text-blue-100 text-lg leading-relaxed">
-              Premium automotive services at your doorstep with trusted professionals
+            <p className="text-gray-600 text-lg">
+              Professional car wash and mechanic services delivered to your location
             </p>
           </div>
 
-          <div className="bg-white rounded-3xl p-8 shadow-2xl backdrop-blur-sm slide-in-up">
+          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 slide-in">
             <div className="space-y-6">
               {/* Location Input */}
               <div className="relative">
-                <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-2xl border-2 border-transparent focus-within:border-blue-300 transition-colors">
-                  <MapPin className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200 focus-within:border-black transition-colors">
+                  <MapPin className="h-5 w-5 text-gray-600 flex-shrink-0" />
                   <Input
-                    placeholder="Search for your location in India..."
+                    placeholder="Enter pickup location"
                     value={pickupLocation}
                     onChange={(e) => handleLocationSearch(e.target.value)}
                     className="border-none bg-transparent text-black placeholder-gray-500 focus-visible:ring-0 flex-1 text-base"
@@ -189,7 +177,7 @@ const UberLikeHero = () => {
                     size="sm"
                     onClick={detectCurrentLocation}
                     disabled={loading}
-                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex-shrink-0 rounded-xl"
+                    className="text-gray-600 hover:text-black hover:bg-gray-100 flex-shrink-0"
                   >
                     {loading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -199,27 +187,17 @@ const UberLikeHero = () => {
                   </Button>
                 </div>
 
-                {/* Search Loading */}
-                {searchLoading && (
-                  <div className="absolute top-full left-0 right-0 bg-white border-2 border-blue-100 rounded-2xl shadow-xl z-50 p-4 mt-2">
-                    <div className="flex items-center space-x-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                      <span className="text-sm text-gray-600">Searching locations...</span>
-                    </div>
-                  </div>
-                )}
-
                 {/* Search Results */}
                 {showResults && searchResults.length > 0 && !searchLoading && (
-                  <div className="absolute top-full left-0 right-0 bg-white border-2 border-blue-100 rounded-2xl shadow-xl z-50 max-h-60 overflow-y-auto mt-2">
+                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto mt-1">
                     {searchResults.map((location, index) => (
                       <div
                         key={index}
-                        className="p-4 hover:bg-blue-50 cursor-pointer border-b last:border-b-0 transition-colors rounded-2xl"
+                        className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 transition-colors"
                         onClick={() => selectLocation(location)}
                       >
                         <div className="flex items-start space-x-3">
-                          <MapPin className="h-4 w-4 text-blue-400 mt-1 flex-shrink-0" />
+                          <MapPin className="h-4 w-4 text-gray-400 mt-1 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-gray-900 text-sm truncate">
                               {location.address}
@@ -233,38 +211,27 @@ const UberLikeHero = () => {
                     ))}
                   </div>
                 )}
-
-                {/* No Results */}
-                {showResults && searchResults.length === 0 && !searchLoading && pickupLocation.length > 2 && (
-                  <div className="absolute top-full left-0 right-0 bg-white border-2 border-red-100 rounded-2xl shadow-xl z-50 p-4 mt-2">
-                    <div className="text-sm text-gray-500 text-center">
-                      No locations found. Try a different search term.
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Service Selection */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-3">
                 {services.map((service) => (
                   <div
                     key={service.id}
-                    className={`p-4 border-2 rounded-2xl text-center cursor-pointer transition-all duration-300 ${
+                    className={`p-3 border rounded-lg text-center cursor-pointer transition-all duration-200 ${
                       selectedService === service.id
-                        ? 'border-blue-400 bg-blue-50 shadow-lg transform scale-105'
-                        : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                        ? 'border-black bg-gray-50'
+                        : 'border-gray-200 hover:bg-gray-50'
                     }`}
                     onClick={() => setSelectedService(service.id)}
                   >
-                    <div className="text-3xl mb-2">{service.icon}</div>
-                    <div className={`text-sm font-semibold ${
-                      selectedService === service.id ? 'text-blue-700' : 'text-gray-900'
+                    <div className="text-2xl mb-1">{service.icon}</div>
+                    <div className={`text-sm font-medium ${
+                      selectedService === service.id ? 'text-black' : 'text-gray-700'
                     }`}>
                       {service.name}
                     </div>
-                    <div className={`text-xs font-medium ${
-                      selectedService === service.id ? 'text-blue-600' : 'text-gray-500'
-                    }`}>
+                    <div className="text-xs text-gray-500">
                       {service.price}
                     </div>
                   </div>
@@ -272,10 +239,10 @@ const UberLikeHero = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <Button
                   onClick={handleBookNow}
-                  className="w-full bg-wash-gradient hover:shadow-xl hover:shadow-blue-500/25 text-white h-14 text-lg font-bold rounded-2xl transition-all duration-300 transform hover:scale-105"
+                  className="w-full bg-black hover:bg-gray-800 text-white h-12 text-base font-medium rounded-lg transition-all duration-200"
                   disabled={!pickupLocation.trim()}
                 >
                   Book Car Wash
@@ -283,26 +250,26 @@ const UberLikeHero = () => {
                 
                 <Button
                   onClick={handleCallMechanic}
-                  className="w-full bg-mechanic-gradient hover:shadow-xl hover:shadow-orange-500/25 text-white h-12 text-base font-semibold rounded-2xl transition-all duration-300 transform hover:scale-105"
+                  className="w-full bg-white hover:bg-gray-50 text-black border border-gray-200 h-12 text-base font-medium rounded-lg transition-all duration-200"
                   disabled={!pickupLocation.trim()}
                 >
-                  <Wrench className="h-5 w-5 mr-2" />
-                  Call Mechanic
+                  <Wrench className="h-4 w-4 mr-2" />
+                  Get Mechanic
                 </Button>
               </div>
 
-              {/* Stats */}
-              <div className="flex justify-center space-x-8 pt-6 border-t border-gray-100">
+              {/* Simple Stats */}
+              <div className="flex justify-center space-x-8 pt-4 border-t border-gray-100">
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1">
-                    <Clock className="h-4 w-4 text-orange-500" />
-                    <span className="text-sm font-bold text-gray-900">30 min</span>
+                    <Clock className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-900">30 min</span>
                   </div>
-                  <div className="text-xs text-gray-500 font-medium">Average Response</div>
+                  <div className="text-xs text-gray-500">Response time</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-sm font-bold text-emerald-600">4.8★</div>
-                  <div className="text-xs text-gray-500 font-medium">Rating</div>
+                  <div className="text-sm font-medium text-gray-900">4.8★</div>
+                  <div className="text-xs text-gray-500">Rating</div>
                 </div>
               </div>
             </div>
