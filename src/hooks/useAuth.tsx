@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { generateOTP, storeOTP, verifyOTP } from '@/utils/otpService';
 
 interface AuthContextType {
   user: User | null;
@@ -9,7 +10,8 @@ interface AuthContextType {
   signUp: (email: string, password: string, userData: any) => Promise<any>;
   signIn: (email: string, password: string) => Promise<any>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<any>;
+  resetPasswordWithPhone: (phone: string) => Promise<any>;
+  verifyPhoneAndResetPassword: (phone: string, otp: string, newPassword: string) => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -75,30 +77,108 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const resetPassword = async (email: string) => {
+  const resetPasswordWithPhone = async (phone: string) => {
     try {
-      console.log('Sending password reset email to:', email);
+      console.log('Starting phone-based password reset for:', phone);
       
-      // Use the correct domain for your deployed app
-      const baseUrl = 'https://59c03063-7296-46de-bd6f-e689871dc273.lovableproject.com';
-      const redirectTo = `${baseUrl}/reset-password`;
-      
-      console.log('Reset redirect URL:', redirectTo);
-      
-      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectTo,
+      // Check if user exists with this phone number
+      const { data: userProfile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('user_id, phone')
+        .eq('phone', phone)
+        .single();
+
+      if (profileError || !userProfile) {
+        console.error('User not found with phone:', phone);
+        return { 
+          data: null, 
+          error: { message: 'No account found with this phone number' }
+        };
+      }
+
+      // Generate and store OTP
+      const otp = generateOTP();
+      storeOTP(phone, otp);
+
+      // Send OTP via SMS
+      const response = await supabase.functions.invoke('send-otp', {
+        body: { phone, otp }
       });
-      
-      console.log('Password reset result:', { 
-        data, 
-        error: error?.message,
-        redirectUrl: redirectTo 
-      });
-      
-      return { data, error };
+
+      if (response.error) {
+        console.error('Failed to send OTP:', response.error);
+        return { 
+          data: null, 
+          error: { message: 'Failed to send verification code' }
+        };
+      }
+
+      console.log('OTP sent successfully to:', phone);
+      return { 
+        data: { success: true }, 
+        error: null 
+      };
     } catch (error) {
-      console.error('Password reset error:', error);
-      return { data: null, error };
+      console.error('Phone reset error:', error);
+      return { 
+        data: null, 
+        error: { message: 'An error occurred. Please try again.' }
+      };
+    }
+  };
+
+  const verifyPhoneAndResetPassword = async (phone: string, otp: string, newPassword: string) => {
+    try {
+      console.log('Verifying OTP and resetting password for:', phone);
+      
+      // Verify OTP
+      const isValidOTP = verifyOTP(phone, otp);
+      if (!isValidOTP) {
+        return { 
+          data: null, 
+          error: { message: 'Invalid or expired verification code' }
+        };
+      }
+
+      // Get user profile to find user_id
+      const { data: userProfile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('user_id')
+        .eq('phone', phone)
+        .single();
+
+      if (profileError || !userProfile) {
+        return { 
+          data: null, 
+          error: { message: 'User not found' }
+        };
+      }
+
+      // Update password using admin privileges
+      const { error: updateError } = await supabase.auth.admin.updateUserById(
+        userProfile.user_id,
+        { password: newPassword }
+      );
+
+      if (updateError) {
+        console.error('Password update error:', updateError);
+        return { 
+          data: null, 
+          error: { message: 'Failed to update password' }
+        };
+      }
+
+      console.log('Password updated successfully');
+      return { 
+        data: { success: true }, 
+        error: null 
+      };
+    } catch (error) {
+      console.error('Password reset verification error:', error);
+      return { 
+        data: null, 
+        error: { message: 'An error occurred. Please try again.' }
+      };
     }
   };
 
@@ -182,7 +262,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       signUp,
       signIn,
       signOut,
-      resetPassword
+      resetPasswordWithPhone,
+      verifyPhoneAndResetPassword
     }}>
       {children}
     </AuthContext.Provider>
