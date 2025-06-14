@@ -84,6 +84,13 @@ const OrderHistory = () => {
     }
   };
 
+  const formatAmount = (amount: number) => {
+    if (!amount || amount === 0) {
+      return 'Yet to confirm';
+    }
+    return `₹${(amount / 100).toFixed(0)}`;
+  };
+
   const openFeedbackModal = (orderId: string, companyName: string = 'WashCart Service') => {
     setFeedbackModal({
       isOpen: true,
@@ -163,7 +170,7 @@ const OrderHistory = () => {
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold text-emerald-600">
-                        ₹{(order.total_amount / 100).toFixed(0)}
+                        {formatAmount(order.total_amount)}
                       </div>
                       <div className="text-sm text-gray-500">
                         {new Date(order.created_at).toLocaleDateString()}

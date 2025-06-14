@@ -66,6 +66,9 @@ const MobileHistory = () => {
   };
 
   const formatPrice = (priceInPaise: number): string => {
+    if (!priceInPaise || priceInPaise === 0) {
+      return 'Yet to confirm';
+    }
     return `₹${Math.floor(priceInPaise / 100)}`;
   };
 
