@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import AuthModal from '@/components/AuthModal';
+import EnhancedLocationSelector from '@/components/EnhancedLocationSelector';
 
 const WashBookingDetails = () => {
   const navigate = useNavigate();
@@ -19,23 +20,37 @@ const WashBookingDetails = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [locationData, setLocationData] = useState<{
+    lat: number;
+    lng: number;
+    address: string;
+    city: string;
+    zipCode: string;
+  } | null>(null);
   
   const [formData, setFormData] = useState({
     carType: '',
     carNumber: '',
-    address: '',
+    washPlan: '',
     timeSlot: '',
     specialInstructions: ''
   });
 
   const carTypes = [
     'Sedan',
-    'SUV',
+    'SUV', 
     'Hatchback',
     'Coupe',
     'Convertible',
     'Wagon',
     'Pickup Truck'
+  ];
+
+  const washPlans = [
+    'Basic Wash - ₹200',
+    'Premium Wash - ₹400', 
+    'Deluxe Wash - ₹600',
+    'Full Service Wash - ₹800'
   ];
 
   const timeSlots = [
@@ -56,16 +71,27 @@ const WashBookingDetails = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleLocationSelect = (selectedLocation: {
+    lat: number;
+    lng: number;
+    address: string;
+    city: string;
+    zipCode: string;
+  }) => {
+    setLocationData(selectedLocation);
+    console.log('Location selected:', selectedLocation);
+  };
+
   const handleContinue = async () => {
     if (!user) {
       setShowAuthModal(true);
       return;
     }
 
-    if (!formData.carType || !formData.carNumber || !formData.address || !formData.timeSlot) {
+    if (!formData.carType || !formData.carNumber || !locationData || !formData.timeSlot || !formData.washPlan) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields including location",
         variant: "destructive"
       });
       return;
@@ -81,12 +107,14 @@ const WashBookingDetails = () => {
 
       const orderData = {
         user_id: user.id,
-        service_type: 'Car Wash',
-        address: formData.address,
-        city: '', // Will be extracted from address if needed
-        zip_code: '',
+        service_type: formData.washPlan,
+        address: locationData.address,
+        city: locationData.city,
+        zip_code: locationData.zipCode,
+        latitude: locationData.lat,
+        longitude: locationData.lng,
         booking_date: defaultDate,
-        booking_time: formData.timeSlot.split(' ')[0], // Extract time without AM/PM
+        booking_time: formData.timeSlot.split(' ')[0],
         car_type: formData.carType,
         car_model: formData.carNumber,
         car_color: '',
@@ -94,6 +122,8 @@ const WashBookingDetails = () => {
         status: 'pending',
         total_amount: 0
       };
+
+      console.log('Creating order with data:', orderData);
 
       const { error } = await supabase
         .from('orders')
@@ -103,7 +133,7 @@ const WashBookingDetails = () => {
 
       toast({
         title: "Booking Confirmed!",
-        description: `Your car wash has been booked for ${formData.timeSlot}.`
+        description: `Your ${formData.washPlan} has been booked for ${formData.timeSlot}. Nearby companies will be notified.`
       });
 
       navigate('/order-history');
@@ -174,21 +204,37 @@ const WashBookingDetails = () => {
             />
           </div>
 
-          {/* Address */}
+          {/* Wash Plan */}
           <div>
-            <Label htmlFor="address">Service Address *</Label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <Textarea
-                id="address"
-                value={formData.address}
-                onChange={(e) => handleInputChange('address', e.target.value)}
-                placeholder="Enter your complete address where service is needed"
-                className="pl-10"
-                rows={3}
-                required
-              />
-            </div>
+            <Label htmlFor="washPlan">Wash Plan *</Label>
+            <Select onValueChange={(value) => handleInputChange('washPlan', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select wash plan" />
+              </SelectTrigger>
+              <SelectContent>
+                {washPlans.map((plan) => (
+                  <SelectItem key={plan} value={plan}>
+                    {plan}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Service Location */}
+          <div>
+            <Label>Service Location *</Label>
+            <EnhancedLocationSelector
+              onLocationSelect={handleLocationSelect}
+            />
+            {locationData && (
+              <div className="mt-2 p-3 bg-green-50 rounded-lg">
+                <div className="flex items-center space-x-2 text-sm text-green-700">
+                  <MapPin className="h-4 w-4" />
+                  <span>{locationData.address}, {locationData.city}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Time Slot */}
@@ -229,7 +275,7 @@ const WashBookingDetails = () => {
             disabled={loading}
             className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
           >
-            {loading ? 'Processing...' : 'Continue Booking'}
+            {loading ? 'Processing...' : 'Book Wash Service'}
           </Button>
         </CardContent>
       </Card>

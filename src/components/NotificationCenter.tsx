@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bell, MapPin, Clock, Check, DollarSign, Star } from 'lucide-react';
+import { Bell, MapPin, Clock, Check, DollarSign, Star, Car, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import QuoteModal from './QuoteModal';
@@ -27,7 +27,10 @@ interface Order {
   booking_time: string;
   car_model: string;
   car_color: string;
+  car_type: string;
   total_amount: number;
+  special_instructions?: string;
+  user_id: string;
 }
 
 const NotificationCenter = () => {
@@ -218,7 +221,7 @@ const NotificationCenter = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5" />
-            Notifications
+            Booking Notifications
             {unreadCount > 0 && (
               <Badge variant="destructive" className="ml-2">
                 {unreadCount}
@@ -230,7 +233,8 @@ const NotificationCenter = () => {
           {notifications.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No notifications yet</p>
+              <p>No booking requests yet</p>
+              <p className="text-sm mt-2">You'll receive notifications when customers book services in your area</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -245,18 +249,39 @@ const NotificationCenter = () => {
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-semibold text-sm">{notification.title}</h4>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-1">
+                          <Car className="h-4 w-4 text-blue-600" />
+                          <h4 className="font-semibold text-sm">{notification.title}</h4>
+                        </div>
                         {!notification.is_read && (
                           <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                      
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-600">{notification.message}</p>
+                        
+                        {notification.title.includes('Quote Needed') && (
+                          <div className="bg-white p-3 rounded border text-xs space-y-1">
+                            <div className="flex items-center gap-1 text-gray-600">
+                              <MapPin className="h-3 w-3" />
+                              <span>New booking request in your service area</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-gray-600">
+                              <Clock className="h-3 w-3" />
+                              <span>Click "View Details" to see complete booking information</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
                         <Clock className="h-3 w-3" />
                         {new Date(notification.created_at).toLocaleString()}
                       </div>
                     </div>
+                    
                     <div className="ml-2 space-y-2">
                       {!notification.is_read && (
                         <Button
@@ -271,10 +296,10 @@ const NotificationCenter = () => {
                         <Button
                           size="sm"
                           onClick={() => handleProvideQuote(notification)}
-                          className="flex items-center gap-1"
+                          className="flex items-center gap-1 bg-green-600 hover:bg-green-700"
                         >
                           <DollarSign className="h-3 w-3" />
-                          Quote
+                          View Details
                         </Button>
                       )}
                       {notification.title.includes('Share Your Feedback') && notification.order_id && (
