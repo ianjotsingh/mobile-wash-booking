@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AuthModalProps {
   children: React.ReactNode;
@@ -35,6 +36,42 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
     phone: ''
   });
 
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        }
+      });
+
+      if (error) {
+        console.error('Google sign-in error:', error);
+        toast({
+          title: "Error",
+          description: "Failed to sign in with Google. Please try again.",
+          variant: "destructive"
+        });
+      } else {
+        setOpen(false);
+      }
+    } catch (error) {
+      console.error('Unexpected error during Google sign-in:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!loginData.email || !loginData.password) {
@@ -56,7 +93,6 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
         console.error('Login error:', error);
         let errorMessage = "Invalid email or password";
         
-        // Provide more specific error messages
         if (error.message?.includes('Invalid login credentials')) {
           errorMessage = "Invalid email or password. Please check your credentials and try again.";
         } else if (error.message?.includes('Email not confirmed')) {
@@ -77,7 +113,6 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
           description: "Logged in successfully!"
         });
         setOpen(false);
-        // Reset form
         setLoginData({ email: '', password: '' });
       }
     } catch (error) {
@@ -106,11 +141,13 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
 
     try {
       console.log('Attempting signup with:', signupData.email);
-      const { data, error } = await signUp(signupData.email, signupData.password, {
+      const userData = {
         full_name: signupData.fullName,
-        phone: signupData.phone || '',
-        role: 'customer'
-      });
+        role: 'customer',
+        ...(signupData.phone && { phone: signupData.phone })
+      };
+
+      const { data, error } = await signUp(signupData.email, signupData.password, userData);
 
       if (error) {
         console.error('Signup error:', error);
@@ -136,7 +173,6 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
             : "Account created! Please check your email for confirmation."
         });
         setOpen(false);
-        // Reset form
         setSignupData({ email: '', password: '', fullName: '', phone: '' });
       }
     } catch (error) {
@@ -159,6 +195,19 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
         <DialogHeader>
           <DialogTitle>Welcome to WashCart</DialogTitle>
         </DialogHeader>
+        
+        {/* Google Sign In Button */}
+        <Button
+          onClick={handleGoogleSignIn}
+          disabled={loading}
+          className="w-full mb-4 bg-white hover:bg-gray-50 text-gray-700 border-2 border-gray-200 flex items-center justify-center space-x-3"
+        >
+          <div className="w-5 h-5 bg-gradient-to-r from-red-500 to-yellow-500 rounded"></div>
+          <span>{loading ? 'Signing in...' : 'Continue with Google'}</span>
+        </Button>
+
+        <div className="text-center text-gray-400 text-sm mb-4">or</div>
+
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>

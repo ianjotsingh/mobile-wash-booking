@@ -1,14 +1,13 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Phone } from 'lucide-react';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { generateOTP, storeOTP, verifyOTP } from '@/utils/otpService';
 
 interface MobileLoginProps {
   onSuccess: () => void;
@@ -16,121 +15,43 @@ interface MobileLoginProps {
 }
 
 const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => {
-  const [step, setStep] = useState<'phone' | 'otp' | 'email'>('phone');
+  const [step, setStep] = useState<'main' | 'email'>('main');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [otp, setOtp] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isSignup, setIsSignup] = useState(false);
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
 
-  const handleSendOTP = async (e?: React.MouseEvent) => {
-    e?.preventDefault();
-    e?.stopPropagation();
-    
-    if (!phoneNumber || phoneNumber.length < 10) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid 10-digit phone number",
-        variant: "destructive"
-      });
-      return;
-    }
-
+  const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      const generatedOTP = generateOTP();
-      storeOTP(phoneNumber, generatedOTP);
-
-      console.log('Sending OTP request to Edge Function...');
-      
-      const { data, error } = await supabase.functions.invoke('send-otp', {
-        body: {
-          phone: phoneNumber,
-          otp: generatedOTP
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         }
       });
 
-      console.log('Edge Function response:', { data, error });
-
       if (error) {
-        console.error('Supabase function error:', error);
+        console.error('Google sign-in error:', error);
         toast({
           title: "Error",
-          description: `Failed to send OTP: ${error.message || 'Unknown error'}`,
+          description: "Failed to sign in with Google. Please try again.",
           variant: "destructive"
         });
-        return;
       }
-
-      if (data?.error) {
-        console.error('Edge Function returned error:', data.error);
-        toast({
-          title: "Error",
-          description: data.error,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log('OTP sent successfully:', data);
-      setStep('otp');
-      toast({
-        title: "OTP Sent",
-        description: `Verification code sent to +91${phoneNumber}`,
-      });
-
-    } catch (error: any) {
-      console.error('Unexpected error sending OTP:', error);
-      toast({
-        title: "Error",
-        description: "Network error. Please check your connection and try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOTP = async (e?: React.MouseEvent) => {
-    e?.preventDefault();
-    e?.stopPropagation();
-    
-    if (otp.length !== 6) {
-      toast({
-        title: "Error",
-        description: "Please enter the complete 6-digit OTP",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const isValid = verifyOTP(phoneNumber, otp);
-      
-      if (!isValid) {
-        toast({
-          title: "Invalid OTP",
-          description: "The OTP you entered is incorrect or has expired. Please try again.",
-          variant: "destructive"
-        });
-        setLoading(false);
-        return;
-      }
-
-      onSuccess();
-      toast({
-        title: "Success",
-        description: "Phone number verified successfully",
-      });
-
     } catch (error) {
-      console.error('Error verifying OTP:', error);
+      console.error('Unexpected error during Google sign-in:', error);
       toast({
         title: "Error",
-        description: "Failed to verify OTP. Please try again.",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -138,14 +59,13 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
     }
   };
 
-  const handleEmailLogin = async (e?: React.MouseEvent) => {
+  const handleEmailAuth = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    e?.stopPropagation();
     
-    if (!email || !password) {
+    if (!email || !password || (isSignup && !fullName)) {
       toast({
         title: "Error",
-        description: "Please fill in all fields",
+        description: "Please fill in all required fields",
         variant: "destructive"
       });
       return;
@@ -153,15 +73,42 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
 
     setLoading(true);
     try {
-      const { error } = await signIn(email, password);
-      if (error) {
-        toast({
-          title: "Login Failed",
-          description: error.message,
-          variant: "destructive"
-        });
+      if (isSignup) {
+        const userData = {
+          full_name: fullName,
+          role: userType,
+          ...(phoneNumber && { phone: phoneNumber })
+        };
+
+        const { error } = await signUp(email, password, userData);
+        if (error) {
+          toast({
+            title: "Signup Failed",
+            description: error.message,
+            variant: "destructive"
+          });
+        } else {
+          onSuccess();
+          toast({
+            title: "Success",
+            description: "Account created successfully!",
+          });
+        }
       } else {
-        onSuccess();
+        const { error } = await signIn(email, password);
+        if (error) {
+          toast({
+            title: "Login Failed",
+            description: error.message,
+            variant: "destructive"
+          });
+        } else {
+          onSuccess();
+          toast({
+            title: "Success",
+            description: "Logged in successfully!",
+          });
+        }
       }
     } catch (error) {
       toast({
@@ -173,15 +120,17 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
     setLoading(false);
   };
 
-  const handleBackToPhone = (e?: React.MouseEvent) => {
-    e?.preventDefault();
-    e?.stopPropagation();
-    setStep('phone');
+  const handleBackToMain = () => {
+    setStep('main');
+    setEmail('');
+    setPassword('');
+    setFullName('');
+    setPhoneNumber('');
+    setIsSignup(false);
   };
 
-  const handleEmailStep = (e?: React.MouseEvent) => {
-    e?.preventDefault();
-    e?.stopPropagation();
+  const handleEmailStep = (signup = false) => {
+    setIsSignup(signup);
     setStep('email');
   };
 
@@ -201,137 +150,110 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
           </div>
 
           {/* Step Content */}
-          {step === 'phone' && (
-            <div className="space-y-7">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-3 text-left">Enter your phone number</h3>
-                <div className="flex">
-                  <div className="flex items-center px-3 py-2 border border-r-0 border-gray-200 rounded-l-xl bg-blue-50">
-                    <span className="text-base font-bold">🇮🇳 +91</span>
-                  </div>
-                  <Input
-                    type="tel"
-                    placeholder="Phone number"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    className="rounded-l-none rounded-r-xl bg-blue-50 text-lg"
-                    maxLength={10}
-                  />
-                </div>
-              </div>
+          {step === 'main' && (
+            <div className="space-y-6">
               <Button
-                type="button"
-                onClick={handleSendOTP}
-                disabled={loading || phoneNumber.length < 10}
-                className="w-full bg-blue-700 hover:bg-blue-900 text-white h-14 rounded-2xl text-lg font-extrabold shadow touch-manipulation"
+                onClick={handleGoogleSignIn}
+                disabled={loading}
+                className="w-full bg-white hover:bg-gray-50 text-gray-700 border-2 border-gray-200 h-14 rounded-2xl text-lg font-semibold shadow touch-manipulation flex items-center justify-center space-x-3"
               >
-                {loading ? 'Sending OTP...' : 'Send OTP'}
+                <div className="w-6 h-6 bg-gradient-to-r from-red-500 to-yellow-500 rounded"></div>
+                <span>{loading ? 'Signing in...' : 'Continue with Google'}</span>
               </Button>
+
               <div className="text-center text-gray-400 text-sm select-none">
                 or continue with
               </div>
+
               <div className="space-y-3">
                 <Button 
-                  type="button"
-                  variant="outline" 
-                  className="w-full h-12 rounded-xl flex items-center justify-center text-gray-600 bg-gray-50 touch-manipulation" 
-                  disabled
-                >
-                  <div className="w-5 h-5 bg-red-500 rounded mr-2"></div>
-                  Continue with Google
-                </Button>
-                <Button 
-                  type="button"
+                  onClick={() => handleEmailStep(false)}
                   variant="outline" 
                   className="w-full h-12 rounded-xl flex items-center justify-center text-gray-600 bg-gray-50 touch-manipulation"
-                  onClick={handleEmailStep}
                 >
                   <div className="w-5 h-5 bg-blue-500 rounded mr-2"></div>
-                  Continue with Email
+                  Sign In with Email
+                </Button>
+                <Button 
+                  onClick={() => handleEmailStep(true)}
+                  variant="outline" 
+                  className="w-full h-12 rounded-xl flex items-center justify-center text-gray-600 bg-gray-50 touch-manipulation"
+                >
+                  <div className="w-5 h-5 bg-green-500 rounded mr-2"></div>
+                  Sign Up with Email
                 </Button>
               </div>
-            </div>
-          )}
-
-          {step === 'otp' && (
-            <div className="space-y-7 text-center">
-              <div>
-                <h3 className="text-lg font-semibold mb-2 text-blue-700">Enter OTP</h3>
-                <p className="text-gray-600">
-                  Enter the 6-digit code sent to +91 {phoneNumber}
-                </p>
-              </div>
-              <div className="flex justify-center">
-                <InputOTP
-                  maxLength={6}
-                  value={otp}
-                  onChange={(value) => setOtp(value)}
-                  className="gap-3"
-                >
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                    <InputOTPSlot index={4} />
-                    <InputOTPSlot index={5} />
-                  </InputOTPGroup>
-                </InputOTP>
-              </div>
-              <Button
-                type="button"
-                onClick={handleVerifyOTP}
-                disabled={loading || otp.length !== 6}
-                className="w-full bg-blue-700 hover:bg-blue-900 text-white h-14 rounded-2xl font-bold touch-manipulation"
-              >
-                {loading ? 'Verifying...' : 'Verify OTP'}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={handleBackToPhone}
-                className="w-full text-blue-500 font-semibold touch-manipulation"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Change Phone Number
-              </Button>
             </div>
           )}
 
           {step === 'email' && (
-            <div className="space-y-6">
+            <form onSubmit={handleEmailAuth} className="space-y-6">
+              {isSignup && (
+                <Input
+                  type="text"
+                  placeholder="Full Name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="rounded-xl bg-blue-50"
+                  required
+                />
+              )}
+              
               <Input
                 type="email"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="rounded-xl bg-blue-50"
+                required
               />
+              
               <Input
                 type="password"
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="rounded-xl bg-blue-50"
+                required
               />
+
+              {isSignup && (
+                <div>
+                  <label className="text-sm text-gray-600 mb-2 block">Phone Number (Optional)</label>
+                  <div className="flex">
+                    <div className="flex items-center px-3 py-2 border border-r-0 border-gray-200 rounded-l-xl bg-blue-50">
+                      <span className="text-base font-bold">🇮🇳 +91</span>
+                    </div>
+                    <Input
+                      type="tel"
+                      placeholder="Phone number"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      className="rounded-l-none rounded-r-xl bg-blue-50 text-lg"
+                      maxLength={10}
+                    />
+                  </div>
+                </div>
+              )}
+
               <Button
-                type="button"
-                onClick={handleEmailLogin}
+                type="submit"
                 disabled={loading}
                 className="w-full bg-blue-700 hover:bg-blue-900 text-white h-14 rounded-2xl font-bold touch-manipulation"
               >
-                {loading ? 'Signing in...' : 'Sign In'}
+                {loading ? (isSignup ? 'Creating Account...' : 'Signing In...') : (isSignup ? 'Create Account' : 'Sign In')}
               </Button>
+
               <Button
                 type="button"
                 variant="ghost"
-                onClick={handleBackToPhone}
+                onClick={handleBackToMain}
                 className="w-full text-blue-500 touch-manipulation"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Phone Login
+                Back to Login Options
               </Button>
-            </div>
+            </form>
           )}
 
           {/* Terms */}

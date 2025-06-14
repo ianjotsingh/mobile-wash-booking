@@ -3,27 +3,56 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Car, Building2, Phone, Mail } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface MobileFrontPageProps {
   onUserTypeSelect: (userType: 'customer' | 'provider') => void;
 }
 
 const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
-  const handleCustomerSelect = (e?: React.MouseEvent) => {
-    e?.preventDefault();
-    e?.stopPropagation();
+  const { toast } = useToast();
+
+  const handleCustomerSelect = () => {
     onUserTypeSelect('customer');
   };
 
-  const handleProviderSelect = (e?: React.MouseEvent) => {
-    e?.preventDefault();
-    e?.stopPropagation();
+  const handleProviderSelect = () => {
     onUserTypeSelect('provider');
   };
 
-  const handlePhoneLogin = (e?: React.MouseEvent) => {
-    e?.preventDefault();
-    e?.stopPropagation();
+  const handleGoogleSignIn = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        }
+      });
+
+      if (error) {
+        console.error('Google sign-in error:', error);
+        toast({
+          title: "Error",
+          description: "Failed to sign in with Google. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Unexpected error during Google sign-in:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handlePhoneLogin = () => {
     onUserTypeSelect('customer');
   };
 
@@ -46,7 +75,6 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
           <Card className="shadow-lg border-2 border-transparent hover:border-blue-200 transition-all">
             <CardContent className="p-6">
               <Button
-                type="button"
                 onClick={handleCustomerSelect}
                 className="w-full h-20 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl shadow-lg touch-manipulation"
               >
@@ -64,7 +92,6 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
           <Card className="shadow-lg border-2 border-transparent hover:border-blue-200 transition-all">
             <CardContent className="p-6">
               <Button
-                type="button"
                 onClick={handleProviderSelect}
                 variant="outline"
                 className="w-full h-20 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 rounded-xl touch-manipulation"
@@ -88,23 +115,21 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
           </div>
           
           <Button
-            type="button"
+            onClick={handleGoogleSignIn}
             variant="outline"
             className="w-full h-14 border-2 border-gray-300 text-gray-700 rounded-xl flex items-center justify-center space-x-3 touch-manipulation"
-            disabled
           >
-            <div className="w-6 h-6 bg-red-500 rounded"></div>
+            <div className="w-6 h-6 bg-gradient-to-r from-red-500 to-yellow-500 rounded"></div>
             <span className="text-lg font-semibold">Continue with Google</span>
           </Button>
 
           <Button
-            type="button"
+            onClick={handlePhoneLogin}
             variant="outline"
             className="w-full h-14 border-2 border-gray-300 text-gray-700 rounded-xl flex items-center justify-center space-x-3 touch-manipulation"
-            onClick={handlePhoneLogin}
           >
-            <Phone className="h-6 w-6 text-blue-600" />
-            <span className="text-lg font-semibold">Continue with Phone</span>
+            <Mail className="h-6 w-6 text-blue-600" />
+            <span className="text-lg font-semibold">Continue with Email</span>
           </Button>
         </div>
 
