@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import OnboardingFlow from './onboarding/OnboardingFlow';
 import MobileLogin from './auth/MobileLogin';
 import LocationPermission from './location/LocationPermission';
 import ConfirmLocation from './location/ConfirmLocation';
 import MobileAppMain from './mobile/MobileAppMain';
 import MobileFrontPage from './mobile/MobileFrontPage';
+import BookingFlow from './BookingFlow';
 import { useAuth } from '@/hooks/useAuth';
 
 type AppStep = 'onboarding' | 'front' | 'login' | 'location' | 'confirm-location' | 'app';
@@ -23,13 +25,17 @@ const MobileApp = () => {
 
     // Check if user has completed onboarding before
     const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
+    const hasLocationSet = localStorage.getItem('userLocationSet');
     
     if (user) {
       // User is logged in
-      if (hasCompletedOnboarding) {
+      if (hasCompletedOnboarding && hasLocationSet) {
         setCurrentStep('app');
+      } else if (hasCompletedOnboarding) {
+        setCurrentStep('location');
       } else {
         setCurrentStep('location');
+        localStorage.setItem('hasCompletedOnboarding', 'true');
       }
     } else {
       // User is not logged in
@@ -84,6 +90,23 @@ const MobileApp = () => {
     );
   }
 
+  // If user is authenticated and app is ready, show main app with routing
+  if (currentStep === 'app' && user) {
+    return (
+      <Router>
+        <Routes>
+          <Route 
+            path="/" 
+            element={<MobileAppMain userLocation={userLocation} userAddress={userAddress} />} 
+          />
+          <Route path="/booking" element={<BookingFlow />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    );
+  }
+
+  // Show appropriate step based on current state
   switch (currentStep) {
     case 'onboarding':
       return <OnboardingFlow onComplete={handleOnboardingComplete} />;
@@ -110,9 +133,6 @@ const MobileApp = () => {
           onEdit={handleEditAddress}
         />
       );
-    
-    case 'app':
-      return <MobileAppMain userLocation={userLocation} userAddress={userAddress} />;
     
     default:
       return <OnboardingFlow onComplete={handleOnboardingComplete} />;
