@@ -1,11 +1,15 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Car, Wrench, Star, Clock, MapPin, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const MobileHome = () => {
+interface MobileHomeProps {
+  userLocation?: { lat: number; lng: number } | null;
+  userAddress?: string;
+}
+
+const MobileHome = ({ userLocation, userAddress }: MobileHomeProps) => {
   const navigate = useNavigate();
 
   const handleBookWash = () => {
