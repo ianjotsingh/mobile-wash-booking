@@ -9,6 +9,8 @@ import MobileApp from './components/MobileApp';
 import Index from './pages/Index';
 import Booking from './pages/Booking';
 import BookingForm from './pages/BookingForm';
+import WashBookingDetails from './pages/WashBookingDetails';
+import MechanicRequestForm from './pages/MechanicRequestForm';
 import OrderHistory from './pages/OrderHistory';
 import CompanySignup from './pages/CompanySignup';
 import CompanyDashboard from './pages/CompanyDashboard';
@@ -51,6 +53,8 @@ function App() {
                 <Route path="/" element={<Index />} />
                 <Route path="/booking" element={<Booking />} />
                 <Route path="/book-service" element={<BookingForm />} />
+                <Route path="/wash-booking" element={<WashBookingDetails />} />
+                <Route path="/mechanic-request-form" element={<MechanicRequestForm />} />
                 <Route path="/order-history" element={<OrderHistory />} />
                 <Route path="/company-signup" element={<CompanySignup />} />
                 <Route path="/company-dashboard" element={<CompanyDashboard />} />

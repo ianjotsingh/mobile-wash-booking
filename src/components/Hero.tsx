@@ -12,11 +12,11 @@ const Hero = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const handleBookNow = () => {
-    navigate('/book-service?service=wash');
+    navigate('/wash-booking');
   };
 
   const handleCallMechanic = () => {
-    navigate('/book-service?service=mechanic');
+    navigate('/mechanic-request-form');
   };
 
   const handleLearnMore = () => {
@@ -28,7 +28,7 @@ const Hero = () => {
   };
 
   const handleContinueBooking = () => {
-    navigate('/book-service?service=wash');
+    navigate('/wash-booking');
   };
 
   return (

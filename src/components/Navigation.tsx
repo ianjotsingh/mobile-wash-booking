@@ -76,11 +76,11 @@ const Navigation = () => {
   };
 
   const handleMechanicRequest = () => {
-    navigate('/book-service?service=mechanic');
+    navigate('/mechanic-request-form');
   };
 
   const handleBookNow = () => {
-    navigate('/book-service?service=wash');
+    navigate('/wash-booking');
   };
 
   return (
