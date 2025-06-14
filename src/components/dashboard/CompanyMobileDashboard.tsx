@@ -11,7 +11,8 @@ import {
   AlertCircle, 
   DollarSign,
   Calendar,
-  TrendingUp
+  TrendingUp,
+  RefreshCw
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,16 +27,20 @@ interface Order {
   amount: number;
   time: string;
   distance: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 const CompanyMobileDashboard = () => {
   const [activeTab, setActiveTab] = useState('live');
   const [orders, setOrders] = useState<Order[]>([]);
+  const [allOrders, setAllOrders] = useState<any[]>([]);
   const [stats, setStats] = useState({
     todayEarnings: 0,
     ordersToday: 0
   });
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -61,7 +66,7 @@ const CompanyMobileDashboard = () => {
           table: 'orders'
         },
         (payload) => {
-          console.log('New order received:', payload);
+          console.log('New order received via real-time:', payload);
           fetchCompanyOrders(); // Refresh orders when new order is created
         }
       )
@@ -73,7 +78,7 @@ const CompanyMobileDashboard = () => {
           table: 'order_quotes'
         },
         (payload) => {
-          console.log('New quote received:', payload);
+          console.log('New quote received via real-time:', payload);
           fetchCompanyOrders(); // Refresh orders when new quote is created
         }
       )
@@ -85,6 +90,19 @@ const CompanyMobileDashboard = () => {
     };
   }, [user]);
 
+  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371; // Radius of the Earth in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    return distance;
+  };
+
   const fetchCompanyOrders = async () => {
     try {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
@@ -92,10 +110,10 @@ const CompanyMobileDashboard = () => {
 
       console.log('Fetching company orders for user:', currentUser.id);
 
-      // Get company ID
+      // Get company ID and location
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
-        .select('id, latitude, longitude')
+        .select('id, latitude, longitude, company_name')
         .eq('user_id', currentUser.id)
         .single();
 
@@ -111,17 +129,51 @@ const CompanyMobileDashboard = () => {
 
       console.log('Company data:', companyData);
 
-      // First, let's fetch all pending orders to see what's available
-      const { data: allOrders, error: ordersError } = await supabase
+      // First, let's fetch ALL orders to see what's available
+      const { data: allOrdersData, error: allOrdersError } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (allOrdersError) {
+        console.error('Error fetching all orders:', allOrdersError);
+      } else {
+        console.log('ALL ORDERS in database:', allOrdersData);
+        setAllOrders(allOrdersData || []);
+      }
+
+      // Fetch pending orders to check distance
+      const { data: pendingOrders, error: pendingError } = await supabase
         .from('orders')
         .select('*')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
-      if (ordersError) {
-        console.error('Error fetching all orders:', ordersError);
+      if (pendingError) {
+        console.error('Error fetching pending orders:', pendingError);
       } else {
-        console.log('All pending orders:', allOrders);
+        console.log('PENDING ORDERS:', pendingOrders);
+        
+        // Check distances for all pending orders
+        if (pendingOrders && companyData.latitude && companyData.longitude) {
+          pendingOrders.forEach(order => {
+            if (order.latitude && order.longitude) {
+              const distance = calculateDistance(
+                companyData.latitude,
+                companyData.longitude,
+                order.latitude,
+                order.longitude
+              );
+              console.log(`Order ${order.id} distance: ${distance.toFixed(2)} km`, {
+                orderLocation: { lat: order.latitude, lng: order.longitude },
+                companyLocation: { lat: companyData.latitude, lng: companyData.longitude },
+                orderAddress: order.address
+              });
+            } else {
+              console.log(`Order ${order.id} has no location data:`, order);
+            }
+          });
+        }
       }
 
       // Fetch orders with quotes from this company
@@ -135,7 +187,9 @@ const CompanyMobileDashboard = () => {
             address,
             status,
             user_id,
-            created_at
+            created_at,
+            latitude,
+            longitude
           )
         `)
         .eq('company_id', companyData.id)
@@ -159,6 +213,17 @@ const CompanyMobileDashboard = () => {
             .eq('user_id', quote.orders.user_id)
             .single();
 
+          let distance = '0 km';
+          if (quote.orders.latitude && quote.orders.longitude && companyData.latitude && companyData.longitude) {
+            const dist = calculateDistance(
+              companyData.latitude,
+              companyData.longitude,
+              quote.orders.latitude,
+              quote.orders.longitude
+            );
+            distance = `${dist.toFixed(1)} km`;
+          }
+
           return {
             id: quote.orders?.id || '',
             service_type: quote.orders?.service_type || '',
@@ -168,19 +233,28 @@ const CompanyMobileDashboard = () => {
             status: quote.orders?.status || 'pending',
             amount: quote.quoted_price || 0,
             time: new Date(quote.created_at).toLocaleTimeString(),
-            distance: '0 km'
+            distance,
+            latitude: quote.orders?.latitude,
+            longitude: quote.orders?.longitude
           };
         })
       );
 
       const validOrders = ordersWithCustomerData.filter(order => order !== null) as Order[];
-      console.log('Processed orders:', validOrders);
+      console.log('Processed orders for dashboard:', validOrders);
       setOrders(validOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchCompanyOrders();
+    await fetchDashboardStats();
   };
 
   const fetchDashboardStats = async () => {
@@ -218,8 +292,8 @@ const CompanyMobileDashboard = () => {
         order.orders?.status === 'completed'
       ) || [];
 
-      const todayEarnings = completedToday.reduce((sum, order) => 
-        sum + (order.quoted_price || 0), 0
+      const todayEarnings = completedToday.reduce((sum, order) 
+        => sum + (order.quoted_price || 0), 0
       );
 
       setStats({
@@ -273,8 +347,27 @@ const CompanyMobileDashboard = () => {
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Header */}
       <div className="bg-gray-800 border-b border-gray-700 p-4">
-        <h1 className="text-xl font-bold">Company Dashboard</h1>
-        <p className="text-gray-400 text-sm">Manage your orders and earnings</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-xl font-bold">Company Dashboard</h1>
+            <p className="text-gray-400 text-sm">Manage your orders and earnings</p>
+          </div>
+          <Button 
+            onClick={handleRefresh} 
+            disabled={refreshing}
+            className="bg-blue-600 hover:bg-blue-700"
+            size="sm"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
+      </div>
+
+      {/* Debug Info */}
+      <div className="p-4 bg-gray-800 border-b border-gray-700">
+        <p className="text-xs text-gray-400">
+          Debug: Total orders in DB: {allOrders.length} | Orders with quotes: {orders.length}
+        </p>
       </div>
 
       {/* Stats Cards */}
@@ -319,11 +412,18 @@ const CompanyMobileDashboard = () => {
               <div className="text-center py-8">
                 <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-400">No active orders at the moment</p>
+                <p className="text-xs text-gray-500 mt-2">
+                  {allOrders.length > 0 ? 
+                    `Found ${allOrders.length} orders in database but none assigned to your company yet` :
+                    'No orders found in database'
+                  }
+                </p>
                 <Button 
-                  onClick={fetchCompanyOrders} 
+                  onClick={handleRefresh} 
+                  disabled={refreshing}
                   className="mt-4 bg-blue-600 hover:bg-blue-700"
                 >
-                  Refresh Orders
+                  {refreshing ? 'Refreshing...' : 'Refresh Orders'}
                 </Button>
               </div>
             ) : (
