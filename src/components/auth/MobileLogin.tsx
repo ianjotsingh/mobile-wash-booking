@@ -62,19 +62,6 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
           
           let errorMessage = result.error.message;
           if (errorMessage.includes('User already registered')) {
-            // Try to sign in instead
-            console.log('User exists, trying sign in...');
-            result = await signIn(email, password);
-            
-            if (!result.error && result.data?.session) {
-              toast({
-                title: "Success",
-                description: "Signed in successfully!",
-              });
-              // Call onSuccess immediately when we have a session
-              setTimeout(() => onSuccess(), 100);
-              return;
-            }
             errorMessage = "Account exists. Please use 'Sign In' option.";
           } else if (errorMessage.includes('Password')) {
             errorMessage = "Password must be at least 6 characters long.";
@@ -93,15 +80,16 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
           if (result.needsConfirmation) {
             toast({
               title: "Account Created",
-              description: "Please check your email to confirm your account, then sign in.",
+              description: "Account created successfully! You can now sign in.",
             });
+            setIsSignup(false); // Switch to sign in mode
           } else if (result.data?.session) {
             toast({
               title: "Success",
-              description: "Account created successfully!",
+              description: "Account created and logged in successfully!",
             });
             // Call onSuccess immediately when we have a session
-            setTimeout(() => onSuccess(), 100);
+            onSuccess();
           } else {
             // Account created but no session - user needs to sign in
             toast({
@@ -139,7 +127,7 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
             description: "Logged in successfully!",
           });
           // Call onSuccess immediately when we have a session
-          setTimeout(() => onSuccess(), 100);
+          onSuccess();
         }
       }
     } catch (error) {

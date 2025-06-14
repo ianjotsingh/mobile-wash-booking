@@ -66,15 +66,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         email,
         password,
         options: {
-          data: userData,
-          emailRedirectTo: `${window.location.origin}/`
+          data: userData
         }
       });
       
       console.log('Signup result:', { 
         user: data.user?.email, 
         session: !!data.session,
-        error: error?.message 
+        error: error?.message,
+        emailConfirmed: data.user?.email_confirmed_at
       });
       
       if (error) {
@@ -86,15 +86,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { data: null, error };
       }
       
-      // If we have a user but no session, the user needs email confirmation
+      // Check if user is immediately confirmed (like in development)
+      if (data.user && data.session) {
+        console.log('User immediately confirmed with session');
+        return { data, error: null };
+      }
+      
+      // If we have a user but no session, email confirmation is needed
       if (data.user && !data.session) {
         console.log('User created but needs email confirmation');
-        // For development/testing, we'll try to sign in anyway
-        const signInResult = await signIn(email, password);
-        if (signInResult.data?.session) {
-          return signInResult;
-        }
-        // Return success but indicate email confirmation needed
         return { 
           data, 
           error: null, 
