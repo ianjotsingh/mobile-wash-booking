@@ -53,9 +53,9 @@ const CompanyOrderDashboard = () => {
     }
   }, [user]);
 
-  // Set up real-time subscription
+  // Set up real-time subscription with better error handling
   useEffect(() => {
-    if (!user) return;
+    if (!user || !company?.id) return;
 
     console.log('Setting up real-time subscription for company orders...');
     
@@ -64,22 +64,37 @@ const CompanyOrderDashboard = () => {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
           schema: 'public',
           table: 'orders'
         },
         (payload) => {
-          console.log('New order received:', payload);
-          fetchNearbyOrders(); // Refresh when new order is created
+          console.log('Real-time order event received:', payload);
+          fetchNearbyOrders(); // Refresh when any order changes
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'order_quotes'
+        },
+        (payload) => {
+          console.log('Real-time quote event received:', payload);
+          fetchMyQuotes();
+          fetchNearbyOrders();
+        }
+      )
+      .subscribe((status) => {
+        console.log('Real-time subscription status:', status);
+      });
 
     return () => {
       console.log('Cleaning up company real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, company?.id]);
 
   const fetchCompanyData = async () => {
     try {
@@ -99,44 +114,49 @@ const CompanyOrderDashboard = () => {
 
   const fetchNearbyOrders = async () => {
     try {
-      // First, fetch orders that we've already quoted on
-      const { data: quotedOrders, error: quotedError } = await supabase
+      console.log('Fetching all orders for company dashboard...');
+      
+      // First, fetch ALL orders regardless of location to see what's available
+      const { data: allOrdersData, error: allOrdersError } = await supabase
         .from('orders')
         .select('*')
-        .in('status', ['pending', 'confirmed', 'in_progress'])
         .order('created_at', { ascending: false });
 
-      if (quotedError) {
-        console.error('Error fetching quoted orders:', quotedError);
+      if (allOrdersError) {
+        console.error('Error fetching all orders:', allOrdersError);
       } else {
-        console.log('Orders with potential quotes:', quotedOrders);
-        setOrders(quotedOrders || []);
+        console.log('ALL ORDERS in database:', allOrdersData);
+        setOrders(allOrdersData || []);
       }
 
-      // Also fetch orders that we haven't quoted on yet (pending orders without our quotes)
-      if (company?.id) {
-        const { data: allPendingOrders, error: pendingError } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false });
+      // Fetch pending orders that we haven't quoted on yet
+      const { data: pendingOrders, error: pendingError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
 
-        if (pendingError) {
-          console.error('Error fetching pending orders:', pendingError);
-        } else {
-          // Filter out orders we've already quoted on
+      if (pendingError) {
+        console.error('Error fetching pending orders:', pendingError);
+      } else {
+        console.log('PENDING ORDERS:', pendingOrders);
+        
+        // If we have company data, filter out orders we've already quoted on
+        if (company?.id && pendingOrders) {
           const { data: existingQuotes } = await supabase
             .from('order_quotes')
             .select('order_id')
             .eq('company_id', company.id);
 
           const quotedOrderIds = existingQuotes?.map(q => q.order_id) || [];
-          const unquotedOrders = allPendingOrders?.filter(order => 
+          const unquotedOrders = pendingOrders.filter(order => 
             !quotedOrderIds.includes(order.id)
-          ) || [];
+          );
 
           console.log('Pending orders without quotes:', unquotedOrders);
           setPendingOrders(unquotedOrders);
+        } else {
+          setPendingOrders(pendingOrders || []);
         }
       }
     } catch (error) {
@@ -254,6 +274,7 @@ const CompanyOrderDashboard = () => {
     );
   }
 
+  // Show ALL orders (pending + quoted) in the dashboard
   const allOrdersToShow = [...pendingOrders, ...orders];
 
   return (
@@ -266,15 +287,30 @@ const CompanyOrderDashboard = () => {
           <p className="text-gray-600 mt-2">
             Manage incoming orders and provide quotes to customers
           </p>
-          <Button 
-            onClick={() => {
-              fetchNearbyOrders();
-              fetchMyQuotes();
-            }}
-            className="mt-4"
-          >
-            Refresh Orders
-          </Button>
+          <div className="mt-4 space-x-4">
+            <Button 
+              onClick={() => {
+                fetchNearbyOrders();
+                fetchMyQuotes();
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Refresh Orders
+            </Button>
+            <Button 
+              onClick={() => {
+                console.log('Debug info:', {
+                  company,
+                  pendingOrders: pendingOrders.length,
+                  allOrders: orders.length,
+                  totalToShow: allOrdersToShow.length
+                });
+              }}
+              variant="outline"
+            >
+              Debug Info
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-6">
@@ -283,8 +319,16 @@ const CompanyOrderDashboard = () => {
               <CardContent className="p-6">
                 <div className="text-center">
                   <h3 className="text-lg font-semibold mb-2">No Orders Available</h3>
-                  <p className="text-gray-600">
-                    There are currently no orders in your area. Check back later!
+                  <p className="text-gray-600 mb-4">
+                    There are currently no orders available. This could be because:
+                  </p>
+                  <ul className="text-sm text-gray-500 space-y-1 mb-4">
+                    <li>• No customers have placed orders yet</li>
+                    <li>• All orders have been assigned to other companies</li>
+                    <li>• Orders are outside your service area</li>
+                  </ul>
+                  <p className="text-xs text-gray-400">
+                    Company ID: {company.id}
                   </p>
                 </div>
               </CardContent>

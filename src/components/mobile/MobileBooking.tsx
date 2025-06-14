@@ -31,11 +31,23 @@ const MobileBooking = () => {
   const { toast } = useToast();
 
   const handleBooking = async () => {
-    console.log('Starting booking process...');
+    console.log('=== BOOKING DEBUG START ===');
     console.log('User:', user);
-    console.log('Location:', location);
+    console.log('Location data:', location);
+    console.log('Service type:', serviceType);
+    console.log('All form data:', {
+      serviceType,
+      location,
+      bookingDate,
+      bookingTime,
+      carType,
+      carColor,
+      carModel,
+      specialInstructions
+    });
     
     if (!user) {
+      console.log('❌ No user authenticated');
       toast({
         title: "Authentication Required",
         description: "Please login to book a service",
@@ -45,6 +57,7 @@ const MobileBooking = () => {
     }
 
     if (!serviceType || !location || !bookingDate || !bookingTime || !carType || !carColor || !carModel) {
+      console.log('❌ Missing required fields');
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
@@ -55,7 +68,7 @@ const MobileBooking = () => {
 
     setLoading(true);
     try {
-      console.log('Creating order with data:', {
+      const orderData = {
         user_id: user.id,
         service_type: serviceType,
         address: location.address,
@@ -68,42 +81,28 @@ const MobileBooking = () => {
         car_type: carType,
         car_color: carColor,
         car_model: carModel,
-        special_instructions: specialInstructions,
+        special_instructions: specialInstructions || null,
         total_amount: 0,
         status: 'pending'
-      });
+      };
+
+      console.log('🚀 Creating order with data:', orderData);
 
       const { data, error } = await supabase
         .from('orders')
-        .insert({
-          user_id: user.id,
-          service_type: serviceType,
-          address: location.address,
-          city: location.city,
-          zip_code: location.zipCode,
-          latitude: location.lat,
-          longitude: location.lng,
-          booking_date: bookingDate,
-          booking_time: bookingTime,
-          car_type: carType,
-          car_color: carColor,
-          car_model: carModel,
-          special_instructions: specialInstructions,
-          total_amount: 0,
-          status: 'pending'
-        })
+        .insert([orderData])
         .select();
 
       if (error) {
-        console.error('Database error:', error);
+        console.error('❌ Database error:', error);
         throw error;
       }
 
-      console.log('Order created successfully:', data);
+      console.log('✅ Order created successfully:', data);
 
       toast({
-        title: "Booking Created",
-        description: "Your booking has been created! Service providers will send quotes soon."
+        title: "Booking Created Successfully!",
+        description: `Your ${serviceType} booking has been created. Companies will send quotes soon.`
       });
 
       // Reset form
@@ -115,8 +114,10 @@ const MobileBooking = () => {
       setCarColor('');
       setCarModel('');
       setSpecialInstructions('');
+      
+      console.log('=== BOOKING DEBUG END ===');
     } catch (error) {
-      console.error('Error creating booking:', error);
+      console.error('❌ Error creating booking:', error);
       toast({
         title: "Booking Failed",
         description: "Failed to create booking. Please try again.",
