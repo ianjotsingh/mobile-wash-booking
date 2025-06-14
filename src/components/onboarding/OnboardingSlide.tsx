@@ -25,51 +25,46 @@ const OnboardingSlide = ({
   isLastSlide = false
 }: OnboardingSlideProps) => {
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col relative">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col relative">
       {/* Skip Button */}
-      <div className="flex justify-end p-4 pt-12 absolute top-0 right-0 z-10">
-        <Button variant="ghost" onClick={onSkip} className="text-gray-600 text-lg">
+      <div className="flex justify-end px-6 pt-10 absolute top-0 right-0 z-10">
+        <Button variant="ghost" onClick={onSkip} className="text-blue-400 text-base font-semibold hover:bg-blue-100 rounded-full py-1 px-4">
           Skip
         </Button>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-8 text-center bg-white mx-6 my-20 rounded-3xl shadow-lg">
-        {/* Icon */}
-        <div className="mb-8">
-          {icon}
+      {/* Content Card */}
+      <div className="flex-1 flex items-center justify-center px-6">
+        <div className="w-full max-w-sm bg-white bg-opacity-90 rounded-3xl shadow-lg p-8 flex flex-col items-center">
+          {/* Icon */}
+          <div className="mb-10">
+            {icon}
+          </div>
+
+          {/* Title */}
+          <h1 className="text-2xl font-black text-blue-950 mb-4">{title}</h1>
+          {/* Description */}
+          <p className="text-gray-500 text-center text-base px-1 mb-10 leading-relaxed">{description}</p>
+          
+          {/* Dots Indicator */}
+          <div className="flex items-center space-x-2 justify-center mb-8">
+            {Array.from({ length: totalSlides }).map((_, index) => (
+              <span
+                key={index}
+                className={`block h-2 rounded-full transition-all duration-200 ${index === currentSlide ? 'w-6 bg-blue-500' : 'w-2 bg-gray-300'}`}
+              />
+            ))}
+          </div>
+
+          {/* Next Button */}
+          <Button
+            onClick={onNext}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-xl font-bold text-base flex justify-center items-center gap-2"
+          >
+            {isLastSlide ? 'Get Started' : 'Next'}
+            <ChevronRight className="h-5 w-5" />
+          </Button>
         </div>
-
-        {/* Title */}
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">
-          {title}
-        </h1>
-
-        {/* Description */}
-        <p className="text-gray-600 text-lg leading-relaxed mb-12 px-4">
-          {description}
-        </p>
-
-        {/* Dots Indicator */}
-        <div className="flex justify-center space-x-2 mb-8">
-          {Array.from({ length: totalSlides }).map((_, index) => (
-            <div
-              key={index}
-              className={`h-2 w-2 rounded-full transition-colors ${
-                index === currentSlide ? 'bg-blue-500' : 'bg-gray-300'
-              }`}
-            />
-          ))}
-        </div>
-
-        {/* Next Button */}
-        <Button
-          onClick={onNext}
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white h-12 rounded-xl font-semibold mx-8"
-        >
-          {isLastSlide ? 'Next' : 'Next'}
-          <ChevronRight className="ml-2 h-5 w-5" />
-        </Button>
       </div>
     </div>
   );
