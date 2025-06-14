@@ -10,6 +10,7 @@ import Index from './pages/Index';
 import Booking from './pages/Booking';
 import BookingForm from './pages/BookingForm';
 import WashBookingDetails from './pages/WashBookingDetails';
+import WashBookingFlow from './pages/WashBookingFlow';
 import MechanicRequestForm from './pages/MechanicRequestForm';
 import OrderHistory from './pages/OrderHistory';
 import CompanySignup from './pages/CompanySignup';

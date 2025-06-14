@@ -16,6 +16,7 @@ import MechanicSignup from '@/pages/MechanicSignup';
 import CompanySignup from '@/pages/CompanySignup';
 import ResetPassword from '@/pages/ResetPassword';
 import WashBookingDetails from '@/pages/WashBookingDetails';
+import WashBookingFlow from '@/pages/WashBookingFlow';
 import MechanicRequestForm from '@/pages/MechanicRequestForm';
 import OrderHistory from '@/pages/OrderHistory';
 import CompanyMobileDashboard from './dashboard/CompanyMobileDashboard';
