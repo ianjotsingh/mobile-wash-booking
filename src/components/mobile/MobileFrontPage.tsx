@@ -2,17 +2,13 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Car, Building2, Phone, Mail } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { Car, Building2, Mail } from 'lucide-react';
 
 interface MobileFrontPageProps {
   onUserTypeSelect: (userType: 'customer' | 'provider') => void;
 }
 
 const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
-  const { toast } = useToast();
-
   const handleCustomerSelect = () => {
     onUserTypeSelect('customer');
   };
@@ -21,38 +17,7 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
     onUserTypeSelect('provider');
   };
 
-  const handleGoogleSignIn = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        }
-      });
-
-      if (error) {
-        console.error('Google sign-in error:', error);
-        toast({
-          title: "Error",
-          description: "Failed to sign in with Google. Please try again.",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Unexpected error during Google sign-in:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handlePhoneLogin = () => {
+  const handleEmailLogin = () => {
     onUserTypeSelect('customer');
   };
 
@@ -115,21 +80,11 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
           </div>
           
           <Button
-            onClick={handleGoogleSignIn}
-            variant="outline"
-            className="w-full h-14 border-2 border-gray-300 text-gray-700 rounded-xl flex items-center justify-center space-x-3 touch-manipulation"
+            onClick={handleEmailLogin}
+            className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center space-x-3 touch-manipulation"
           >
-            <div className="w-6 h-6 bg-gradient-to-r from-red-500 to-yellow-500 rounded"></div>
-            <span className="text-lg font-semibold">Continue with Google</span>
-          </Button>
-
-          <Button
-            onClick={handlePhoneLogin}
-            variant="outline"
-            className="w-full h-14 border-2 border-gray-300 text-gray-700 rounded-xl flex items-center justify-center space-x-3 touch-manipulation"
-          >
-            <Mail className="h-6 w-6 text-blue-600" />
-            <span className="text-lg font-semibold">Continue with Email</span>
+            <Mail className="h-6 w-6" />
+            <span className="text-lg font-semibold">Sign In with Email</span>
           </Button>
         </div>
 

@@ -2,12 +2,9 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Phone } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 interface MobileLoginProps {
   onSuccess: () => void;
@@ -24,40 +21,6 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
   const [isSignup, setIsSignup] = useState(false);
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
-
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        }
-      });
-
-      if (error) {
-        console.error('Google sign-in error:', error);
-        toast({
-          title: "Error",
-          description: "Failed to sign in with Google. Please try again.",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Unexpected error during Google sign-in:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleEmailAuth = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -152,35 +115,19 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
           {/* Step Content */}
           {step === 'main' && (
             <div className="space-y-6">
-              <Button
-                onClick={handleGoogleSignIn}
-                disabled={loading}
-                className="w-full bg-white hover:bg-gray-50 text-gray-700 border-2 border-gray-200 h-14 rounded-2xl text-lg font-semibold shadow touch-manipulation flex items-center justify-center space-x-3"
-              >
-                <div className="w-6 h-6 bg-gradient-to-r from-red-500 to-yellow-500 rounded"></div>
-                <span>{loading ? 'Signing in...' : 'Continue with Google'}</span>
-              </Button>
-
-              <div className="text-center text-gray-400 text-sm select-none">
-                or continue with
-              </div>
-
               <div className="space-y-3">
                 <Button 
                   onClick={() => handleEmailStep(false)}
-                  variant="outline" 
-                  className="w-full h-12 rounded-xl flex items-center justify-center text-gray-600 bg-gray-50 touch-manipulation"
+                  className="w-full h-14 bg-blue-700 hover:bg-blue-800 text-white rounded-2xl font-bold touch-manipulation"
                 >
-                  <div className="w-5 h-5 bg-blue-500 rounded mr-2"></div>
                   Sign In with Email
                 </Button>
                 <Button 
                   onClick={() => handleEmailStep(true)}
                   variant="outline" 
-                  className="w-full h-12 rounded-xl flex items-center justify-center text-gray-600 bg-gray-50 touch-manipulation"
+                  className="w-full h-12 rounded-xl flex items-center justify-center text-blue-600 border-blue-600 hover:bg-blue-50 touch-manipulation"
                 >
-                  <div className="w-5 h-5 bg-green-500 rounded mr-2"></div>
-                  Sign Up with Email
+                  Create New Account
                 </Button>
               </div>
             </div>
