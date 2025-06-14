@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +43,8 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
       const generatedOTP = generateOTP();
       storeOTP(phoneNumber, generatedOTP);
 
+      console.log('Sending OTP request to Edge Function...');
+      
       const { data, error } = await supabase.functions.invoke('send-otp', {
         body: {
           phone: phoneNumber,
@@ -51,11 +52,23 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
         }
       });
 
+      console.log('Edge Function response:', { data, error });
+
       if (error) {
-        console.error('Error sending OTP:', error);
+        console.error('Supabase function error:', error);
         toast({
           title: "Error",
-          description: "Failed to send OTP. Please try again.",
+          description: `Failed to send OTP: ${error.message || 'Unknown error'}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data?.error) {
+        console.error('Edge Function returned error:', data.error);
+        toast({
+          title: "Error",
+          description: data.error,
           variant: "destructive"
         });
         return;
@@ -68,11 +81,11 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
         description: `Verification code sent to +91${phoneNumber}`,
       });
 
-    } catch (error) {
-      console.error('Error sending OTP:', error);
+    } catch (error: any) {
+      console.error('Unexpected error sending OTP:', error);
       toast({
         title: "Error",
-        description: "Failed to send OTP. Please try again.",
+        description: "Network error. Please check your connection and try again.",
         variant: "destructive"
       });
     } finally {
