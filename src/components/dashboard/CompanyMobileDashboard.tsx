@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -156,7 +157,7 @@ const CompanyMobileDashboard = () => {
         
         // Check distances for all pending orders
         if (pendingOrders && companyData.latitude && companyData.longitude) {
-          pendingOrders.forEach(order => {
+          pendingOrders.forEach((order) => {
             if (order.latitude && order.longitude) {
               const distance = calculateDistance(
                 companyData.latitude,
@@ -292,8 +293,8 @@ const CompanyMobileDashboard = () => {
         order.orders?.status === 'completed'
       ) || [];
 
-      const todayEarnings = completedToday.reduce((sum, order) 
-        => sum + (order.quoted_price || 0), 0
+      const todayEarnings = completedToday.reduce((sum, order) => 
+        sum + (order.quoted_price || 0), 0
       );
 
       setStats({
