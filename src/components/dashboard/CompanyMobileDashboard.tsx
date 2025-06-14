@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -70,7 +69,7 @@ const CompanyMobileDashboard = () => {
             service_type,
             address,
             status,
-            user_profiles (full_name, phone)
+            user_id
           )
         `)
         .eq('company_id', companyData.id)
@@ -79,19 +78,32 @@ const CompanyMobileDashboard = () => {
 
       if (error) throw error;
 
-      const formattedOrders = quotes?.map(quote => ({
-        id: quote.orders?.id || '',
-        service_type: quote.orders?.service_type || '',
-        address: quote.orders?.address || '',
-        customer_name: quote.orders?.user_profiles?.full_name || 'Customer',
-        phone: quote.orders?.user_profiles?.phone || '',
-        status: quote.orders?.status || 'pending',
-        amount: quote.quoted_price || 0,
-        time: new Date(quote.created_at).toLocaleTimeString(),
-        distance: '0 km'
-      })) || [];
+      // Get user profile data separately for each order
+      const ordersWithCustomerData = await Promise.all(
+        (quotes || []).map(async (quote) => {
+          if (!quote.orders?.user_id) return null;
+          
+          const { data: userProfile } = await supabase
+            .from('user_profiles')
+            .select('full_name, phone')
+            .eq('user_id', quote.orders.user_id)
+            .single();
 
-      setOrders(formattedOrders);
+          return {
+            id: quote.orders?.id || '',
+            service_type: quote.orders?.service_type || '',
+            address: quote.orders?.address || '',
+            customer_name: userProfile?.full_name || 'Customer',
+            phone: userProfile?.phone || '',
+            status: quote.orders?.status || 'pending',
+            amount: quote.quoted_price || 0,
+            time: new Date(quote.created_at).toLocaleTimeString(),
+            distance: '0 km'
+          };
+        })
+      );
+
+      setOrders(ordersWithCustomerData.filter(order => order !== null) as Order[]);
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {

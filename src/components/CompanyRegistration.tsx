@@ -10,6 +10,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import EnhancedLocationSelector from '@/components/EnhancedLocationSelector';
+import ServicePricingForm from '@/components/ServicePricingForm';
+
+interface ServicePricing {
+  service: string;
+  price: number;
+}
 
 const CompanyRegistration = () => {
   const [loading, setLoading] = useState(false);
@@ -34,6 +40,7 @@ const CompanyRegistration = () => {
     experience: '',
     hasMechanic: false,
     services: [] as string[],
+    servicePricing: [] as ServicePricing[],
     address: '',
     city: '',
     state: '',
@@ -110,11 +117,22 @@ const CompanyRegistration = () => {
   };
 
   const handleServiceToggle = (service: string) => {
+    const newServices = formData.services.includes(service)
+      ? formData.services.filter(s => s !== service)
+      : [...formData.services, service];
+    
     setFormData(prev => ({
       ...prev,
-      services: prev.services.includes(service)
-        ? prev.services.filter(s => s !== service)
-        : [...prev.services, service]
+      services: newServices,
+      // Remove pricing for deselected services
+      servicePricing: prev.servicePricing.filter(p => newServices.includes(p.service))
+    }));
+  };
+
+  const handlePricingChange = (pricing: ServicePricing[]) => {
+    setFormData(prev => ({
+      ...prev,
+      servicePricing: pricing
     }));
   };
 
@@ -130,20 +148,11 @@ const CompanyRegistration = () => {
     
     const hasAllRequiredFields = requiredFields.every(field => field.trim() !== '');
     const hasServices = formData.services.length > 0;
+    const hasAllPricing = formData.services.every(service => 
+      formData.servicePricing.some(p => p.service === service && p.price > 0)
+    );
     
-    console.log('Form validation:', {
-      hasAllRequiredFields,
-      hasServices,
-      companyName: formData.companyName,
-      ownerName: formData.ownerName,
-      description: formData.description,
-      experience: formData.experience,
-      state: formData.state,
-      address: formData.address,
-      servicesCount: formData.services.length
-    });
-    
-    return hasAllRequiredFields && hasServices;
+    return hasAllRequiredFields && hasServices && hasAllPricing;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -153,7 +162,7 @@ const CompanyRegistration = () => {
     if (!isFormValid()) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields and select at least one service",
+        description: "Please fill in all required fields, select services, and set prices for each service",
         variant: "destructive"
       });
       return;
@@ -200,7 +209,7 @@ const CompanyRegistration = () => {
 
       console.log('User account created successfully, now registering company...');
 
-      // Register the company with phone number
+      // Register the company with pricing data
       const companyData = {
         company_name: formData.companyName,
         owner_name: formData.ownerName,
@@ -210,6 +219,7 @@ const CompanyRegistration = () => {
         experience: formData.experience,
         has_mechanic: formData.hasMechanic,
         services: formData.services,
+        service_pricing: formData.servicePricing,
         address: formData.address,
         city: formData.city,
         state: formData.state,
@@ -491,6 +501,13 @@ const CompanyRegistration = () => {
                   Selected: {formData.services.length} service(s)
                 </p>
               </div>
+
+              {/* Service Pricing Section */}
+              <ServicePricingForm
+                selectedServices={formData.services}
+                servicePricing={formData.servicePricing}
+                onPricingChange={handlePricingChange}
+              />
 
               <div>
                 <label className="block text-sm font-medium mb-2">Company Description *</label>
