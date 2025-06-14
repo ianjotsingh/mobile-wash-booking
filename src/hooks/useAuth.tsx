@@ -20,33 +20,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      console.log('Getting initial session...');
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error('Error getting initial session:', error);
-      } else {
-        console.log('Initial session:', session);
-        setSession(session);
-        setUser(session?.user ?? null);
-      }
-      setLoading(false);
-    };
-
-    getInitialSession();
-
-    // Listen for auth changes
+    console.log('Setting up auth listeners...');
+    
+    // Listen for auth changes first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session);
+        console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
       }
     );
 
-    return () => subscription.unsubscribe();
+    // Then get initial session
+    const getInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error getting initial session:', error);
+        } else {
+          console.log('Initial session:', session?.user?.email || 'No session');
+          setSession(session);
+          setUser(session?.user ?? null);
+        }
+      } catch (error) {
+        console.error('Error in getInitialSession:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getInitialSession();
+
+    return () => {
+      console.log('Cleaning up auth subscription');
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string, userData: any) => {
@@ -60,15 +69,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           emailRedirectTo: `${window.location.origin}/`
         }
       });
-      console.log('Sign up result:', { data, error });
       
-      if (error) {
-        console.error('Sign up error details:', {
-          message: error.message,
-          status: error.status,
-          code: error.name
-        });
-      }
+      console.log('Sign up result:', { 
+        user: data.user?.email, 
+        session: !!data.session,
+        error: error?.message 
+      });
       
       return { data, error };
     } catch (error) {
@@ -84,15 +90,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         email,
         password
       });
-      console.log('Sign in result:', { data, error });
       
-      if (error) {
-        console.error('Sign in error details:', {
-          message: error.message,
-          status: error.status,
-          code: error.name
-        });
-      }
+      console.log('Sign in result:', { 
+        user: data.user?.email, 
+        session: !!data.session,
+        error: error?.message 
+      });
       
       return { data, error };
     } catch (error) {
@@ -109,6 +112,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error('Sign out error:', error);
       } else {
         console.log('Signed out successfully');
+        // Clear any cached data
+        localStorage.removeItem('userLocationSet');
+        localStorage.removeItem('hasCompletedOnboarding');
       }
     } catch (error) {
       console.error('Sign out error:', error);

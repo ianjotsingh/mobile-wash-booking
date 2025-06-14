@@ -21,39 +21,46 @@ const MobileApp = () => {
 
   useEffect(() => {
     // Don't do anything while auth is loading
-    if (loading) return;
+    if (loading) {
+      console.log('Auth is loading...');
+      return;
+    }
 
-    console.log('Auth state changed - User:', user);
+    console.log('Auth state evaluation - User:', user?.email, 'Loading:', loading);
     
-    // Check if user has completed onboarding before
+    // Get stored flags
     const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
     const hasLocationSet = localStorage.getItem('userLocationSet');
     
+    console.log('Storage flags:', { hasCompletedOnboarding, hasLocationSet });
+    
     if (user) {
-      // User is logged in - go directly to location or app
-      console.log('User is authenticated, checking location...');
-      if (hasLocationSet) {
-        console.log('Location is set, going to app');
+      // User is authenticated
+      console.log('User is authenticated, checking next step...');
+      localStorage.setItem('hasCompletedOnboarding', 'true');
+      
+      if (hasLocationSet === 'true') {
+        console.log('Location is set, going to main app');
         setCurrentStep('app');
       } else {
-        console.log('Location not set, going to location step');
+        console.log('Location not set, going to location permission');
         setCurrentStep('location');
       }
-      // Mark onboarding as complete since user is authenticated
-      localStorage.setItem('hasCompletedOnboarding', 'true');
     } else {
-      // User is not logged in
-      console.log('User not authenticated');
-      if (hasCompletedOnboarding) {
+      // User is not authenticated
+      console.log('User not authenticated, checking onboarding status');
+      if (hasCompletedOnboarding === 'true') {
+        console.log('Onboarding completed, going to front page');
         setCurrentStep('front');
       } else {
+        console.log('Starting onboarding');
         setCurrentStep('onboarding');
       }
     }
   }, [user, loading]);
 
   const handleOnboardingComplete = () => {
-    console.log('Onboarding completed');
+    console.log('Onboarding completed, storing flag');
     localStorage.setItem('hasCompletedOnboarding', 'true');
     setCurrentStep('front');
   };
@@ -65,9 +72,8 @@ const MobileApp = () => {
   };
 
   const handleLoginSuccess = () => {
-    console.log('Login successful, proceeding to location');
-    // The useEffect will handle the redirect when user state changes
-    // No need to manually set step here
+    console.log('Login success handler called');
+    // Don't manually set step here - let useEffect handle it when user state changes
   };
 
   const handleLocationPermission = (location: { lat: number; lng: number }) => {
@@ -83,12 +89,13 @@ const MobileApp = () => {
   };
 
   const handleLocationConfirm = (addressType: string) => {
-    console.log('Location confirmed as:', addressType);
+    console.log('Location confirmed:', addressType);
     localStorage.setItem('userLocationSet', 'true');
     setCurrentStep('app');
   };
 
   const handleEditAddress = () => {
+    console.log('Edit address requested');
     setCurrentStep('location');
   };
 
@@ -96,7 +103,10 @@ const MobileApp = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-100 to-white flex items-center justify-center">
-        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-blue-600 font-medium">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -118,6 +128,8 @@ const MobileApp = () => {
   }
 
   // Show appropriate step based on current state
+  console.log('Rendering step:', currentStep);
+  
   switch (currentStep) {
     case 'onboarding':
       return <OnboardingFlow onComplete={handleOnboardingComplete} />;
@@ -126,7 +138,12 @@ const MobileApp = () => {
       return <MobileFrontPage onUserTypeSelect={handleUserTypeSelect} />;
     
     case 'login':
-      return <MobileLogin onSuccess={handleLoginSuccess} userType={selectedUserType} />;
+      return (
+        <MobileLogin 
+          onSuccess={handleLoginSuccess} 
+          userType={selectedUserType} 
+        />
+      );
     
     case 'location':
       return (
@@ -146,6 +163,7 @@ const MobileApp = () => {
       );
     
     default:
+      console.log('Fallback to onboarding');
       return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
 };

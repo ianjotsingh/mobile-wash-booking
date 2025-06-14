@@ -34,10 +34,19 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
       return;
     }
 
+    if (password.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters long",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       if (isSignup) {
-        console.log('Attempting signup for:', email);
+        console.log('Starting signup process for:', email);
         const userData = {
           full_name: fullName,
           role: userType,
@@ -45,50 +54,75 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
         };
 
         const { data, error } = await signUp(email, password, userData);
-        console.log('Signup result:', { data, error });
         
         if (error) {
           console.error('Signup error:', error);
+          let errorMessage = error.message;
+          
+          if (error.message.includes('User already registered')) {
+            errorMessage = "An account with this email already exists. Please try signing in instead.";
+          } else if (error.message.includes('Password')) {
+            errorMessage = "Password must be at least 6 characters long.";
+          } else if (error.message.includes('Invalid email')) {
+            errorMessage = "Please enter a valid email address.";
+          }
+          
           toast({
             title: "Signup Failed",
-            description: error.message,
+            description: errorMessage,
             variant: "destructive"
           });
         } else {
-          console.log('Signup successful!');
+          console.log('Signup successful for:', email);
           toast({
             title: "Success",
-            description: "Account created successfully! You can now sign in.",
+            description: "Account created successfully! You are now logged in.",
           });
-          // After successful signup, automatically call onSuccess
-          onSuccess();
+          
+          // Small delay to ensure auth state is updated
+          setTimeout(() => {
+            onSuccess();
+          }, 500);
         }
       } else {
-        console.log('Attempting login for:', email);
+        console.log('Starting login process for:', email);
         const { data, error } = await signIn(email, password);
-        console.log('Login result:', { data, error });
         
         if (error) {
           console.error('Login error:', error);
+          let errorMessage = error.message;
+          
+          if (error.message.includes('Invalid login credentials')) {
+            errorMessage = "Invalid email or password. Please check your credentials and try again.";
+          } else if (error.message.includes('Email not confirmed')) {
+            errorMessage = "Please check your email and click the confirmation link before signing in.";
+          } else if (error.message.includes('Too many requests')) {
+            errorMessage = "Too many login attempts. Please wait a moment and try again.";
+          }
+          
           toast({
             title: "Login Failed",
-            description: error.message,
+            description: errorMessage,
             variant: "destructive"
           });
         } else {
-          console.log('Login successful!');
+          console.log('Login successful for:', email);
           toast({
             title: "Success",
             description: "Logged in successfully!",
           });
-          onSuccess();
+          
+          // Small delay to ensure auth state is updated
+          setTimeout(() => {
+            onSuccess();
+          }, 500);
         }
       }
     } catch (error) {
       console.error('Auth error:', error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
     }
