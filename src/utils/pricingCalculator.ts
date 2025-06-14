@@ -28,6 +28,23 @@ const CAR_WASH_PRICING: Record<string, ServicePricing> = {
     basePrice: 29900, // ₹299 in paise
     taxRate: 0.18,
   },
+  // Add UberLikeHero service IDs that map to existing services
+  'Basic': {
+    id: 'Basic',
+    basePrice: 29900, // ₹299 in paise (matching UberLikeHero price)
+    taxRate: 0.18,
+  },
+  'Premium': {
+    id: 'Premium',
+    basePrice: 49900, // ₹499 in paise (matching UberLikeHero price)
+    taxRate: 0.18,
+    discountRate: 0.10, // 10% discount for popular service
+  },
+  'Deluxe': {
+    id: 'Deluxe',
+    basePrice: 59900, // ₹599 in paise (matching UberLikeHero price)
+    taxRate: 0.18,
+  },
 };
 
 const MECHANIC_PRICING: Record<string, ServicePricing> = {
