@@ -18,14 +18,51 @@ const UberLikeHero = () => {
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [selectedService, setSelectedService] = useState('Premium');
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [locationDetected, setLocationDetected] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
 
   useEffect(() => {
-    // Auto-detect location on load
-    detectCurrentLocation();
-  }, []);
+    // Automatically detect location on component mount with higher priority
+    const hasAutoDetected = localStorage.getItem('autoLocationDetected');
+    if (!hasAutoDetected && !locationDetected) {
+      detectCurrentLocationSilently();
+    }
+  }, [locationDetected]);
+
+  const detectCurrentLocationSilently = async () => {
+    if (!navigator.geolocation) {
+      console.log('Geolocation not supported');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 8000,
+          maximumAge: 600000 // 10 minutes cache
+        });
+      });
+
+      const location = await getCurrentLocation();
+      const displayAddress = location.address || `${location.city}, ${location.state}`;
+      setPickupLocation(displayAddress);
+      setSelectedLocation(location);
+      setLocationDetected(true);
+      localStorage.setItem('autoLocationDetected', 'true');
+      
+      // Silent success - no toast to avoid interrupting user
+      console.log('Location detected automatically:', displayAddress);
+    } catch (error) {
+      console.log('Silent location detection failed:', error);
+      // Don't show error toast for silent detection
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const detectCurrentLocation = async () => {
     setLoading(true);
@@ -34,6 +71,9 @@ const UberLikeHero = () => {
       const displayAddress = location.address || `${location.city}, ${location.state}`;
       setPickupLocation(displayAddress);
       setSelectedLocation(location);
+      setLocationDetected(true);
+      localStorage.setItem('autoLocationDetected', 'true');
+      
       toast({
         title: "Location detected",
         description: "We found your current location",
@@ -196,10 +236,11 @@ const UberLikeHero = () => {
                   <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200 focus-within:border-black transition-colors">
                     <MapPin className="h-5 w-5 text-gray-600 flex-shrink-0" />
                     <Input
-                      placeholder="Enter pickup location"
+                      placeholder={loading ? "Detecting location..." : "Enter pickup location"}
                       value={pickupLocation}
                       onChange={(e) => handleLocationSearch(e.target.value)}
                       className="border-none bg-transparent text-black placeholder-gray-500 focus-visible:ring-0 flex-1"
+                      disabled={loading}
                     />
                     <Button
                       variant="ghost"
@@ -207,17 +248,28 @@ const UberLikeHero = () => {
                       onClick={detectCurrentLocation}
                       disabled={loading}
                       className="text-gray-600 hover:text-black hover:bg-gray-100 flex-shrink-0 p-2"
+                      title="Use current location"
                     >
                       {loading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <Search className="h-4 w-4" />
+                        <Navigation className="h-4 w-4" />
                       )}
                     </Button>
                   </div>
 
+                  {/* Auto-detection status */}
+                  {loading && (
+                    <div className="absolute top-full left-0 right-0 bg-blue-50 border border-blue-200 rounded-xl shadow-sm z-40 p-3 mt-2">
+                      <div className="flex items-center space-x-2 text-blue-600">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm font-medium">Detecting your location...</span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Search Results */}
-                  {showResults && searchResults.length > 0 && !searchLoading && (
+                  {showResults && searchResults.length > 0 && !searchLoading && !loading && (
                     <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto mt-2">
                       {searchResults.map((location, index) => (
                         <div
@@ -286,15 +338,15 @@ const UberLikeHero = () => {
                   <Button
                     onClick={handleBookNow}
                     className="w-full bg-black hover:bg-gray-800 text-white h-12 text-base font-medium rounded-xl transition-all duration-200"
-                    disabled={!pickupLocation.trim()}
+                    disabled={!pickupLocation.trim() && !loading}
                   >
-                    Book Car Wash
+                    {locationDetected ? 'Book Car Wash' : 'Set Location & Book'}
                   </Button>
                   
                   <Button
                     onClick={handleCallMechanic}
                     className="w-full bg-white hover:bg-gray-50 text-black border border-gray-200 h-12 text-base font-medium rounded-xl transition-all duration-200"
-                    disabled={!pickupLocation.trim()}
+                    disabled={!pickupLocation.trim() && !loading}
                   >
                     <Wrench className="h-4 w-4 mr-2" />
                     Get Mechanic

@@ -1,4 +1,3 @@
-
 export interface Location {
   latitude: number;
   longitude: number;
@@ -22,9 +21,9 @@ export const getCurrentLocation = (): Promise<Location> => {
         const { latitude, longitude } = position.coords;
         
         try {
-          // Use Nominatim (OpenStreetMap) as a backup free service
+          // Use Nominatim (OpenStreetMap) for reverse geocoding
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&countrycodes=in&addressdetails=1`
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&countrycodes=in&addressdetails=1&zoom=16&extratags=1`
           );
           
           if (!response.ok) {
@@ -33,8 +32,9 @@ export const getCurrentLocation = (): Promise<Location> => {
           
           const data = await response.json();
           
-          const address = data.display_name || '';
-          const city = data.address?.city || data.address?.town || data.address?.village || '';
+          // Better address formatting for Indian addresses
+          const address = formatIndianAddress(data);
+          const city = data.address?.city || data.address?.town || data.address?.village || data.address?.suburb || '';
           const state = data.address?.state || '';
           const zipCode = data.address?.postcode || '';
           
@@ -52,8 +52,8 @@ export const getCurrentLocation = (): Promise<Location> => {
           resolve({
             latitude,
             longitude,
-            address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-            city: 'Unknown',
+            address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+            city: 'Current Location',
             state: 'India',
             zipCode: ''
           });
@@ -77,10 +77,28 @@ export const getCurrentLocation = (): Promise<Location> => {
       {
         enableHighAccuracy: true,
         timeout: 15000,
-        maximumAge: 300000
+        maximumAge: 600000 // 10 minutes cache for better performance
       }
     );
   });
+};
+
+// Helper function to format Indian addresses better
+const formatIndianAddress = (data: any): string => {
+  const parts = [];
+  
+  if (data.address?.house_number) parts.push(data.address.house_number);
+  if (data.address?.road) parts.push(data.address.road);
+  if (data.address?.neighbourhood) parts.push(data.address.neighbourhood);
+  if (data.address?.suburb) parts.push(data.address.suburb);
+  if (data.address?.city || data.address?.town || data.address?.village) {
+    parts.push(data.address.city || data.address.town || data.address.village);
+  }
+  if (data.address?.state) parts.push(data.address.state);
+  if (data.address?.postcode) parts.push(data.address.postcode);
+  
+  // If we have specific parts, use them, otherwise fall back to display_name
+  return parts.length > 2 ? parts.join(', ') : (data.display_name || '');
 };
 
 export const searchLocation = async (query: string): Promise<Location[]> => {
