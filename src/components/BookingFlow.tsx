@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -68,9 +69,9 @@ const BookingFlow = () => {
   if (currentStep === 'providers' && selectedService) {
     return (
       <CompanyProviderSelector
-        serviceId={selectedService.id}
-        serviceTitle={selectedService.title}
-        onCompanySelect={handleCompanySelect}
+        selectedService={selectedService.title || selectedService.name}
+        userLocation="Mumbai, India"
+        onProviderSelect={handleCompanySelect}
         onBack={handleBackToServices}
       />
     );

@@ -61,7 +61,7 @@ const CompanyProviderSelector = ({
       // Transform the data to match our interface
       const transformedCompanies: Company[] = data?.map(company => ({
         id: company.id,
-        name: company.name || 'Unknown Company',
+        name: company.company_name || 'Unknown Company',
         description: company.description || 'Professional car wash service',
         services: company.services || [selectedService],
         rating: 4.5 + Math.random() * 0.5, // Mock rating
@@ -74,7 +74,7 @@ const CompanyProviderSelector = ({
           deluxe: 699
         },
         status: company.status as 'approved',
-        location: company.location || 'Mumbai'
+        location: `${company.city || 'Mumbai'}, ${company.address || ''}`
       })) || [];
 
       // Filter companies that offer the selected service
