@@ -48,12 +48,12 @@ export const getCurrentLocation = (): Promise<Location> => {
           });
         } catch (error) {
           console.error('Reverse geocoding failed:', error);
-          // Return coordinates even if reverse geocoding fails
+          // Return a more user-friendly fallback with generic location name
           resolve({
             latitude,
             longitude,
-            address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
-            city: 'Current Location',
+            address: 'Current Location',
+            city: 'Detected Location',
             state: 'India',
             zipCode: ''
           });
@@ -87,6 +87,7 @@ export const getCurrentLocation = (): Promise<Location> => {
 const formatIndianAddress = (data: any): string => {
   const parts = [];
   
+  // Build a meaningful address from available components
   if (data.address?.house_number) parts.push(data.address.house_number);
   if (data.address?.road) parts.push(data.address.road);
   if (data.address?.neighbourhood) parts.push(data.address.neighbourhood);
@@ -94,11 +95,21 @@ const formatIndianAddress = (data: any): string => {
   if (data.address?.city || data.address?.town || data.address?.village) {
     parts.push(data.address.city || data.address.town || data.address.village);
   }
-  if (data.address?.state) parts.push(data.address.state);
-  if (data.address?.postcode) parts.push(data.address.postcode);
   
-  // If we have specific parts, use them, otherwise fall back to display_name
-  return parts.length > 2 ? parts.join(', ') : (data.display_name || '');
+  // If we have meaningful address parts, use them
+  if (parts.length > 0) {
+    return parts.join(', ');
+  }
+  
+  // Fallback to a more user-friendly name extraction
+  if (data.display_name) {
+    const addressParts = data.display_name.split(', ');
+    // Take the first few meaningful parts (usually area, city)
+    return addressParts.slice(0, 3).join(', ');
+  }
+  
+  // Last resort fallback
+  return 'Current Location';
 };
 
 export const searchLocation = async (query: string): Promise<Location[]> => {

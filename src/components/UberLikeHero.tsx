@@ -28,7 +28,8 @@ const UberLikeHero = () => {
       setIsDetectingLocation(true);
       try {
         const location = await getCurrentLocation();
-        const locationText = location.address || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`;
+        // Use the formatted address from the location service instead of coordinates
+        const locationText = location.address || 'Current Location';
         setPickup(locationText);
         setLocationDetected(true);
         
@@ -76,7 +77,8 @@ const UberLikeHero = () => {
     setIsDetectingLocation(true);
     try {
       const location = await getCurrentLocation();
-      const locationText = location.address || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`;
+      // Use the formatted address instead of coordinates
+      const locationText = location.address || 'Current Location';
       setPickup(locationText);
       setLocationDetected(true);
       setSuggestions([]);
@@ -88,7 +90,7 @@ const UberLikeHero = () => {
       
       toast({
         title: "Location Detected",
-        description: "Current location has been set successfully!",
+        description: `Location set to: ${locationText}`,
       });
     } catch (error) {
       console.error('Location error:', error);
@@ -103,7 +105,8 @@ const UberLikeHero = () => {
   };
 
   const handleSuggestionClick = (suggestion: Location) => {
-    const locationText = suggestion.address || `${suggestion.latitude.toFixed(4)}, ${suggestion.longitude.toFixed(4)}`;
+    // Use the formatted address instead of coordinates
+    const locationText = suggestion.address || `${suggestion.city}, ${suggestion.state}`;
     setPickup(locationText);
     setLocationDetected(true);
     setSuggestions([]);
