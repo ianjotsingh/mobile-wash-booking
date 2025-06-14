@@ -47,10 +47,10 @@ const WashBookingDetails = () => {
   ];
 
   const washPlans = [
-    'Basic Wash - ₹200',
-    'Premium Wash - ₹400', 
-    'Deluxe Wash - ₹600',
-    'Full Service Wash - ₹800'
+    'Basic Wash',
+    'Premium Wash', 
+    'Deluxe Wash',
+    'Full Service Wash'
   ];
 
   const timeSlots = [
