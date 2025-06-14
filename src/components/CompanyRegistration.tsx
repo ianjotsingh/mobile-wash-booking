@@ -239,11 +239,19 @@ const CompanyRegistration = () => {
       
       toast({
         title: "Success!",
-        description: "Company registered successfully! You can now log in and start receiving booking requests.",
+        description: "Company registered successfully! Redirecting to your dashboard...",
       });
 
-      // Redirect to company dashboard
-      navigate('/company-dashboard');
+      // Wait a moment for the toast to show, then redirect
+      setTimeout(() => {
+        // Check if we're in mobile app context
+        const isMobile = window.location.pathname.includes('mobile') || window.innerWidth < 768;
+        if (isMobile) {
+          navigate('/company/dashboard');
+        } else {
+          navigate('/company-dashboard');
+        }
+      }, 1500);
       
     } catch (error) {
       console.error('Registration error:', error);

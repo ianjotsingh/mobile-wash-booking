@@ -156,16 +156,21 @@ const MobileApp = () => {
         {/* Company Registration Routes */}
         <Route path="/company/register" element={<CompanyRegistration />} />
         <Route path="/company/signup" element={<CompanySignup />} />
+        <Route path="/company-signup" element={<CompanySignup />} />
         
         {/* Mechanic Registration Routes */}
         <Route path="/mechanic/register" element={<MechanicRegistration />} />
         <Route path="/mechanic/signup" element={<MechanicSignup />} />
         <Route path="/mechanic/request" element={<MechanicRequest />} />
         
-        {/* Dashboard Routes - Redirect companies to mobile dashboard */}
+        {/* Dashboard Routes - Always redirect companies to mobile dashboard in mobile app */}
         <Route 
           path="/company/dashboard" 
-          element={user && isCompany ? <CompanyMobileDashboard /> : user ? <CompanyDashboard /> : <Navigate to="/" />} 
+          element={user && isCompany ? <CompanyMobileDashboard /> : <Navigate to="/" />} 
+        />
+        <Route 
+          path="/company-dashboard" 
+          element={user && isCompany ? <CompanyMobileDashboard /> : <Navigate to="/" />} 
         />
         <Route 
           path="/admin/dashboard" 
@@ -174,6 +179,7 @@ const MobileApp = () => {
         
         {/* Booking and Service Routes */}
         <Route path="/wash-booking" element={<WashBookingDetails />} />
+        <Route path="/wash-booking-flow" element={<WashBookingFlow />} />
         <Route path="/mechanic-request-form" element={<MechanicRequestForm />} />
         <Route path="/order-history" element={<OrderHistory />} />
         
