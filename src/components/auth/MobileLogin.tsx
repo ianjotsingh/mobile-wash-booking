@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -168,8 +169,8 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
         });
       } else {
         toast({
-          title: "Reset Email Sent",
-          description: "Please check your email for password reset instructions.",
+          title: "Reset Email Sent!",
+          description: "Check your email for a link to reset your password. Click the link in the email to set a new password.",
         });
         setStep('email');
         setIsSignup(false);

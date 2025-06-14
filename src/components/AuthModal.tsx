@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -176,8 +177,8 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
         });
       } else {
         toast({
-          title: "Reset Email Sent",
-          description: "Please check your email for password reset instructions."
+          title: "Reset Email Sent!",
+          description: "Check your email for a link to reset your password. Click the link in the email to set a new password."
         });
         setShowForgotPassword(false);
         setForgotPasswordEmail('');
