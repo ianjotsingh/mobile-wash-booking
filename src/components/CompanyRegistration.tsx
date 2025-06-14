@@ -270,7 +270,6 @@ const CompanyRegistration = () => {
               <Label>Service Area Location *</Label>
               <EnhancedLocationSelector
                 onLocationSelect={handleLocationSelect}
-                placeholder="Select your service area location"
               />
               <p className="text-sm text-gray-500">
                 This will be used to show your services to nearby customers

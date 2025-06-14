@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -64,16 +63,18 @@ const OrderTracking = ({ orderId }: OrderTrackingProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Use a simple query without specific typing
+      // Check if feedback has been submitted by looking at special_instructions
       const { data } = await supabase
-        .rpc('check_feedback_exists', { 
-          order_id_param: orderId, 
-          user_id_param: user.id 
-        });
+        .from('orders')
+        .select('special_instructions')
+        .eq('id', orderId)
+        .eq('user_id', user.id)
+        .single();
 
-      setFeedbackSubmitted(!!data);
+      if (data?.special_instructions?.includes('FEEDBACK')) {
+        setFeedbackSubmitted(true);
+      }
     } catch (error) {
-      // No feedback found, which is expected for new completed orders
       console.log('No feedback found or error checking feedback:', error);
     }
   };

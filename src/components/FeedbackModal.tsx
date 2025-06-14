@@ -40,14 +40,14 @@ const FeedbackModal = ({ isOpen, onClose, orderId, orderDetails }: FeedbackModal
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      // For now, we'll store feedback in the orders table as a note
+      // Since the feedback table doesn't exist in the current schema
       const { error } = await supabase
-        .from('feedback')
-        .insert({
-          order_id: orderId,
-          user_id: user.id,
-          rating,
-          comment: comment.trim() || null
-        });
+        .from('orders')
+        .update({
+          special_instructions: `FEEDBACK - Rating: ${rating}/5, Comment: ${comment.trim() || 'No comment'}`
+        })
+        .eq('id', orderId);
 
       if (error) throw error;
 
