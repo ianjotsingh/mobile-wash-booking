@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,12 @@ const Navigation = () => {
   const [isCompany, setIsCompany] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Don't render navigation on mobile app
+  const isMobileApp = window.location.search.includes('mobile=true');
+  if (isMobileApp) {
+    return null;
+  }
 
   useEffect(() => {
     const checkUserRole = async () => {
