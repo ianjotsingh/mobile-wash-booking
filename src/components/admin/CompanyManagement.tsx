@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,8 @@ import { Search, CheckCircle, XCircle, Clock, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+type CompanyStatus = 'pending' | 'approved' | 'rejected';
+
 interface Company {
   id: string;
   company_name: string;
@@ -15,7 +16,7 @@ interface Company {
   email: string;
   phone: string;
   city: string;
-  status: string;
+  status: CompanyStatus;
   services: string[];
   created_at: string;
 }
@@ -51,7 +52,7 @@ const CompanyManagement = () => {
     }
   };
 
-  const updateCompanyStatus = async (companyId: string, status: string) => {
+  const updateCompanyStatus = async (companyId: string, status: CompanyStatus) => {
     try {
       const { error } = await supabase
         .from('companies')
@@ -85,7 +86,7 @@ const CompanyManagement = () => {
     company.status?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: CompanyStatus) => {
     switch (status) {
       case 'approved':
         return <Badge variant="default" className="bg-green-500"><CheckCircle className="h-3 w-3 mr-1" />Approved</Badge>;
