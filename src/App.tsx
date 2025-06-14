@@ -19,15 +19,16 @@ import MobileApp from "./components/MobileApp";
 const queryClient = new QueryClient();
 
 const App = () => {
-  // Check if we want to show mobile app (you can add logic here to detect mobile or use a flag)
-  const showMobileApp = window.location.search.includes('mobile=true');
+  // Check if we're in mobile mode or on a mobile device
+  const isMobileApp = window.location.search.includes('mobile=true') || 
+                     /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-  if (showMobileApp) {
+  if (isMobileApp) {
     return (
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <TooltipProvider>
-            <div className="min-h-screen max-w-md mx-auto bg-white shadow-lg">
+            <div className="min-h-screen w-full bg-white">
               <Toaster />
               <Sonner />
               <MobileApp />
@@ -42,7 +43,7 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-          <div className="min-h-screen max-w-md mx-auto bg-white shadow-lg">
+          <div className="min-h-screen w-full bg-white">
             <Toaster />
             <Sonner />
             <BrowserRouter>
