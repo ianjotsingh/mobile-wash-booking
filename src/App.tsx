@@ -22,7 +22,8 @@ import { AuthProvider } from '@/hooks/useAuth';
 const queryClient = new QueryClient();
 
 function App() {
-  const isMobileApp = window.location.search.includes('mobile=true');
+  // Enable mobile mode by default for preview
+  const isMobileApp = true; // Changed from window.location.search.includes('mobile=true')
 
   if (isMobileApp) {
     return (

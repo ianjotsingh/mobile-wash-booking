@@ -1,11 +1,17 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Car, User, LogOut, History, Building2, Shield } from 'lucide-react';
+import { Car, User, LogOut, History, Building2, Shield, Menu, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import AuthModal from './AuthModal';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const Navigation = () => {
   const { user, signOut } = useAuth();
@@ -92,86 +98,110 @@ const Navigation = () => {
               <span className="text-xl font-bold text-white align-middle">WashCart</span>
             </Link>
             
-            {/* Menu Links */}
-            <div className="hidden md:flex items-center space-x-7 h-16">
-              <Link
-                to="/"
-                className="text-gray-300 hover:text-emerald-400 transition-colors flex items-center h-16 px-2"
-                style={{ minHeight: '4rem', alignItems: 'center', display: 'flex' }}
-              >
-                Home
-              </Link>
-              <button 
-                onClick={scrollToServices}
-                className="text-gray-300 hover:text-emerald-400 transition-colors cursor-pointer flex items-center h-16 px-2"
-                style={{ minHeight: '4rem', alignItems: 'center', display: 'flex' }}
-              >
-                Services
-              </button>
-              <Link
-                to="/company-signup"
-                className="text-gray-300 hover:text-emerald-400 transition-colors flex items-center h-16 px-2"
-                style={{ minHeight: '4rem', alignItems: 'center', display: 'flex' }}
-              >
-                Partner With Us
-              </Link>
-              <button 
-                onClick={handleMechanicRequest}
-                className="text-gray-300 hover:text-emerald-400 transition-colors cursor-pointer flex items-center h-16 px-2"
-                style={{ minHeight: '4rem', alignItems: 'center', display: 'flex' }}
-              >
-                Call Mechanic
-              </button>
-              {/* Company Dashboard link for approved companies */}
-              {isCompany && (
-                <Link
-                  to="/company-dashboard"
-                  className="text-gray-300 hover:text-emerald-400 transition-colors flex items-center h-16 px-2"
-                  style={{ minHeight: '4rem', alignItems: 'center', display: 'flex' }}
-                >
-                  Company Dashboard
-                </Link>
-              )}
-              {/* Admin Dashboard link for admin users */}
-              {isAdmin && (
-                <Link
-                  to="/admin-dashboard"
-                  className="text-gray-300 hover:text-emerald-400 transition-colors flex items-center h-16 px-2"
-                  style={{ minHeight: '4rem', alignItems: 'center', display: 'flex' }}
-                >
-                  <Shield className="h-4 w-4 mr-1" />
-                  <span>Admin</span>
-                </Link>
-              )}
-            </div>
-            
-            {/* User Profile Section + Book Button */}
+            {/* Navigation Dropdown */}
             <div className="flex items-center space-x-4 h-16">
-              {user ? (
-                <div className="flex items-center space-x-4 h-16">
-                  <Link to="/order-history" className="h-10 flex items-center">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center space-x-1 border-gray-600 text-gray-300 hover:bg-gray-800 h-10"
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="flex items-center space-x-2 border-gray-600 text-gray-300 hover:bg-gray-800 h-10"
+                  >
+                    <Menu className="h-4 w-4" />
+                    <span className="hidden sm:inline">Menu</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent 
+                  align="end" 
+                  className="w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-50"
+                >
+                  <DropdownMenuItem asChild>
+                    <Link
+                      to="/"
+                      className="flex items-center w-full px-2 py-2 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                     >
-                      <History className="h-4 w-4" />
-                      <span>Orders</span>
-                    </Button>
-                  </Link>
-                  <div className="flex items-center gap-2 h-10">
+                      Home
+                    </Link>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem 
+                    onClick={scrollToServices}
+                    className="flex items-center w-full px-2 py-2 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                  >
+                    Services
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem asChild>
+                    <Link
+                      to="/company-signup"
+                      className="flex items-center w-full px-2 py-2 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                    >
+                      Partner With Us
+                    </Link>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem 
+                    onClick={handleMechanicRequest}
+                    className="flex items-center w-full px-2 py-2 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                  >
+                    Call Mechanic
+                  </DropdownMenuItem>
+                  
+                  {isCompany && (
+                    <DropdownMenuItem asChild>
+                      <Link
+                        to="/company-dashboard"
+                        className="flex items-center w-full px-2 py-2 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                      >
+                        Company Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  
+                  {isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link
+                        to="/admin-dashboard"
+                        className="flex items-center space-x-2 w-full px-2 py-2 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                      >
+                        <Shield className="h-4 w-4" />
+                        <span>Admin</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  
+                  {user && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link 
+                          to="/order-history"
+                          className="flex items-center space-x-2 w-full px-2 py-2 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                        >
+                          <History className="h-4 w-4" />
+                          <span>Order History</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuItem 
+                        onClick={signOut}
+                        className="flex items-center space-x-2 w-full px-2 py-2 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        <span>Logout</span>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* User Profile Section + Book Button */}
+              {user ? (
+                <div className="flex items-center space-x-2 h-16">
+                  <div className="hidden sm:flex items-center gap-2 h-10">
                     <User className="h-5 w-5 text-gray-400" />
                     <span className="text-gray-300 text-sm">{user.email || user.phone}</span>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={signOut}
-                    className="flex items-center space-x-1 border-gray-600 text-gray-300 hover:bg-gray-800 h-10"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span>Logout</span>
-                  </Button>
                 </div>
               ) : (
                 <AuthModal>
@@ -180,6 +210,7 @@ const Navigation = () => {
                   </Button>
                 </AuthModal>
               )}
+              
               <Button 
                 onClick={handleBookNow}
                 className="bg-emerald-500 hover:bg-emerald-600 text-black font-semibold h-10 px-4 rounded-md flex items-center"
