@@ -1,382 +1,208 @@
-
 import React, { useState, useEffect } from 'react';
+import { MapPin, Navigation2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MapPin, Search, Clock, Wrench, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { getCurrentLocation, searchLocation, Location } from '@/utils/locationService';
+import { getCurrentLocation, searchLocation, type Location } from '@/utils/locationService';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
-import AuthModal from './AuthModal';
 
 const UberLikeHero = () => {
-  const [pickupLocation, setPickupLocation] = useState('');
-  const [searchResults, setSearchResults] = useState<Location[]>([]);
-  const [showResults, setShowResults] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
-  const [selectedService, setSelectedService] = useState('Premium');
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pickup, setPickup] = useState('');
+  const [suggestions, setSuggestions] = useState<Location[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [locationDetected, setLocationDetected] = useState(false);
-  const navigate = useNavigate();
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
 
+  // Auto-detect location on component mount
   useEffect(() => {
-    // Automatically detect location on component mount with higher priority
-    const hasAutoDetected = localStorage.getItem('autoLocationDetected');
-    if (!hasAutoDetected && !locationDetected) {
-      detectCurrentLocationSilently();
-    }
-  }, [locationDetected]);
+    const autoDetectLocation = async () => {
+      // Check if location was already set
+      const savedLocation = localStorage.getItem('userLocationSet');
+      if (savedLocation) {
+        setPickup(savedLocation);
+        setLocationDetected(true);
+        return;
+      }
 
-  const detectCurrentLocationSilently = async () => {
-    if (!navigator.geolocation) {
-      console.log('Geolocation not supported');
-      return;
-    }
+      setIsDetectingLocation(true);
+      try {
+        const location = await getCurrentLocation();
+        const locationText = location.address || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`;
+        setPickup(locationText);
+        setLocationDetected(true);
+        
+        // Cache the detected location
+        localStorage.setItem('userLocationSet', locationText);
+        localStorage.setItem('userLocation', JSON.stringify(location));
+        
+        console.log('Auto-detected location:', locationText);
+      } catch (error) {
+        console.log('Auto-location detection failed (silent):', error);
+        // Silently fail - don't show error to user for auto-detection
+      } finally {
+        setIsDetectingLocation(false);
+      }
+    };
 
-    setLoading(true);
-    try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 8000,
-          maximumAge: 600000 // 10 minutes cache
-        });
-      });
-
-      const location = await getCurrentLocation();
-      const displayAddress = location.address || `${location.city}, ${location.state}`;
-      setPickupLocation(displayAddress);
-      setSelectedLocation(location);
-      setLocationDetected(true);
-      localStorage.setItem('autoLocationDetected', 'true');
-      
-      // Silent success - no toast to avoid interrupting user
-      console.log('Location detected automatically:', displayAddress);
-    } catch (error) {
-      console.log('Silent location detection failed:', error);
-      // Don't show error toast for silent detection
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const detectCurrentLocation = async () => {
-    setLoading(true);
-    try {
-      const location = await getCurrentLocation();
-      const displayAddress = location.address || `${location.city}, ${location.state}`;
-      setPickupLocation(displayAddress);
-      setSelectedLocation(location);
-      setLocationDetected(true);
-      localStorage.setItem('autoLocationDetected', 'true');
-      
-      toast({
-        title: "Location detected",
-        description: "We found your current location",
-      });
-    } catch (error) {
-      console.log('Could not detect location:', error);
-      toast({
-        title: "Location access needed",
-        description: "Please search for your location or allow location access",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    autoDetectLocation();
+  }, []);
 
   const handleLocationSearch = async (query: string) => {
-    setPickupLocation(query);
-    
-    if (query.length > 2) {
-      setSearchLoading(true);
-      try {
-        const results = await searchLocation(query);
-        setSearchResults(results);
-        setShowResults(true);
-        
-        if (results.length === 0) {
-          toast({
-            title: "No locations found",
-            description: "Try searching with a different term",
-            variant: "destructive"
-          });
-        }
-      } catch (error) {
-        console.error('Search error:', error);
-        toast({
-          title: "Search failed",
-          description: "Please check your internet connection and try again",
-          variant: "destructive"
-        });
-      } finally {
-        setSearchLoading(false);
-      }
-    } else {
-      setShowResults(false);
-      setSelectedLocation(null);
-    }
-  };
-
-  const selectLocation = (location: Location) => {
-    setPickupLocation(location.address || '');
-    setSelectedLocation(location);
-    setShowResults(false);
-    toast({
-      title: "Location selected",
-      description: location.address || `${location.city}, ${location.state}`,
-    });
-  };
-
-  // Add service objects (matching ServiceSelector shape) - removed pricing
-  const services = [
-    { id: 'Basic', name: 'Basic', title: 'Basic Wash', description: 'Essential exterior wash', icon: '🚗', category: 'wash' },
-    { id: 'Premium', name: 'Premium', title: 'Premium Wash', description: 'Full exterior + interior clean', icon: '✨', category: 'wash', popular: true },
-    { id: 'Deluxe', name: 'Deluxe', title: 'Full Detailing', description: 'Complete inside-out clean & polish', icon: '💎', category: 'wash' }
-  ];
-
-  // Find full service object by selectedService, fallback to Premium
-  const getSelectedServiceObject = () => {
-    const found = services.find((s) => s.id === selectedService || s.name === selectedService);
-    // Default to Premium service if not found
-    return found || services[1];
-  };
-
-  const handleBookNow = () => {
-    if (!user) {
-      setShowAuthModal(true);
+    if (query.length < 3) {
+      setSuggestions([]);
+      setShowSuggestions(false);
       return;
     }
-    
-    if (!selectedLocation && !pickupLocation) {
+
+    setIsSearching(true);
+    try {
+      const results = await searchLocation(query);
+      setSuggestions(results.slice(0, 5));
+      setShowSuggestions(true);
+    } catch (error) {
+      console.error('Search error:', error);
       toast({
-        title: "Location required",
-        description: "Please select a pickup location to continue",
+        title: "Search Error",
+        description: "Failed to search locations. Please try again.",
         variant: "destructive"
       });
-      return;
+    } finally {
+      setIsSearching(false);
     }
-    
-    // Use the new full object format for storing selectedService
-    const serviceObj = getSelectedServiceObject();
-    // Match ServiceSelector's localStorage format
-    const localStorageService = {
-      id: serviceObj.id,
-      title: serviceObj.title,
-      description: serviceObj.description,
-      features: [
-        serviceObj.id === 'Basic'
-          ? 'Exterior wash, Tire cleaning, Basic drying'
-          : serviceObj.id === 'Premium'
-          ? 'Exterior wash, Interior vacuuming, Dashboard cleaning, Tire shine'
-          : 'Complete wash, Wax application, Deep interior cleaning, Polish'
-      ],
-      duration: serviceObj.id === 'Basic' ? '30 mins' : serviceObj.id === 'Premium' ? '60 mins' : '90 mins',
-      category: 'wash',
-      popular: serviceObj.popular || false
-    };
-    localStorage.setItem('selectedService', JSON.stringify(localStorageService));
-    
-    if (selectedLocation) {
-      localStorage.setItem('selectedLocation', JSON.stringify(selectedLocation));
-    }
-    navigate('/booking');
   };
 
-  const handleCallMechanic = () => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
-    
-    if (!selectedLocation && !pickupLocation) {
+  const handleCurrentLocation = async () => {
+    setIsDetectingLocation(true);
+    try {
+      const location = await getCurrentLocation();
+      const locationText = location.address || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`;
+      setPickup(locationText);
+      setLocationDetected(true);
+      setSuggestions([]);
+      setShowSuggestions(false);
+      
+      // Cache the location
+      localStorage.setItem('userLocationSet', locationText);
+      localStorage.setItem('userLocation', JSON.stringify(location));
+      
       toast({
-        title: "Location required",
-        description: "Please select a location to call a mechanic",
+        title: "Location Detected",
+        description: "Current location has been set successfully!",
+      });
+    } catch (error) {
+      console.error('Location error:', error);
+      toast({
+        title: "Location Error",
+        description: error instanceof Error ? error.message : "Failed to get current location",
         variant: "destructive"
       });
-      return;
+    } finally {
+      setIsDetectingLocation(false);
     }
+  };
+
+  const handleSuggestionClick = (suggestion: Location) => {
+    const locationText = suggestion.address || `${suggestion.latitude.toFixed(4)}, ${suggestion.longitude.toFixed(4)}`;
+    setPickup(locationText);
+    setLocationDetected(true);
+    setSuggestions([]);
+    setShowSuggestions(false);
     
-    if (selectedLocation) {
-      localStorage.setItem('selectedLocation', JSON.stringify(selectedLocation));
-    }
-    
-    navigate('/mechanic-request');
+    // Cache the selected location
+    localStorage.setItem('userLocationSet', locationText);
+    localStorage.setItem('userLocation', JSON.stringify(suggestion));
   };
 
   return (
-    <>
-      <div className="min-h-screen bg-white flex flex-col">
-        {/* Mobile Hero Content */}
-        <div className="flex-1 flex flex-col justify-center px-4 py-8">
-          <div className="max-w-sm mx-auto w-full">
-            {/* Title */}
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-black mb-3 leading-tight">
-                Car services at your
-                <br />
-                <span className="text-black">fingertips</span>
-              </h1>
-              <p className="text-gray-600 text-base">
-                Professional car wash and mechanic services delivered to your location
-              </p>
-            </div>
+    <div className="relative bg-gradient-to-b from-blue-50 to-white py-12 px-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            Get your car washed, <span className="text-blue-600">anywhere</span>
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Professional car washing services at your doorstep. Book now and get your car sparkling clean.
+          </p>
+        </div>
 
-            {/* Mobile Form Card */}
-            <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100">
-              <div className="space-y-5">
-                {/* Location Input */}
-                <div className="relative">
-                  <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200 focus-within:border-black transition-colors">
-                    <MapPin className="h-5 w-5 text-gray-600 flex-shrink-0" />
-                    <Input
-                      placeholder={loading ? "Detecting location..." : "Enter pickup location"}
-                      value={pickupLocation}
-                      onChange={(e) => handleLocationSearch(e.target.value)}
-                      className="border-none bg-transparent text-black placeholder-gray-500 focus-visible:ring-0 flex-1"
-                      disabled={loading}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={detectCurrentLocation}
-                      disabled={loading}
-                      className="text-gray-600 hover:text-black hover:bg-gray-100 flex-shrink-0 p-2"
-                      title="Use current location"
+        <div className="bg-white rounded-2xl shadow-xl p-6 max-w-2xl mx-auto">
+          <div className="space-y-4">
+            <div className="relative">
+              <div className="flex items-center space-x-3">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <div className="flex-1 relative">
+                  <Input
+                    type="text"
+                    placeholder={isDetectingLocation ? "Detecting location..." : "Enter pickup location"}
+                    value={pickup}
+                    onChange={(e) => {
+                      setPickup(e.target.value);
+                      handleLocationSearch(e.target.value);
+                    }}
+                    onFocus={() => pickup.length >= 3 && setShowSuggestions(true)}
+                    className="pl-10 h-12 text-lg border-gray-200 focus:border-blue-500"
+                    disabled={isDetectingLocation}
+                  />
+                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  {locationDetected && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    </div>
+                  )}
+                </div>
+                <Button
+                  onClick={handleCurrentLocation}
+                  disabled={isDetectingLocation}
+                  variant="outline"
+                  size="icon"
+                  className="h-12 w-12 border-gray-200 hover:border-blue-500"
+                >
+                  <Navigation2 className={`w-5 h-5 ${isDetectingLocation ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 mt-1">
+                  {suggestions.map((suggestion, index) => (
+                    <div
+                      key={index}
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center space-x-3"
                     >
-                      {loading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Navigation className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-
-                  {/* Auto-detection status */}
-                  {loading && (
-                    <div className="absolute top-full left-0 right-0 bg-blue-50 border border-blue-200 rounded-xl shadow-sm z-40 p-3 mt-2">
-                      <div className="flex items-center space-x-2 text-blue-600">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-sm font-medium">Detecting your location...</span>
+                      <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <div>
+                        <div className="font-medium text-gray-900 truncate">
+                          {suggestion.address}
+                        </div>
+                        {suggestion.city && (
+                          <div className="text-sm text-gray-500">{suggestion.city}</div>
+                        )}
                       </div>
                     </div>
-                  )}
-
-                  {/* Search Results */}
-                  {showResults && searchResults.length > 0 && !searchLoading && !loading && (
-                    <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto mt-2">
-                      {searchResults.map((location, index) => (
-                        <div
-                          key={index}
-                          className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 transition-colors"
-                          onClick={() => selectLocation(location)}
-                        >
-                          <div className="flex items-start space-x-3">
-                            <MapPin className="h-4 w-4 text-gray-400 mt-1 flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium text-gray-900 text-sm truncate">
-                                {location.address}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {location.city}, {location.state} {location.zipCode}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  ))}
                 </div>
-
-                {/* Service Selection */}
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium text-gray-700">Choose Service</h3>
-                  <div className="grid grid-cols-1 gap-2">
-                    {services.map((service) => (
-                      <div
-                        key={service.id}
-                        className={`p-3 border rounded-xl text-left cursor-pointer transition-all duration-200 ${
-                          selectedService === service.id
-                            ? 'border-black bg-gray-50'
-                            : 'border-gray-200 hover:bg-gray-50'
-                        }`}
-                        onClick={() => setSelectedService(service.id)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className="text-2xl">{service.icon}</div>
-                            <div>
-                              <div className={`font-medium ${
-                                selectedService === service.id ? 'text-black' : 'text-gray-700'
-                              }`}>
-                                {service.name}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {service.description}
-                              </div>
-                            </div>
-                          </div>
-                          {service.popular && (
-                            <div className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">
-                              Popular
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="space-y-3 pt-2">
-                  <Button
-                    onClick={handleBookNow}
-                    className="w-full bg-black hover:bg-gray-800 text-white h-12 text-base font-medium rounded-xl transition-all duration-200"
-                    disabled={!pickupLocation.trim() && !loading}
-                  >
-                    {locationDetected ? 'Book Car Wash' : 'Set Location & Book'}
-                  </Button>
-                  
-                  <Button
-                    onClick={handleCallMechanic}
-                    className="w-full bg-white hover:bg-gray-50 text-black border border-gray-200 h-12 text-base font-medium rounded-xl transition-all duration-200"
-                    disabled={!pickupLocation.trim() && !loading}
-                  >
-                    <Wrench className="h-4 w-4 mr-2" />
-                    Get Mechanic
-                  </Button>
-                </div>
-              </div>
+              )}
             </div>
 
-            {/* Mobile Stats */}
-            <div className="flex justify-center space-x-8 pt-6">
-              <div className="text-center">
-                <div className="flex items-center justify-center space-x-1">
-                  <Clock className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-900">30 min</span>
-                </div>
-                <div className="text-xs text-gray-500">Response time</div>
-              </div>
-              <div className="text-center">
-                <div className="text-sm font-medium text-gray-900">4.8★</div>
-                <div className="text-xs text-gray-500">Rating</div>
-              </div>
-            </div>
+            <Button 
+              className="w-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700"
+              disabled={!pickup.trim() || isDetectingLocation}
+            >
+              {isDetectingLocation ? 'Detecting Location...' : 'Book Now'}
+            </Button>
           </div>
         </div>
-      </div>
 
-      <AuthModal open={showAuthModal} onOpenChange={setShowAuthModal}>
-        <div />
-      </AuthModal>
-    </>
+        <div className="mt-8 text-center">
+          <p className="text-gray-500">
+            Available in major cities • 
+            <span className="text-blue-600 font-medium"> 30-60 min service</span> • 
+            Professional equipment
+          </p>
+        </div>
+      </div>
+    </div>
   );
 };
 
