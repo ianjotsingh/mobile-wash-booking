@@ -75,10 +75,11 @@ const MechanicRegistration = () => {
     try {
       console.log('Starting mechanic registration:', data.email);
 
-      // First, sign up the user
+      // First, sign up the user with phone number
       const { data: authData, error: authError } = await signUp(data.email, data.password, {
         full_name: data.full_name,
-        role: 'mechanic'
+        role: 'mechanic',
+        phone: data.phone
       });
 
       if (authError) {
@@ -218,9 +219,20 @@ const MechanicRegistration = () => {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
+                      <FormLabel>Phone Number (for password recovery)</FormLabel>
                       <FormControl>
-                        <Input placeholder="10-digit phone number" {...field} />
+                        <div className="flex">
+                          <div className="flex items-center px-3 py-2 border border-r-0 border-gray-200 rounded-l-md bg-gray-50">
+                            <span className="text-sm font-medium">🇮🇳 +91</span>
+                          </div>
+                          <Input 
+                            placeholder="10-digit phone number" 
+                            {...field}
+                            className="rounded-l-none"
+                            maxLength={10}
+                            onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>

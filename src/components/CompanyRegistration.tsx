@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +21,8 @@ const CompanyRegistration = () => {
   const [authFormData, setAuthFormData] = useState({
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    phone: ''
   });
 
   const [formData, setFormData] = useState({
@@ -74,7 +74,20 @@ const CompanyRegistration = () => {
       return;
     }
 
-    setFormData(prev => ({ ...prev, email: authFormData.email }));
+    if (authFormData.phone && authFormData.phone.length !== 10) {
+      toast({
+        title: "Error",
+        description: "Phone number must be 10 digits",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setFormData(prev => ({ 
+      ...prev, 
+      email: authFormData.email,
+      phone: authFormData.phone 
+    }));
     setStep(2);
   };
 
@@ -120,10 +133,11 @@ const CompanyRegistration = () => {
         return;
       }
       
-      // First create the user account
+      // First create the user account with phone number
       const userData = {
         full_name: formData.ownerName,
-        role: 'provider'
+        role: 'provider',
+        ...(authFormData.phone && { phone: authFormData.phone })
       };
 
       const { data: authResult, error: authError } = await signUp(
@@ -153,13 +167,13 @@ const CompanyRegistration = () => {
 
       console.log('User account created successfully, now registering company...');
 
-      // Register the company
+      // Register the company with phone number
       const { data: functionData, error: functionError } = await supabase.functions.invoke('register-company', {
         body: {
           company_name: formData.companyName,
           owner_name: formData.ownerName,
           email: formData.email,
-          phone: formData.phone,
+          phone: authFormData.phone || formData.phone,
           description: formData.description,
           experience: formData.experience,
           has_mechanic: formData.hasMechanic,
@@ -228,6 +242,30 @@ const CompanyRegistration = () => {
                     required
                     disabled={loading}
                   />
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-600 mb-2 block">Phone Number (Optional - for password recovery)</label>
+                  <div className="flex">
+                    <div className="flex items-center px-3 py-2 border border-r-0 border-gray-200 rounded-l-md bg-gray-50">
+                      <span className="text-sm font-medium">🇮🇳 +91</span>
+                    </div>
+                    <Input
+                      type="tel"
+                      placeholder="10-digit phone number"
+                      value={authFormData.phone}
+                      onChange={(e) => setAuthFormData(prev => ({ 
+                        ...prev, 
+                        phone: e.target.value.replace(/\D/g, '').slice(0, 10) 
+                      }))}
+                      className="rounded-l-none"
+                      maxLength={10}
+                      disabled={loading}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Adding a phone number allows you to reset your password using SMS
+                  </p>
                 </div>
                 
                 <div>

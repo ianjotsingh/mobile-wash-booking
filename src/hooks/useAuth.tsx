@@ -172,6 +172,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { data: null, error };
       }
       
+      // If user created successfully, also update the user_profiles table with phone if provided
+      if (data.user && userData.phone) {
+        try {
+          const { error: profileError } = await supabase
+            .from('user_profiles')
+            .upsert({
+              user_id: data.user.id,
+              phone: userData.phone,
+              full_name: userData.full_name,
+              role: userData.role || 'customer'
+            });
+          
+          if (profileError) {
+            console.warn('Failed to update profile with phone:', profileError);
+          } else {
+            console.log('Phone number added to profile successfully');
+          }
+        } catch (profileError) {
+          console.warn('Error updating profile with phone:', profileError);
+        }
+      }
+      
       // If user created but no session, try to sign in
       if (data.user && !data.session) {
         console.log('User created but no session, trying to sign in...');
