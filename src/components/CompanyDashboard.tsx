@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -113,8 +114,8 @@ const CompanyDashboard = () => {
       const completedOrders = acceptedOrders.filter(o => o.orders?.status === 'completed').length;
       const totalRevenue = acceptedOrders.reduce((sum, order) => sum + (order.quoted_price || 0), 0);
       
-      // For now, we'll set a default rating of 4.5 since we can't access the feedback table
-      const averageRating = 4.5;
+      // For now, we'll set a default rating of 0 since there are no reviews yet
+      const averageRating = 0;
 
       setStats({
         totalOrders: acceptedOrders.length,
@@ -126,6 +127,10 @@ const CompanyDashboard = () => {
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
     }
+  };
+
+  const formatPrice = (priceInPaise: number): string => {
+    return `₹${Math.floor(priceInPaise / 100)}`;
   };
 
   if (loading) {
@@ -220,7 +225,7 @@ const CompanyDashboard = () => {
             <CardContent>
               <div className="flex items-center space-x-2">
                 <DollarSign className="h-4 w-4 text-emerald-600" />
-                <span className="text-2xl font-bold">₹{(stats.totalRevenue / 100).toFixed(0)}</span>
+                <span className="text-2xl font-bold">{formatPrice(stats.totalRevenue)}</span>
               </div>
             </CardContent>
           </Card>

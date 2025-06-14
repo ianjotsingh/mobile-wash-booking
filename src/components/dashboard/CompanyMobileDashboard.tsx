@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,8 @@ import {
   Calendar,
   TrendingUp
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Order {
   id: string;
@@ -29,31 +31,121 @@ interface Order {
 
 const CompanyMobileDashboard = () => {
   const [activeTab, setActiveTab] = useState('live');
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [stats, setStats] = useState({
+    todayEarnings: 0,
+    ordersToday: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
-  const mockOrders: Order[] = [
-    {
-      id: '1',
-      service_type: 'Premium Wash',
-      address: '123 Business Park, BKC, Mumbai',
-      customer_name: 'Rajesh Kumar',
-      phone: '+91 98765 43210',
-      status: 'new',
-      amount: 500,
-      time: '2:30 PM',
-      distance: '2.5 km'
-    },
-    {
-      id: '2',
-      service_type: 'Basic Wash',
-      address: '456 Residential Complex, Powai',
-      customer_name: 'Priya Sharma',
-      phone: '+91 87654 32109',
-      status: 'in_progress',
-      amount: 300,
-      time: '3:00 PM',
-      distance: '1.2 km'
+  useEffect(() => {
+    if (user) {
+      fetchCompanyOrders();
+      fetchDashboardStats();
     }
-  ];
+  }, [user]);
+
+  const fetchCompanyOrders = async () => {
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) return;
+
+      // Get company ID
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('user_id', currentUser.id)
+        .single();
+
+      if (!companyData) return;
+
+      // Fetch orders with quotes from this company
+      const { data: quotes, error } = await supabase
+        .from('order_quotes')
+        .select(`
+          *,
+          orders (
+            id,
+            service_type,
+            address,
+            status,
+            user_profiles (full_name, phone)
+          )
+        `)
+        .eq('company_id', companyData.id)
+        .eq('status', 'accepted')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedOrders = quotes?.map(quote => ({
+        id: quote.orders?.id || '',
+        service_type: quote.orders?.service_type || '',
+        address: quote.orders?.address || '',
+        customer_name: quote.orders?.user_profiles?.full_name || 'Customer',
+        phone: quote.orders?.user_profiles?.phone || '',
+        status: quote.orders?.status || 'pending',
+        amount: quote.quoted_price || 0,
+        time: new Date(quote.created_at).toLocaleTimeString(),
+        distance: '0 km'
+      })) || [];
+
+      setOrders(formattedOrders);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDashboardStats = async () => {
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) return;
+
+      // Get company ID
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('user_id', currentUser.id)
+        .single();
+
+      if (!companyData) return;
+
+      // Get today's date
+      const today = new Date().toISOString().split('T')[0];
+
+      // Fetch today's completed orders
+      const { data: todayOrders, error } = await supabase
+        .from('order_quotes')
+        .select(`
+          quoted_price,
+          orders (status, created_at)
+        `)
+        .eq('company_id', companyData.id)
+        .eq('status', 'accepted')
+        .gte('created_at', `${today}T00:00:00`)
+        .lt('created_at', `${today}T23:59:59`);
+
+      if (error) throw error;
+
+      const completedToday = todayOrders?.filter(order => 
+        order.orders?.status === 'completed'
+      ) || [];
+
+      const todayEarnings = completedToday.reduce((sum, order) => 
+        sum + (order.quoted_price || 0), 0
+      );
+
+      setStats({
+        todayEarnings,
+        ordersToday: todayOrders?.length || 0
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -75,6 +167,24 @@ const CompanyMobileDashboard = () => {
     }
   };
 
+  const formatPrice = (priceInPaise: number): string => {
+    return `₹${Math.floor(priceInPaise / 100)}`;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white p-4">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-800 rounded w-1/3"></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="h-20 bg-gray-800 rounded"></div>
+            <div className="h-20 bg-gray-800 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Header */}
@@ -90,7 +200,7 @@ const CompanyMobileDashboard = () => {
             <div className="flex items-center space-x-2">
               <DollarSign className="h-5 w-5 text-green-400" />
               <div>
-                <p className="text-2xl font-bold text-white">₹2,450</p>
+                <p className="text-2xl font-bold text-white">{formatPrice(stats.todayEarnings)}</p>
                 <p className="text-xs text-gray-400">Today's Earnings</p>
               </div>
             </div>
@@ -102,7 +212,7 @@ const CompanyMobileDashboard = () => {
             <div className="flex items-center space-x-2">
               <TrendingUp className="h-5 w-5 text-blue-400" />
               <div>
-                <p className="text-2xl font-bold text-white">8</p>
+                <p className="text-2xl font-bold text-white">{stats.ordersToday}</p>
                 <p className="text-xs text-gray-400">Orders Today</p>
               </div>
             </div>
@@ -121,57 +231,60 @@ const CompanyMobileDashboard = () => {
 
         <TabsContent value="live" className="mt-4">
           <div className="space-y-3">
-            {mockOrders.map((order) => (
-              <Card key={order.id} className="bg-gray-800 border-gray-700">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h3 className="font-semibold text-white">{order.service_type}</h3>
-                        <Badge className={`${getStatusColor(order.status)} text-white text-xs`}>
-                          {getStatusText(order.status)}
-                        </Badge>
+            {orders.length === 0 ? (
+              <div className="text-center py-8">
+                <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-400">No active orders at the moment</p>
+              </div>
+            ) : (
+              orders.map((order) => (
+                <Card key={order.id} className="bg-gray-800 border-gray-700">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h3 className="font-semibold text-white">{order.service_type}</h3>
+                          <Badge className={`${getStatusColor(order.status)} text-white text-xs`}>
+                            {getStatusText(order.status)}
+                          </Badge>
+                        </div>
+                        <p className="text-gray-400 text-sm">{order.customer_name}</p>
                       </div>
-                      <p className="text-gray-400 text-sm">{order.customer_name}</p>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-green-400">{formatPrice(order.amount)}</p>
+                        <p className="text-xs text-gray-400">{order.time}</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-green-400">₹{order.amount}</p>
-                      <p className="text-xs text-gray-400">{order.time}</p>
-                    </div>
-                  </div>
 
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center space-x-2 text-sm text-gray-400">
-                      <MapPin className="h-4 w-4" />
-                      <span>{order.address}</span>
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center space-x-2 text-sm text-gray-400">
+                        <MapPin className="h-4 w-4" />
+                        <span>{order.address}</span>
+                      </div>
+                      {order.phone && (
+                        <div className="flex items-center space-x-2 text-sm text-gray-400">
+                          <Phone className="h-4 w-4" />
+                          <span>{order.phone}</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center space-x-2 text-sm text-gray-400">
-                      <Phone className="h-4 w-4" />
-                      <span>{order.phone}</span>
-                    </div>
-                  </div>
 
-                  <div className="flex space-x-2">
-                    {order.status === 'new' && (
-                      <>
-                        <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700">
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Accept
+                    <div className="flex space-x-2">
+                      {order.status === 'confirmed' && (
+                        <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700">
+                          Start Service
                         </Button>
-                        <Button size="sm" variant="outline" className="flex-1 border-red-600 text-red-400">
-                          Decline
+                      )}
+                      {order.status === 'in_progress' && (
+                        <Button size="sm" className="w-full bg-green-600 hover:bg-green-700">
+                          Mark Complete
                         </Button>
-                      </>
-                    )}
-                    {order.status === 'in_progress' && (
-                      <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700">
-                        Mark Complete
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </TabsContent>
 
@@ -183,18 +296,9 @@ const CompanyMobileDashboard = () => {
         </TabsContent>
 
         <TabsContent value="completed" className="mt-4">
-          <div className="space-y-3">
-            <Card className="bg-gray-800 border-gray-700">
-              <CardContent className="p-4">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="font-semibold text-white">Premium Wash</h3>
-                    <p className="text-gray-400 text-sm">Completed at 1:30 PM</p>
-                  </div>
-                  <p className="text-green-400 font-bold">₹500</p>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="text-center py-8">
+            <CheckCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-400">No completed orders yet</p>
           </div>
         </TabsContent>
 
@@ -208,15 +312,15 @@ const CompanyMobileDashboard = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-400">Today</span>
-                    <span className="text-white font-semibold">₹2,450</span>
+                    <span className="text-white font-semibold">{formatPrice(stats.todayEarnings)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">This Week</span>
-                    <span className="text-white font-semibold">₹12,800</span>
+                    <span className="text-white font-semibold">₹0</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">This Month</span>
-                    <span className="text-white font-semibold">₹45,600</span>
+                    <span className="text-white font-semibold">₹0</span>
                   </div>
                 </div>
               </CardContent>
