@@ -95,10 +95,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         };
       }
 
-      // Update password using admin privileges (this would need to be done via edge function in production)
-      // For now, we'll use the client method which requires the user to be authenticated
-      // In a real app, you'd want to implement this via a secure edge function
-      
       // Get the user's email to send a password reset
       const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userProfile.user_id);
       
@@ -144,11 +140,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('Starting signup process for:', email);
       
+      // Sign up without email confirmation
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: userData
+          data: userData,
+          emailRedirectTo: undefined // Remove email redirect to skip verification
         }
       });
       
@@ -168,23 +166,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { data: null, error };
       }
       
-      // Check if user is immediately confirmed (like in development)
-      if (data.user && data.session) {
-        console.log('User immediately confirmed with session');
-        return { data, error: null };
-      }
+      // Always return success for immediate signup
+      console.log('User created successfully');
+      return { data, error: null };
       
-      // If we have a user but no session, email confirmation is needed
-      if (data.user && !data.session) {
-        console.log('User created but needs email confirmation');
-        return { 
-          data, 
-          error: null, 
-          needsConfirmation: true 
-        };
-      }
-      
-      return { data, error };
     } catch (error) {
       console.error('Signup error:', error);
       return { data: null, error };

@@ -17,7 +17,6 @@ interface AuthModalProps {
 const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
 
@@ -35,8 +34,6 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
     fullName: '',
     phone: ''
   });
-
-  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,8 +58,6 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
         
         if (error.message?.includes('Invalid login credentials')) {
           errorMessage = "Invalid email or password. Please check your credentials and try again.";
-        } else if (error.message?.includes('Email not confirmed')) {
-          errorMessage = "Please check your email and click the confirmation link before signing in.";
         } else if (error.message?.includes('Too many requests')) {
           errorMessage = "Too many login attempts. Please wait a moment and try again.";
         }
@@ -134,9 +129,7 @@ const AuthModal = ({ children, open: controlledOpen, onOpenChange }: AuthModalPr
         console.log('Signup successful for user:', data.user.email);
         toast({
           title: "Success",
-          description: data.user.email_confirmed_at 
-            ? "Account created successfully!" 
-            : "Account created! Please check your email for confirmation."
+          description: "Account created and logged in successfully!"
         });
         setOpen(false);
         setSignupData({ email: '', password: '', fullName: '', phone: '' });

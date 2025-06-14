@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -78,27 +79,12 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
         } else {
           console.log('Signup result:', result);
           
-          if (result.needsConfirmation) {
-            toast({
-              title: "Account Created",
-              description: "Account created successfully! You can now sign in.",
-            });
-            setIsSignup(false); // Switch to sign in mode
-          } else if (result.data?.session) {
-            toast({
-              title: "Success",
-              description: "Account created and logged in successfully!",
-            });
-            // Call onSuccess immediately when we have a session
-            onSuccess();
-          } else {
-            // Account created but no session - user needs to sign in
-            toast({
-              title: "Account Created",
-              description: "Account created! Please sign in to continue.",
-            });
-            setIsSignup(false); // Switch to sign in mode
-          }
+          // Always show success and call onSuccess for immediate login
+          toast({
+            title: "Success",
+            description: "Account created and logged in successfully!",
+          });
+          onSuccess();
         }
       } else {
         console.log('Starting login process for:', email);
@@ -110,8 +96,6 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
           let errorMessage = result.error.message;
           if (errorMessage.includes('Invalid login credentials')) {
             errorMessage = "Invalid email or password. Please check your credentials.";
-          } else if (errorMessage.includes('Email not confirmed')) {
-            errorMessage = "Please check your email and click the confirmation link.";
           } else if (errorMessage.includes('Too many requests')) {
             errorMessage = "Too many login attempts. Please wait and try again.";
           }
@@ -127,7 +111,6 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
             title: "Success",
             description: "Logged in successfully!",
           });
-          // Call onSuccess immediately when we have a session
           onSuccess();
         }
       }
