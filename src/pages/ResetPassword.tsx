@@ -25,25 +25,46 @@ const ResetPassword = () => {
   useEffect(() => {
     const setupSession = async () => {
       console.log('Setting up password reset session...');
+      console.log('Current URL:', window.location.href);
+      console.log('Search params:', Object.fromEntries(searchParams));
+      
       setCheckingSession(true);
       
-      // Check if we have the required tokens from the URL
-      const accessToken = searchParams.get('access_token');
+      // Check for different possible parameter formats
+      const accessToken = searchParams.get('access_token') || searchParams.get('token');
       const refreshToken = searchParams.get('refresh_token');
       const type = searchParams.get('type');
+      const error = searchParams.get('error');
+      const errorDescription = searchParams.get('error_description');
       
       console.log('URL params:', { 
         hasAccessToken: !!accessToken, 
         hasRefreshToken: !!refreshToken, 
-        type 
+        type,
+        error,
+        errorDescription
       });
+
+      // Check for errors in URL first
+      if (error) {
+        console.log('Error in URL parameters:', error, errorDescription);
+        setCheckingSession(false);
+        toast({
+          title: "Reset Link Error",
+          description: errorDescription || "The reset link has an error. Please request a new password reset.",
+          variant: "destructive"
+        });
+        setTimeout(() => navigate('/'), 3000);
+        return;
+      }
       
-      if (!accessToken || !refreshToken || type !== 'recovery') {
-        console.log('Invalid or missing reset parameters');
+      // Check if we have the required tokens
+      if (!accessToken || type !== 'recovery') {
+        console.log('Missing required parameters for password reset');
         setCheckingSession(false);
         toast({
           title: "Invalid Reset Link",
-          description: "This password reset link is invalid or has expired. Please request a new one.",
+          description: "This password reset link is invalid or has expired. Please request a new one from the login page.",
           variant: "destructive"
         });
         setTimeout(() => navigate('/'), 3000);
@@ -51,18 +72,21 @@ const ResetPassword = () => {
       }
 
       try {
-        // Set the session using the tokens from the URL
-        const { data, error } = await supabase.auth.setSession({
+        // Attempt to set the session using the tokens from the URL
+        const sessionData = {
           access_token: accessToken,
-          refresh_token: refreshToken
-        });
+          refresh_token: refreshToken || ''
+        };
+        
+        console.log('Attempting to set session with tokens...');
+        const { data, error } = await supabase.auth.setSession(sessionData);
         
         if (error) {
           console.error('Session setup error:', error);
           setCheckingSession(false);
           toast({
             title: "Session Error",
-            description: "Unable to verify reset link. Please request a new password reset.",
+            description: "Unable to verify reset link. The link may have expired. Please request a new password reset.",
             variant: "destructive"
           });
           setTimeout(() => navigate('/'), 3000);
@@ -70,15 +94,15 @@ const ResetPassword = () => {
         }
 
         if (data.session && data.user) {
-          console.log('Session established for user:', data.user.email);
+          console.log('Session established successfully for user:', data.user.email);
           setIsValidSession(true);
           setCheckingSession(false);
           toast({
-            title: "Ready to Reset",
-            description: `Hello ${data.user.email}! You can now set your new password.`,
+            title: "Ready to Reset Password",
+            description: `You can now create a new password for ${data.user.email}`,
           });
         } else {
-          console.log('No valid session created');
+          console.log('No valid session created despite no error');
           setCheckingSession(false);
           toast({
             title: "Session Error",
@@ -91,8 +115,8 @@ const ResetPassword = () => {
         console.error('Unexpected error during session setup:', error);
         setCheckingSession(false);
         toast({
-          title: "Error",
-          description: "An unexpected error occurred. Please try again.",
+          title: "Unexpected Error",
+          description: "An error occurred while processing your reset link. Please try requesting a new password reset.",
           variant: "destructive"
         });
         setTimeout(() => navigate('/'), 3000);
@@ -102,19 +126,12 @@ const ResetPassword = () => {
     setupSession();
   }, [searchParams, navigate, toast]);
 
-  const validatePassword = (pwd: string) => {
-    if (pwd.length < 6) {
-      return "Password must be at least 6 characters long";
-    }
-    return null;
-  };
-
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!isValidSession) {
       toast({
-        title: "Error",
+        title: "Session Error",
         description: "Invalid session. Please request a new password reset link.",
         variant: "destructive"
       });
@@ -123,18 +140,17 @@ const ResetPassword = () => {
 
     if (!password || !confirmPassword) {
       toast({
-        title: "Error",
-        description: "Please fill in all fields",
+        title: "Missing Information",
+        description: "Please enter both password fields",
         variant: "destructive"
       });
       return;
     }
 
-    const passwordError = validatePassword(password);
-    if (passwordError) {
+    if (password.length < 6) {
       toast({
-        title: "Password Requirements",
-        description: passwordError,
+        title: "Password Too Short",
+        description: "Password must be at least 6 characters long",
         variant: "destructive"
       });
       return;
@@ -142,15 +158,15 @@ const ResetPassword = () => {
 
     if (password !== confirmPassword) {
       toast({
-        title: "Error",
-        description: "Passwords do not match",
+        title: "Passwords Don't Match",
+        description: "Please make sure both passwords are identical",
         variant: "destructive"
       });
       return;
     }
 
     setLoading(true);
-    console.log('Attempting to update password...');
+    console.log('Updating password...');
 
     try {
       const { error } = await supabase.auth.updateUser({
@@ -168,11 +184,11 @@ const ResetPassword = () => {
         console.log('Password updated successfully');
         setIsSuccess(true);
         toast({
-          title: "Password Updated!",
-          description: "Your password has been successfully updated. You can now sign in with your new password.",
+          title: "Password Updated Successfully!",
+          description: "Your password has been changed. You will be redirected to login.",
         });
         
-        // Clear the session and redirect after a delay
+        // Sign out and redirect after a delay
         setTimeout(async () => {
           await supabase.auth.signOut();
           navigate('/');
@@ -181,8 +197,8 @@ const ResetPassword = () => {
     } catch (error) {
       console.error('Unexpected error during password update:', error);
       toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        title: "Unexpected Error",
+        description: "An error occurred while updating your password. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -190,6 +206,7 @@ const ResetPassword = () => {
     }
   };
 
+  // Success state
   if (isSuccess) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-green-100 via-white to-white flex items-center justify-center p-4">
@@ -199,13 +216,13 @@ const ResetPassword = () => {
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-green-800 mb-2">Password Updated!</h2>
               <p className="text-gray-600 mb-4">
-                Your password has been successfully changed. You can now sign in with your new password.
+                Your password has been successfully changed. You will be redirected to the login page shortly.
               </p>
               <Button
                 onClick={() => navigate('/')}
                 className="w-full bg-green-600 hover:bg-green-700"
               >
-                Go to Login
+                Go to Login Now
               </Button>
             </div>
           </CardContent>
@@ -214,14 +231,15 @@ const ResetPassword = () => {
     );
   }
 
+  // Loading state
   if (checkingSession) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-100 via-white to-white flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="text-center">
-              <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                <span className="text-2xl">⏳</span>
+              <div className="w-16 h-16 bg-blue-200 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <span className="text-2xl">🔒</span>
               </div>
               <h2 className="text-xl font-bold text-gray-800 mb-2">Verifying Reset Link...</h2>
               <p className="text-gray-600">Please wait while we verify your password reset link.</p>
@@ -232,7 +250,7 @@ const ResetPassword = () => {
     );
   }
 
-  // Main password reset form - this should always show if we have a valid session
+  // Main password reset form
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-100 via-white to-white flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -240,9 +258,9 @@ const ResetPassword = () => {
           <div className="w-20 h-20 bg-gradient-to-br from-blue-700 to-blue-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
             <span className="text-4xl font-bold text-white tracking-wide drop-shadow select-none">WC</span>
           </div>
-          <CardTitle className="text-2xl font-bold text-blue-900">Create New Password</CardTitle>
+          <CardTitle className="text-2xl font-bold text-blue-900">Set New Password</CardTitle>
           <CardDescription>
-            Enter a new password for your account
+            Enter your new password below
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -274,7 +292,7 @@ const ResetPassword = () => {
                   )}
                 </Button>
               </div>
-              <p className="text-xs text-gray-500">Password must be at least 6 characters long</p>
+              <p className="text-xs text-gray-500">Must be at least 6 characters</p>
             </div>
 
             <div className="space-y-2">
@@ -324,7 +342,7 @@ const ResetPassword = () => {
                 onClick={() => navigate('/')}
                 className="text-blue-600"
               >
-                Back to Home
+                Back to Login
               </Button>
             </div>
           </form>

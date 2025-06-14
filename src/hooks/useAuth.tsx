@@ -152,9 +152,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('Sending password reset email to:', email);
       
-      // Use the current domain for the redirect URL
-      const currentDomain = window.location.origin;
-      const redirectTo = `${currentDomain}/reset-password`;
+      // Use the exact current URL structure for redirect
+      const currentOrigin = window.location.origin;
+      const redirectTo = `${currentOrigin}/reset-password`;
       
       console.log('Reset redirect URL:', redirectTo);
       
