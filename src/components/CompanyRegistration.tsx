@@ -98,6 +98,7 @@ const CompanyRegistration = () => {
     city: string; 
     zipCode: string; 
   }) => {
+    console.log('Location selected:', selectedLocation);
     setFormData(prev => ({
       ...prev,
       address: selectedLocation.address,
@@ -117,21 +118,51 @@ const CompanyRegistration = () => {
     }));
   };
 
+  const isFormValid = () => {
+    const requiredFields = [
+      formData.companyName,
+      formData.ownerName,
+      formData.description,
+      formData.experience,
+      formData.state,
+      formData.address
+    ];
+    
+    const hasAllRequiredFields = requiredFields.every(field => field.trim() !== '');
+    const hasServices = formData.services.length > 0;
+    
+    console.log('Form validation:', {
+      hasAllRequiredFields,
+      hasServices,
+      companyName: formData.companyName,
+      ownerName: formData.ownerName,
+      description: formData.description,
+      experience: formData.experience,
+      state: formData.state,
+      address: formData.address,
+      servicesCount: formData.services.length
+    });
+    
+    return hasAllRequiredFields && hasServices;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submission started...');
+    
+    if (!isFormValid()) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields and select at least one service",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
       console.log('Starting company registration process...');
-      
-      if (formData.services.length === 0) {
-        toast({
-          title: "Error",
-          description: "Please select at least one service",
-          variant: "destructive"
-        });
-        return;
-      }
       
       // First create the user account with phone number
       const userData = {
@@ -139,6 +170,8 @@ const CompanyRegistration = () => {
         role: 'provider',
         ...(authFormData.phone && { phone: authFormData.phone })
       };
+
+      console.log('Creating user account with data:', userData);
 
       const { data: authResult, error: authError } = await signUp(
         formData.email, 
@@ -168,24 +201,28 @@ const CompanyRegistration = () => {
       console.log('User account created successfully, now registering company...');
 
       // Register the company with phone number
+      const companyData = {
+        company_name: formData.companyName,
+        owner_name: formData.ownerName,
+        email: formData.email,
+        phone: authFormData.phone || formData.phone,
+        description: formData.description,
+        experience: formData.experience,
+        has_mechanic: formData.hasMechanic,
+        services: formData.services,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zip_code: formData.zipCode,
+        latitude: formData.lat,
+        longitude: formData.lng,
+        user_id: authResult.user.id
+      };
+
+      console.log('Calling register-company function with data:', companyData);
+
       const { data: functionData, error: functionError } = await supabase.functions.invoke('register-company', {
-        body: {
-          company_name: formData.companyName,
-          owner_name: formData.ownerName,
-          email: formData.email,
-          phone: authFormData.phone || formData.phone,
-          description: formData.description,
-          experience: formData.experience,
-          has_mechanic: formData.hasMechanic,
-          services: formData.services,
-          address: formData.address,
-          city: formData.city,
-          state: formData.state,
-          zip_code: formData.zipCode,
-          latitude: formData.lat,
-          longitude: formData.lng,
-          user_id: authResult.user.id
-        }
+        body: companyData
       });
 
       if (functionError) {
@@ -364,7 +401,10 @@ const CompanyRegistration = () => {
 
                 <div>
                   <label className="block text-sm font-medium mb-2">State *</label>
-                  <Select onValueChange={(value) => setFormData(prev => ({ ...prev, state: value }))}>
+                  <Select 
+                    value={formData.state}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, state: value }))}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select State" />
                     </SelectTrigger>
@@ -439,6 +479,9 @@ const CompanyRegistration = () => {
                     </div>
                   ))}
                 </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Selected: {formData.services.length} service(s)
+                </p>
               </div>
 
               <div>
@@ -455,7 +498,10 @@ const CompanyRegistration = () => {
 
               <div>
                 <label className="block text-sm font-medium mb-2">Years of Experience *</label>
-                <Select onValueChange={(value) => setFormData(prev => ({ ...prev, experience: value }))}>
+                <Select 
+                  value={formData.experience}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, experience: value }))}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select Experience" />
                   </SelectTrigger>
@@ -493,7 +539,7 @@ const CompanyRegistration = () => {
                 </Button>
                 <Button 
                   type="submit" 
-                  disabled={loading || !formData.address || formData.services.length === 0}
+                  disabled={loading || !isFormValid()}
                   className="flex-1"
                 >
                   {loading ? 'Registering...' : 'Complete Registration'}
