@@ -1,19 +1,20 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mail } from 'lucide-react';
+import { ArrowLeft, Phone } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
 interface MobileLoginProps {
   onSuccess: () => void;
+  userType?: 'customer' | 'provider' | null;
 }
 
-const MobileLogin = ({ onSuccess }: MobileLoginProps) => {
-  const [userType, setUserType] = useState<'customer' | 'provider'>('customer');
+const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => {
   const [step, setStep] = useState<'phone' | 'otp' | 'email'>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
@@ -106,33 +107,12 @@ const MobileLogin = ({ onSuccess }: MobileLoginProps) => {
             <div className="w-20 h-20 bg-gradient-to-br from-blue-700 to-blue-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
               <span className="text-4xl font-bold text-white tracking-wide drop-shadow select-none">WC</span>
             </div>
-            <h1 className="text-3xl font-extrabold text-blue-900 mb-2">Welcome to WashCart</h1>
-            <p className="text-gray-500 text-base font-medium">Your Vehicle Service, On-Demand</p>
+            <h1 className="text-3xl font-extrabold text-blue-900 mb-2">Welcome Back</h1>
+            <p className="text-gray-500 text-base font-medium">
+              {userType === 'provider' ? 'Service Provider Login' : 'Customer Login'}
+            </p>
           </div>
-          {/* User Type Tabs */}
-          <div className="mb-6 w-full">
-            <Tabs
-              value={userType}
-              onValueChange={(value) =>
-                setUserType(value as 'customer' | 'provider')
-              }
-            >
-              <TabsList className="w-full grid grid-cols-2 bg-blue-100 p-1 rounded-xl gap-2">
-                <TabsTrigger
-                  value="customer"
-                  className="rounded-xl data-[state=active]:bg-blue-700 data-[state=active]:text-white font-bold text-lg h-11 transition"
-                >
-                  Customer
-                </TabsTrigger>
-                <TabsTrigger
-                  value="provider"
-                  className="rounded-xl data-[state=active]:bg-blue-700 data-[state=active]:text-white font-bold text-lg h-11 transition"
-                >
-                  Service Provider
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+
           {/* Step Content */}
           {step === 'phone' && (
             <div className="space-y-7">
@@ -166,13 +146,18 @@ const MobileLogin = ({ onSuccess }: MobileLoginProps) => {
                   <div className="w-5 h-5 bg-red-500 rounded mr-2"></div>
                   Continue with Google
                 </Button>
-                <Button variant="outline" className="w-full h-12 rounded-xl flex items-center justify-center text-gray-600 bg-gray-50" disabled>
-                  <div className="w-5 h-5 bg-black rounded mr-2"></div>
-                  Continue with Apple
+                <Button 
+                  variant="outline" 
+                  className="w-full h-12 rounded-xl flex items-center justify-center text-gray-600 bg-gray-50"
+                  onClick={() => setStep('email')}
+                >
+                  <div className="w-5 h-5 bg-blue-500 rounded mr-2"></div>
+                  Continue with Email
                 </Button>
               </div>
             </div>
           )}
+
           {step === 'otp' && (
             <div className="space-y-7 text-center">
               <div>
@@ -210,10 +195,12 @@ const MobileLogin = ({ onSuccess }: MobileLoginProps) => {
                 onClick={() => setStep('phone')}
                 className="w-full text-blue-500 font-semibold"
               >
+                <ArrowLeft className="w-4 h-4 mr-2" />
                 Change Phone Number
               </Button>
             </div>
           )}
+
           {step === 'email' && (
             <div className="space-y-6">
               <Input
@@ -242,10 +229,12 @@ const MobileLogin = ({ onSuccess }: MobileLoginProps) => {
                 onClick={() => setStep('phone')}
                 className="w-full text-blue-500"
               >
+                <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Phone Login
               </Button>
             </div>
           )}
+
           {/* Terms */}
           <p className="text-xs text-gray-400 text-center mt-6 select-none">
             By continuing, you agree to our{' '}

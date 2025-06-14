@@ -5,14 +5,16 @@ import MobileLogin from './auth/MobileLogin';
 import LocationPermission from './location/LocationPermission';
 import ConfirmLocation from './location/ConfirmLocation';
 import MobileAppMain from './mobile/MobileAppMain';
+import MobileFrontPage from './mobile/MobileFrontPage';
 import { useAuth } from '@/hooks/useAuth';
 
-type AppStep = 'onboarding' | 'login' | 'location' | 'confirm-location' | 'app';
+type AppStep = 'onboarding' | 'front' | 'login' | 'location' | 'confirm-location' | 'app';
 
 const MobileApp = () => {
   const [currentStep, setCurrentStep] = useState<AppStep>('onboarding');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [userAddress, setUserAddress] = useState('');
+  const [selectedUserType, setSelectedUserType] = useState<'customer' | 'provider' | null>(null);
   const { user, loading } = useAuth();
 
   useEffect(() => {
@@ -32,7 +34,7 @@ const MobileApp = () => {
     } else {
       // User is not logged in
       if (hasCompletedOnboarding) {
-        setCurrentStep('login');
+        setCurrentStep('front');
       } else {
         setCurrentStep('onboarding');
       }
@@ -41,11 +43,12 @@ const MobileApp = () => {
 
   const handleOnboardingComplete = () => {
     localStorage.setItem('hasCompletedOnboarding', 'true');
-    if (user) {
-      setCurrentStep('location');
-    } else {
-      setCurrentStep('login');
-    }
+    setCurrentStep('front');
+  };
+
+  const handleUserTypeSelect = (userType: 'customer' | 'provider') => {
+    setSelectedUserType(userType);
+    setCurrentStep('login');
   };
 
   const handleLoginSuccess = () => {
@@ -54,7 +57,6 @@ const MobileApp = () => {
 
   const handleLocationPermission = (location: { lat: number; lng: number }) => {
     setUserLocation(location);
-    // You could also reverse geocode the location to get address here
     setUserAddress('Current Location');
     setCurrentStep('confirm-location');
   };
@@ -86,8 +88,11 @@ const MobileApp = () => {
     case 'onboarding':
       return <OnboardingFlow onComplete={handleOnboardingComplete} />;
     
+    case 'front':
+      return <MobileFrontPage onUserTypeSelect={handleUserTypeSelect} />;
+    
     case 'login':
-      return <MobileLogin onSuccess={handleLoginSuccess} />;
+      return <MobileLogin onSuccess={handleLoginSuccess} userType={selectedUserType} />;
     
     case 'location':
       return (
