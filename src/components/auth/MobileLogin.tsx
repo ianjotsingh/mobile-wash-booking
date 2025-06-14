@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,7 +43,10 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
     }
 
     setLoading(true);
+    
     try {
+      let result;
+      
       if (isSignup) {
         console.log('Starting signup process for:', email);
         const userData = {
@@ -53,22 +55,34 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
           ...(phoneNumber && { phone: phoneNumber })
         };
 
-        const { data, error } = await signUp(email, password, userData);
+        result = await signUp(email, password, userData);
         
-        if (error) {
-          console.error('Signup error:', error);
-          let errorMessage = error.message;
+        if (result.error) {
+          console.error('Signup error:', result.error);
           
-          if (error.message.includes('User already registered')) {
-            errorMessage = "An account with this email already exists. Please try signing in instead.";
-          } else if (error.message.includes('Password')) {
+          let errorMessage = result.error.message;
+          if (errorMessage.includes('User already registered')) {
+            // Try to sign in instead
+            console.log('User exists, trying sign in...');
+            result = await signIn(email, password);
+            
+            if (!result.error) {
+              toast({
+                title: "Success",
+                description: "Signed in successfully!",
+              });
+              setTimeout(() => onSuccess(), 100);
+              return;
+            }
+            errorMessage = "Account exists. Please use 'Sign In' option.";
+          } else if (errorMessage.includes('Password')) {
             errorMessage = "Password must be at least 6 characters long.";
-          } else if (error.message.includes('Invalid email')) {
+          } else if (errorMessage.includes('Invalid email')) {
             errorMessage = "Please enter a valid email address.";
           }
           
           toast({
-            title: "Signup Failed",
+            title: "Error",
             description: errorMessage,
             variant: "destructive"
           });
@@ -76,28 +90,24 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
           console.log('Signup successful for:', email);
           toast({
             title: "Success",
-            description: "Account created successfully! You are now logged in.",
+            description: "Account created successfully!",
           });
-          
-          // Small delay to ensure auth state is updated
-          setTimeout(() => {
-            onSuccess();
-          }, 500);
+          setTimeout(() => onSuccess(), 100);
         }
       } else {
         console.log('Starting login process for:', email);
-        const { data, error } = await signIn(email, password);
+        result = await signIn(email, password);
         
-        if (error) {
-          console.error('Login error:', error);
-          let errorMessage = error.message;
+        if (result.error) {
+          console.error('Login error:', result.error);
           
-          if (error.message.includes('Invalid login credentials')) {
-            errorMessage = "Invalid email or password. Please check your credentials and try again.";
-          } else if (error.message.includes('Email not confirmed')) {
-            errorMessage = "Please check your email and click the confirmation link before signing in.";
-          } else if (error.message.includes('Too many requests')) {
-            errorMessage = "Too many login attempts. Please wait a moment and try again.";
+          let errorMessage = result.error.message;
+          if (errorMessage.includes('Invalid login credentials')) {
+            errorMessage = "Invalid email or password. Please check your credentials.";
+          } else if (errorMessage.includes('Email not confirmed')) {
+            errorMessage = "Please check your email and click the confirmation link.";
+          } else if (errorMessage.includes('Too many requests')) {
+            errorMessage = "Too many login attempts. Please wait and try again.";
           }
           
           toast({
@@ -111,11 +121,7 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
             title: "Success",
             description: "Logged in successfully!",
           });
-          
-          // Small delay to ensure auth state is updated
-          setTimeout(() => {
-            onSuccess();
-          }, 500);
+          setTimeout(() => onSuccess(), 100);
         }
       }
     } catch (error) {
@@ -125,8 +131,9 @@ const MobileLogin = ({ onSuccess, userType = 'customer' }: MobileLoginProps) => 
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleBackToMain = () => {

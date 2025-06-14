@@ -22,17 +22,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     console.log('Setting up auth listeners...');
     
-    // Listen for auth changes first
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    // Then get initial session
+    // Get initial session first
     const getInitialSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -50,6 +40,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    );
+
     getInitialSession();
 
     return () => {
@@ -61,6 +61,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (email: string, password: string, userData: any) => {
     try {
       console.log('Attempting sign up for:', email);
+      
+      // First, check if user already exists
+      const { data: existingUser } = await supabase.auth.signInWithPassword({
+        email,
+        password: 'dummy-password-check'
+      });
+      
+      if (existingUser?.user) {
+        console.log('User already exists, attempting sign in instead');
+        return await signIn(email, password);
+      }
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -75,6 +87,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         session: !!data.session,
         error: error?.message 
       });
+      
+      if (error) {
+        // If user already exists, try to sign them in
+        if (error.message.includes('User already registered')) {
+          console.log('User exists, trying to sign in...');
+          return await signIn(email, password);
+        }
+        return { data: null, error };
+      }
+      
+      // If signup successful but no session (email confirmation required), 
+      // try to sign in to get the session
+      if (data.user && !data.session) {
+        console.log('Signup successful, attempting auto sign-in...');
+        const signInResult = await signIn(email, password);
+        return signInResult.error ? { data, error: null } : signInResult;
+      }
       
       return { data, error };
     } catch (error) {
