@@ -24,22 +24,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Fetch role function
   const updateUserRole = async (uid: string) => {
-    const userRole = await fetchUserRole(uid);
-    setRole(userRole);
-    return userRole;
+    try {
+      console.log('Fetching role for user:', uid);
+      const userRole = await fetchUserRole(uid);
+      console.log('User role fetched:', userRole);
+      setRole(userRole);
+      return userRole;
+    } catch (error) {
+      console.error('Error fetching user role:', error);
+      setRole('customer'); // Default fallback
+      return 'customer';
+    }
   };
 
   useEffect(() => {
-    console.log('Setting up auth listeners...');
+    console.log('=== Auth Provider Initializing ===');
     
     // Get initial session first
     const getInitialSession = async () => {
       try {
+        console.log('Getting initial session...');
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('Error getting initial session:', error);
         } else {
-          console.log('Initial session:', session?.user?.email || 'No session');
+          console.log('Initial session found:', session?.user?.email || 'No session');
           setSession(session);
           setUser(session?.user ?? null);
           
@@ -51,6 +60,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } catch (error) {
         console.error('Error in getInitialSession:', error);
       } finally {
+        console.log('Initial session check completed - setting loading to false');
         setLoading(false);
       }
     };
@@ -58,7 +68,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
+        console.log('Auth state changed:', event, session?.user?.email || 'No session');
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -69,7 +79,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setRole(null);
         }
         
-        setLoading(false);
+        if (!loading) {
+          console.log('Auth state change - loading already false');
+        } else {
+          console.log('Auth state change - setting loading to false');
+          setLoading(false);
+        }
       }
     );
 

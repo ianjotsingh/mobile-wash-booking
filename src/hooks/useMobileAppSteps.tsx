@@ -14,41 +14,40 @@ export const useMobileAppSteps = (
   const [userType, setUserType] = useState<'customer' | 'provider' | null>(null);
 
   useEffect(() => {
-    console.log('Auth is loading...', loading ? 'true' : 'false');
+    console.log('=== Mobile App Steps Debug ===');
+    console.log('User:', user?.email || 'No user');
+    console.log('Auth loading:', loading);
+    console.log('Role:', role);
+    console.log('Checking company:', checkingCompany);
+    console.log('Current step:', step);
     
+    // If still loading auth or checking company status, stay on loading
     if (loading || checkingCompany) {
-      console.log('Still loading auth or checking company status...');
+      console.log('Still loading - staying on loading screen');
       setStep('loading');
       return;
     }
 
-    console.log('Auth state evaluation - User:', user ? user.email : 'undefined', 'Loading:', loading, 'Role:', role);
-
     const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding') === 'true';
-    const hasLocationSet = localStorage.getItem('userLocationSet');
-
-    console.log('Storage flags:', { hasCompletedOnboarding, hasLocationSet });
+    console.log('Has completed onboarding:', hasCompletedOnboarding);
 
     if (!user) {
-      console.log('User not authenticated, checking onboarding status');
+      console.log('No user - checking onboarding status');
       if (!hasCompletedOnboarding) {
-        console.log('Onboarding not completed, showing onboarding');
+        console.log('Setting step to onboarding');
         setStep('onboarding');
       } else {
-        console.log('Onboarding completed, going to front page');
+        console.log('Setting step to front');
         setStep('front');
       }
     } else {
-      console.log('User authenticated, going to app');
+      console.log('User authenticated - setting step to app');
       setStep('app');
     }
   }, [user, loading, role, checkingCompany]);
 
-  useEffect(() => {
-    console.log('Rendering step:', step);
-  }, [step]);
-
   const handleOnboardingComplete = () => {
+    console.log('Onboarding completed');
     localStorage.setItem('hasCompletedOnboarding', 'true');
     setStep('front');
   };
@@ -60,12 +59,8 @@ export const useMobileAppSteps = (
   };
 
   const handleLoginSuccess = () => {
+    console.log('Login successful - going to app');
     setStep('app');
-  };
-
-  const handleBackToFront = () => {
-    setUserType(null);
-    setStep('front');
   };
 
   return {
@@ -74,6 +69,5 @@ export const useMobileAppSteps = (
     handleOnboardingComplete,
     handleUserTypeSelect,
     handleLoginSuccess,
-    handleBackToFront
   };
 };

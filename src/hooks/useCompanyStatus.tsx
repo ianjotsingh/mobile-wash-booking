@@ -10,11 +10,15 @@ export const useCompanyStatus = (user: User | null) => {
   useEffect(() => {
     const checkUserCompanyStatus = async () => {
       if (!user) {
+        console.log('No user - not checking company status');
         setIsCompany(false);
+        setCheckingCompany(false);
         return;
       }
 
+      console.log('Checking company status for user:', user.id);
       setCheckingCompany(true);
+      
       try {
         const { data: companyData, error } = await supabase
           .from('companies')
@@ -33,6 +37,7 @@ export const useCompanyStatus = (user: User | null) => {
         console.error('Error checking company status:', error);
         setIsCompany(false);
       } finally {
+        console.log('Company status check completed');
         setCheckingCompany(false);
       }
     };
