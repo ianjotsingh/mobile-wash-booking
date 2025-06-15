@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Car, User, LogOut, History, Building2, Shield, Menu, ChevronDown } from 'lucide-react';
+import { Car, User, LogOut, History, Building2, Shield, Menu, ChevronDown, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import AuthModal from './AuthModal';
@@ -84,19 +84,38 @@ const Navigation = () => {
     navigate('/wash-booking');
   };
 
+  // Show back arrow except on home page
+  const showBackArrow = location.pathname !== '/';
+  const handleGoBack = () => {
+    navigate(-1);
+  };
+
   return (
     <>
       <nav className="bg-black/95 backdrop-blur-sm border-b border-gray-800 sticky top-0 z-50 w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="flex justify-between items-center h-16 w-full">
-            {/* Logo - show only the Car icon */}
-            <Link 
-              to="/" 
-              className="flex items-center h-16"
-              style={{ minHeight: '4rem', minWidth: 40 }}
-            >
-              <Car className="h-8 w-8 text-emerald-400" />
-            </Link>
+            {/* Back Arrow Button on top left */}
+            <div className="flex items-center h-16" style={{ minHeight: '4rem', minWidth: 40 }}>
+              {showBackArrow && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleGoBack}
+                  className="mr-2 text-emerald-400 hover:text-white"
+                  aria-label="Go back"
+                >
+                  <ArrowLeft className="h-6 w-6" />
+                </Button>
+              )}
+              <Link 
+                to="/" 
+                className="flex items-center"
+                style={{ minHeight: '4rem', minWidth: 40 }}
+              >
+                <Car className="h-8 w-8 text-emerald-400" />
+              </Link>
+            </div>
             
             {/* Navigation Bar Right Section */}
             <div className="flex items-center space-x-2 h-16 flex-1 justify-end">
@@ -228,3 +247,4 @@ const Navigation = () => {
 };
 
 export default Navigation;
+
