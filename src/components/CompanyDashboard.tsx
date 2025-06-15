@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import CompanyStatusBanner from './CompanyStatusBanner';
 import NotificationCenter from './NotificationCenter';
+import DashboardTopBar from './DashboardTopBar';
 
 interface Company {
   id: string;
@@ -166,6 +166,7 @@ const CompanyDashboard = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      <DashboardTopBar />
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Company Dashboard</h1>
         <Badge variant="outline" className="text-sm">
