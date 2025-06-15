@@ -12,7 +12,18 @@ import {
 
 // There is no "Anthropic" database integration. All data is from Supabase only.
 
-export function useCompanyDashboardData() {
+interface UseCompanyDashboardDataResult {
+  loading: boolean;
+  company: CompanyData | null;
+  orders: OrderData[];
+  quotes: QuoteData[];
+  notifications: NotificationData[];
+  markNotificationAsRead: (notificationId: string) => Promise<void>;
+  submitQuote: (orderId: string, price: number, duration: number, notes: string) => Promise<void>;
+  updateOrderStatus: (orderId: string, status: string) => Promise<void>;
+}
+
+export function useCompanyDashboardData(): UseCompanyDashboardDataResult {
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [quotes, setQuotes] = useState<QuoteData[]>([]);
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
@@ -71,7 +82,6 @@ export function useCompanyDashboardData() {
     // eslint-disable-next-line
   }, [company?.id, toast]);
 
-  // Added explicit async types
   const fetchCompanyOrders = useCallback(async (id: string): Promise<void> => {
     setLoading(true);
     try {
@@ -178,7 +188,6 @@ export function useCompanyDashboardData() {
     }
   };
 
-  // Explicitly type the returned object to prevent infinite type expansion.
   return {
     loading,
     company,
@@ -188,14 +197,5 @@ export function useCompanyDashboardData() {
     markNotificationAsRead,
     submitQuote,
     updateOrderStatus
-  } as {
-    loading: boolean,
-    company: CompanyData | null,
-    orders: OrderData[],
-    quotes: QuoteData[],
-    notifications: NotificationData[],
-    markNotificationAsRead: (notificationId: string) => Promise<void>,
-    submitQuote: (orderId: string, price: number, duration: number, notes: string) => Promise<void>,
-    updateOrderStatus: (orderId: string, status: string) => Promise<void>,
   };
 }
