@@ -1,7 +1,7 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchUserRole } from './useRoleFetcher';
 
 interface AuthContextType {
   user: User | null;
@@ -23,36 +23,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [role, setRole] = useState<string | null>(null);
 
   // Fetch role function
-  const fetchRole = async (uid: string) => {
-    try {
-      // Try company
-      let { data: companyData } = await supabase
-        .from('companies')
-        .select('id')
-        .eq('user_id', uid)
-        .maybeSingle();
-      if (companyData) {
-        setRole('company');
-        return 'company';
-      }
-      // Try mechanic
-      let { data: mechData } = await supabase
-        .from('mechanics')
-        .select('id')
-        .eq('user_id', uid)
-        .maybeSingle();
-      if (mechData) {
-        setRole('mechanic');
-        return 'mechanic';
-      }
-      // Else, default to 'customer'
-      setRole('customer');
-      return 'customer';
-    } catch (error) {
-      console.error('Error fetching role:', error);
-      setRole('customer');
-      return 'customer';
-    }
+  const updateUserRole = async (uid: string) => {
+    const userRole = await fetchUserRole(uid);
+    setRole(userRole);
+    return userRole;
   };
 
   useEffect(() => {
@@ -71,7 +45,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
           // Fetch role if user exists
           if (session?.user) {
-            await fetchRole(session.user.id);
+            await updateUserRole(session.user.id);
           }
         }
       } catch (error) {
@@ -90,7 +64,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         // Fetch role if user exists
         if (session?.user) {
-          await fetchRole(session.user.id);
+          await updateUserRole(session.user.id);
         } else {
           setRole(null);
         }
@@ -273,7 +247,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // If user created successfully, fetch role immediately
       if (data.user) {
-        await fetchRole(data.user.id);
+        await updateUserRole(data.user.id);
       }
       
       // If user created but no session, try to sign in
@@ -326,7 +300,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // Fetch role immediately after successful sign in
       if (data.user) {
-        await fetchRole(data.user.id);
+        await updateUserRole(data.user.id);
       }
       
       return { data, error };
