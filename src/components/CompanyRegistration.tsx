@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -11,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import ServicePricingForm from './ServicePricingForm';
+import ServiceOnboarding from './ServiceOnboarding';
 import { MapPin, Car, Wrench, Clock, Star } from 'lucide-react';
 
 interface ServicePricing {
@@ -39,19 +38,6 @@ const CompanyRegistration = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, role } = useAuth();
-
-  const availableServices = [
-    'Basic Wash',
-    'Premium Wash',
-    'Full Detailing',
-    'Interior Only',
-    'Emergency Roadside',
-    'Engine Diagnostics',
-    'Tire Services',
-    'Battery Services',
-    'Oil Change',
-    'AC Repair'
-  ];
 
   // Helper to detect if running as mobile app
   const isMobileApp = typeof window !== "undefined" && window.location.search.includes('mobile=true');
@@ -355,7 +341,7 @@ const CompanyRegistration = () => {
         <Checkbox
           id="hasMechanic"
           checked={hasMechanic}
-          onCheckedChange={setHasMechanic}
+          onCheckedChange={(checked) => setHasMechanic(checked === true)}
         />
         <Label htmlFor="hasMechanic">We provide mechanic services</Label>
       </div>
@@ -363,37 +349,11 @@ const CompanyRegistration = () => {
   );
 
   const renderStep3 = () => (
-    <div className="space-y-6">
-      <div>
-        <Label className="text-base font-semibold">Select Services You Offer</Label>
-        <p className="text-sm text-gray-600 mb-4">Choose all services that your company provides</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {availableServices.map((service) => (
-            <div key={service} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
-              <Checkbox
-                id={service}
-                checked={selectedServices.includes(service)}
-                onCheckedChange={() => handleServiceToggle(service)}
-              />
-              <div className="flex items-center space-x-2">
-                {service.includes('Wash') || service.includes('Detailing') || service.includes('Interior') ? (
-                  <Car className="h-4 w-4 text-blue-600" />
-                ) : (
-                  <Wrench className="h-4 w-4 text-gray-600" />
-                )}
-                <Label htmlFor={service} className="cursor-pointer">{service}</Label>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      
-      <ServicePricingForm
-        selectedServices={selectedServices}
-        servicePricing={servicePricing}
-        onPricingChange={setServicePricing}
-      />
-    </div>
+    <ServiceOnboarding
+      selectedServices={selectedServices}
+      onServicesChange={setSelectedServices}
+      onPricingChange={setServicePricing}
+    />
   );
 
   const renderStep4 = () => (
