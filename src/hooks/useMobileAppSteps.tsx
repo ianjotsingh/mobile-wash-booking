@@ -25,22 +25,22 @@ export const useMobileAppSteps = () => {
   }, []);
 
   useEffect(() => {
-    // As soon as auth is NOT loading, move to the appropriate step right away
+    // Move to the next step IMMEDIATELY when auth is done, regardless of role status
     if (authLoading) {
       if (step !== 'loading') setStep('loading');
       return;
     }
-
     if (user) {
       setStep('app');
       setUserType(null);
-    } else {
-      if (!hasShownOnboarding) {
-        setStep('onboarding');
-      } else {
-        setStep('front');
-      }
+      return;
     }
+    if (!hasShownOnboarding) {
+      setStep('onboarding');
+    } else {
+      setStep('front');
+    }
+  // The dependencies are precisely what drive transitions
   }, [user, authLoading, hasShownOnboarding, step]);
 
   const handleOnboardingComplete = () => {
