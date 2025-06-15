@@ -71,7 +71,7 @@ const BookingFlow = () => {
     return (
       <CompanyProviderSelector
         selectedService={selectedService.title || selectedService.name}
-        userLocation="Mumbai, India"
+        userLocation={{ lat: 19.076, lng: 72.8777 }} {/* Fixed: replaced string with object */}
         onProviderSelect={handleCompanySelect}
         onBack={handleBackToServices}
       />

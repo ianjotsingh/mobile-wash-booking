@@ -213,7 +213,7 @@ const CompanyProviderSelector = ({
       toast({
         title: "Booking Requested!",
         description: `${selectedProvider.name} will review your booking.`,
-        variant: "success",
+        variant: "default",
       });
 
       // Pass selectedProvider back if needed, or redirect
