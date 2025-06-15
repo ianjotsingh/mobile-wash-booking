@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from './useAuth';
 
 type Step = 'loading' | 'onboarding' | 'front' | 'login' | 'app';
@@ -10,6 +9,7 @@ export const useMobileAppSteps = () => {
   const [userType, setUserType] = useState<UserType>(null);
   const { user, loading: authLoading } = useAuth();
   const [hasShownOnboarding, setHasShownOnboarding] = useState(false);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   console.log('=== Mobile App Steps Debug ===');
   console.log('User:', user ? user.email : 'No user');
@@ -24,23 +24,35 @@ export const useMobileAppSteps = () => {
   }, []);
 
   useEffect(() => {
+    // Add a timeout to prevent loading being stuck forever.
+    if (step === 'loading') {
+      if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = setTimeout(() => {
+        if (step === 'loading') {
+          // Force transition based on onboarding
+          setStep(hasShownOnboarding ? 'front' : 'onboarding');
+        }
+      }, 6000); // 6 seconds
+    }
+    return () => {
+      if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
+    };
+  }, [step, hasShownOnboarding]);
+
+  useEffect(() => {
     if (authLoading) {
-      console.log('Auth still loading - staying on loading screen');
-      setStep('loading');
+      // Only set loading if not already
+      if (step !== 'loading') setStep('loading');
       return;
     }
 
     if (user) {
-      console.log('User authenticated - going to app');
       setStep('app');
-      setUserType(null); // Reset user type when authenticated
+      setUserType(null);
     } else {
-      console.log('No user - determining next step');
       if (!hasShownOnboarding) {
-        console.log('Showing onboarding');
         setStep('onboarding');
       } else {
-        console.log('Showing front page');
         setStep('front');
       }
     }

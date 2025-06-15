@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -88,14 +87,10 @@ const MobileAppStepFlow = ({
     }
   }, [user, role, loading, step, navigate]);
 
-  // Improved loading condition - don't get stuck if auth is done but no role
+  // Improved loading condition
   if (step === 'loading') {
     // If auth loading is false and we have a clear state, don't stay stuck
-    if (!loading) {
-      console.log('Auth loading complete, step should progress');
-      // This will be handled by the parent component's useEffect
-    }
-    
+    // Add a manual "Continue" button in case it's stuck
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-100 to-white flex items-center justify-center">
         <div className="text-center">
@@ -107,9 +102,20 @@ const MobileAppStepFlow = ({
             Step: {step} | Auth Loading: {loading ? 'Yes' : 'No'} | User: {user ? 'Yes' : 'No'}
           </p>
           {!loading && (
-            <p className="text-orange-500 text-xs mt-2">
-              Auth complete, waiting for step progression...
-            </p>
+            <div className="mt-2 flex flex-col items-center gap-2">
+              <p className="text-orange-500 text-xs">
+                Auth complete but not progressing? Tap below:
+              </p>
+              <button
+                className="mt-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                onClick={() => {
+                  // manually trigger a window reload, which should re-run the loading effect
+                  window.location.reload();
+                }}
+              >
+                Reload App
+              </button>
+            </div>
           )}
         </div>
       </div>
