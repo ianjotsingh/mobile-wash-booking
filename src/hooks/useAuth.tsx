@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,7 +43,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (session?.user) {
           console.log('Initial session found for user:', session.user.email);
           setUser(session.user);
-          await fetchUserRole(session.user.id);
+          await fetchUserRole(session.user.id, session.user);
         } else {
           console.log('No initial session found');
           setUser(null);
@@ -66,7 +65,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (session?.user) {
         setUser(session.user);
-        await fetchUserRole(session.user.id);
+        await fetchUserRole(session.user.id, session.user);
       } else {
         setUser(null);
         setRole(null);
@@ -84,25 +83,67 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  const fetchUserRole = async (userId: string) => {
+  const fetchUserRole = async (userId: string, userObj?: User) => {
     try {
       console.log('Fetching role for user:', userId);
-      const { data, error } = await supabase
+      
+      // First check if user has role in user metadata (for new signups)
+      if (userObj?.user_metadata?.role) {
+        const metadataRole = userObj.user_metadata.role;
+        console.log('Found role in user metadata:', metadataRole);
+        
+        // Map metadata roles to our system roles
+        if (metadataRole === 'provider') {
+          setRole('company');
+          return;
+        } else if (metadataRole === 'mechanic') {
+          setRole('mechanic');
+          return;
+        }
+      }
+
+      // Check user_profiles table
+      const { data: profileData, error: profileError } = await supabase
         .from('user_profiles')
         .select('role')
         .eq('user_id', userId)
         .single();
 
-      if (error) {
-        console.error('Error fetching user role:', error);
-        // Default to customer if role fetch fails
-        setRole('customer');
+      if (!profileError && profileData?.role) {
+        console.log('User role from profiles table:', profileData.role);
+        setRole(profileData.role);
         return;
       }
 
-      const userRole = data?.role || 'customer';
-      console.log('User role fetched:', userRole);
-      setRole(userRole);
+      // Check companies table
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      if (!companyError && companyData) {
+        console.log('User found in companies table, setting role to company');
+        setRole('company');
+        return;
+      }
+
+      // Check mechanics table
+      const { data: mechanicData, error: mechanicError } = await supabase
+        .from('mechanics')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      if (!mechanicError && mechanicData) {
+        console.log('User found in mechanics table, setting role to mechanic');
+        setRole('mechanic');
+        return;
+      }
+
+      // Default to customer
+      console.log('No specific role found, defaulting to customer');
+      setRole('customer');
     } catch (error) {
       console.error('Error in fetchUserRole:', error);
       setRole('customer'); // Default fallback

@@ -3,6 +3,17 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const fetchUserRole = async (uid: string): Promise<string> => {
   try {
+    // First try user_profiles table
+    let { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('user_id', uid)
+      .maybeSingle();
+    
+    if (!profileError && profileData?.role) {
+      return profileData.role;
+    }
+    
     // Try company
     let { data: companyData } = await supabase
       .from('companies')
