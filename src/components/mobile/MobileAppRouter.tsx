@@ -5,7 +5,6 @@ import { useAuth } from '@/hooks/useAuth';
 import MobileAppMain from './MobileAppMain';
 import CompanyRegistration from '../CompanyRegistration';
 import MechanicRegistration from '../MechanicRegistration';
-import CompanyDashboard from '@/pages/CompanyDashboard';
 import AdminDashboard from '@/pages/AdminDashboard';
 import MechanicRequest from '@/pages/MechanicRequest';
 import MechanicSignup from '@/pages/MechanicSignup';
@@ -85,7 +84,7 @@ const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) =>
       <Route path="/mechanic/signup" element={<MechanicSignup />} />
       <Route path="/mechanic/request" element={<MechanicRequest />} />
 
-      {/* Dashboard Routes */}
+      {/* Dashboard Routes - Only mobile dashboard now */}
       <Route
         path="/company/dashboard"
         element={user && (role === 'company' || role === null) ? <CompanyMobileDashboard /> : <Navigate to="/" />}

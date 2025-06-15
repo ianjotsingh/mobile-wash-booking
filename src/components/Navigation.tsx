@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -174,18 +175,6 @@ const Navigation = () => {
                   >
                     Call Mechanic
                   </DropdownMenuItem>
-                  
-                  {isCompany && (
-                    <DropdownMenuItem asChild>
-                      <Link
-                        to="/company-dashboard"
-                        className="flex items-center w-full px-2 py-2 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                        style={{ fontSize: '1rem' }}
-                      >
-                        Company Dashboard
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
                   
                   {isAdmin && (
                     <DropdownMenuItem asChild>
