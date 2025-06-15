@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -17,7 +16,6 @@ const CompanyRegistration = () => {
   const [companyDescription, setCompanyDescription] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
-  const [registrationNumber, setRegistrationNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -152,15 +150,6 @@ const CompanyRegistration = () => {
                   onChange={(e) => setContactPhone(e.target.value)}
                 />
               </div>
-              <div>
-                <Label htmlFor="registrationNumber">Registration Number</Label>
-                <Input
-                  type="text"
-                  id="registrationNumber"
-                  value={registrationNumber}
-                  onChange={(e) => setRegistrationNumber(e.target.value)}
-                />
-              </div>
               <Button type="submit" disabled={loading} className="w-full">
                 {loading ? 'Registering...' : 'Register Company'}
               </Button>
@@ -193,4 +182,3 @@ const CompanyRegistration = () => {
 };
 
 export default CompanyRegistration;
-
