@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -43,7 +42,7 @@ const MobileHome = ({ userLocation, userAddress }: MobileHomeProps) => {
           <Button 
             onClick={handleCallMechanic}
             variant="outline"
-            className="border-white text-white hover:bg-white hover:text-blue-600 flex-1"
+            className="border-white text-blue-600 bg-white hover:bg-blue-50 flex-1"
           >
             <Wrench className="h-4 w-4 mr-2" />
             Call Mechanic
