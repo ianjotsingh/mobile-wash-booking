@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -160,6 +159,13 @@ const MechanicOrderDashboard = () => {
     );
   }
 
+  // Collect some mechanic dashboard stats for display cards:
+  const totalRequests = requests.length;
+  const assigned = requests.filter(req => req.assigned_mechanic_id === mechanic?.id).length;
+  const completed = requests.filter(req => req.status === 'completed' && req.assigned_mechanic_id === mechanic?.id).length;
+  const inProgress = requests.filter(req => req.status === 'in_progress' && req.assigned_mechanic_id === mechanic?.id).length;
+  const pending = requests.filter(req => req.status === 'pending').length;
+
   if (!mechanic) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
@@ -177,25 +183,75 @@ const MechanicOrderDashboard = () => {
     );
   }
 
-  // Filter requests - show pending ones and assigned ones
   const availableRequests = requests.filter(req => req.status === 'pending');
   const myRequests = requests.filter(req => req.assigned_mechanic_id === mechanic.id);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            {mechanic.full_name} - Mechanic Dashboard
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Manage incoming service requests and your assignments
-          </p>
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Top Bar */}
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {mechanic.full_name} - Mechanic Dashboard
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Manage incoming service requests and your assignments.
+            </p>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Total Requests</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-2">
+                <Wrench className="h-5 w-5 text-blue-600" />
+                <span className="text-2xl font-bold">{totalRequests}</span>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Assigned</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-2">
+                <User className="h-5 w-5 text-green-600" />
+                <span className="text-2xl font-bold">{assigned}</span>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">In Progress</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-2">
+                <Clock className="h-5 w-5 text-yellow-600" />
+                <span className="text-2xl font-bold">{inProgress}</span>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Completed</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-2">
+                <Calendar className="h-5 w-5 text-indigo-600" />
+                <span className="text-2xl font-bold">{completed}</span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* My Assigned Requests */}
         {myRequests.length > 0 && (
-          <div className="mb-8">
+          <div>
             <h2 className="text-2xl font-bold text-gray-800 mb-4">My Assigned Requests</h2>
             <div className="grid gap-6">
               {myRequests.map((request) => (

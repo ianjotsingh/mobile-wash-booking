@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Car, Building2, Mail } from 'lucide-react';
+import { Car, Building2, Mail, Wrench } from 'lucide-react'; // Fixed: added Wrench
 
 interface MobileFrontPageProps {
   onUserTypeSelect: (userType: 'customer' | 'provider') => void;
