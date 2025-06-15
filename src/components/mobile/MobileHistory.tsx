@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,8 @@ import { Calendar, Star, MapPin, Clock, Car, Filter } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { openRazorpay } from "@/utils/razorpay";
+const RAZORPAY_KEY = "rzp_test_UmRmJ86btBYits";
 
 interface Order {
   id: string;
@@ -245,7 +246,55 @@ const MobileHistory = () => {
                 </div>
 
                 <div className="flex space-x-2">
-                  {order.status === 'completed' && (
+                  {/* Razorpay Pay Now Button for unpaid completed orders */}
+                  {order.status === "completed" && order.payment_status === "unpaid" && (
+                    <Button
+                      className="bg-emerald-500 hover:bg-emerald-600 flex-1"
+                      onClick={async () => {
+                        openRazorpay({
+                          key: RAZORPAY_KEY,
+                          amount: order.total_amount,
+                          name: "Mobile Car Wash Service",
+                          description: order.service_type,
+                          prefill: {},
+                          onSuccess: async (paymentId) => {
+                            try {
+                              const { error } = await supabase
+                                .from("orders")
+                                .update({ payment_status: "paid" })
+                                .eq("id", order.id);
+                              if (error) throw error;
+
+                              toast({
+                                title: "Payment Successful",
+                                description: "Thank you! Order marked as paid.",
+                              });
+                              fetchOrders();
+                            } catch (err) {
+                              toast({
+                                title: "Order Update Failed",
+                                description: "Payment received, but could not update order.",
+                                variant: "destructive"
+                              });
+                            }
+                          },
+                          onFailure: (err) => {
+                            toast({
+                              title: "Payment Cancelled",
+                              description: typeof err === "string" ? err : "Payment was not completed.",
+                              variant: "destructive"
+                            });
+                          }
+                        });
+                      }}
+                    >
+                      Pay Now
+                    </Button>
+                  )}
+                  {order.status === "completed" && order.payment_status === "paid" && (
+                    <span className="text-green-600 font-bold flex-1 py-2 text-center">Paid</span>
+                  )}
+                  {order.status === "completed" && (
                     <Button
                       variant="outline"
                       size="sm"
