@@ -1,5 +1,6 @@
+
 import React, { useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth'; // import useAuth
+import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import OnboardingFlow from '../onboarding/OnboardingFlow';
 import MobileFrontPage from './MobileFrontPage';
@@ -33,7 +34,7 @@ const MobileAppStepFlow = ({
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Only redirect after loading is done and user exists
+    // Only redirect once loading is done, we have a user, and step is 'app'
     if (!loading && user && step === 'app' && role) {
       if (role === 'company') {
         if (!window.location.pathname.startsWith('/company-dashboard')) {
@@ -46,13 +47,17 @@ const MobileAppStepFlow = ({
           navigate('/mechanic-dashboard', { replace: true });
         }
       } else {
-        // Customer or unknown role - home
+        // Customer and other roles - go to home ("/")
         if (
           window.location.pathname.startsWith('/company-dashboard') ||
           window.location.pathname.startsWith('/mechanic-dashboard')
         ) {
-          // If not meant to be on dashboard, send home
+          // If on dashboard by accident, go home
           console.log('Redirecting customer/other to home');
+          navigate('/', { replace: true });
+        } else if (window.location.pathname !== '/') {
+          // If not on home, go home
+          console.log('Redirecting customer to home');
           navigate('/', { replace: true });
         }
         // No redirect needed if already home
@@ -109,3 +114,5 @@ const MobileAppStepFlow = ({
 };
 
 export default MobileAppStepFlow;
+
+// ... end of file ...
