@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -19,7 +20,7 @@ const CompanyRegistration = () => {
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate(); // Initialize useNavigate
+  const navigate = useNavigate();
   const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,13 +43,19 @@ const CompanyRegistration = () => {
         .insert([
           {
             user_id: user.id,
-            name: companyName,
-            type: companyType,
+            company_name: companyName,
+            owner_name: '', // Could add an Owner Name input if needed
+            email: contactEmail,
+            phone: contactPhone,
+            address: '',    // Could add an Address input if needed
+            city: '',       // Could add a City input if needed
+            zip_code: '',   // Could add a Zip/Pin Code input if needed
             description: companyDescription,
-            contact_email: contactEmail,
-            contact_phone: contactPhone,
-            registration_number: registrationNumber,
-            status: 'pending', // Set initial status to pending
+            status: 'pending',
+            // Optionally: type: companyType, registration_number: registrationNumber,
+            // Add these once you update the table or if these fields exist in your schema
+            // type: companyType,
+            // registration_number: registrationNumber,
           },
         ]);
 
@@ -63,13 +70,12 @@ const CompanyRegistration = () => {
         toast({
           title: 'Success!',
           description: 'Company registered successfully! Redirecting to your dashboard...',
-          variant: 'success',
+          variant: 'default',
         });
 
-        // Add this (using React Router's 'useNavigate' hook):
         setTimeout(() => {
           navigate("/company-dashboard");
-        }, 1200); // Wait for toast (1.2 seconds), feel free to adjust this value as needed
+        }, 1200);
       }
     } catch (error) {
       console.error('Company registration error:', error);
@@ -161,7 +167,6 @@ const CompanyRegistration = () => {
             </form>
           </CardContent>
         </Card>
-
         {/* Additional Information Card */}
         <Card>
           <CardHeader>
@@ -188,3 +193,4 @@ const CompanyRegistration = () => {
 };
 
 export default CompanyRegistration;
+
