@@ -20,6 +20,7 @@ interface ServicePricing {
 const CompanyRegistration = () => {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
+  const [locationStepCompleted, setLocationStepCompleted] = useState(false);
   const { toast } = useToast();
   const { signUp } = useAuth();
   const navigate = useNavigate();
@@ -114,6 +115,25 @@ const CompanyRegistration = () => {
       lat: selectedLocation.lat,
       lng: selectedLocation.lng
     }));
+  };
+
+  const handleLocationStep = (selectedLocation: { 
+    lat: number; 
+    lng: number; 
+    address: string; 
+    city: string; 
+    zipCode: string; 
+  }) => {
+    setFormData(prev => ({
+      ...prev,
+      address: selectedLocation.address,
+      city: selectedLocation.city,
+      zipCode: selectedLocation.zipCode,
+      lat: selectedLocation.lat,
+      lng: selectedLocation.lng
+    }));
+    setLocationStepCompleted(true);
+    setStep(2); // Continue to full registration form
   };
 
   const handleServiceToggle = (service: string) => {
@@ -368,6 +388,35 @@ const CompanyRegistration = () => {
     );
   }
 
+  if (!locationStepCompleted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold text-center">Set Your Business Location</CardTitle>
+            <CardDescription className="text-center">
+              Step 2: Select your location so customers and orders are matched to you.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4 text-gray-600 text-center">
+              Use the map or search to select your business location. This is required so you can receive orders from your area.
+            </div>
+            <EnhancedLocationSelector
+              onLocationSelect={handleLocationStep}
+              buttonLabel="Save Location & Continue"
+              showCurrentLocationButton={true}
+            />
+            <div className="text-xs text-gray-400 text-center mt-6">
+              Location helps us match you with the right customers.<br />
+              You may adjust this later in your company profile.
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
       <div className="max-w-2xl mx-auto">
@@ -375,7 +424,7 @@ const CompanyRegistration = () => {
           <CardHeader>
             <CardTitle className="text-2xl font-bold text-center">Register Your Washing Company</CardTitle>
             <CardDescription className="text-center">
-              Step 2: Complete your company profile to start receiving bookings
+              Step 3: Complete your company profile to start receiving bookings
             </CardDescription>
           </CardHeader>
           <CardContent>
