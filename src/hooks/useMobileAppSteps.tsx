@@ -1,66 +1,55 @@
+
 import { useState, useEffect } from 'react';
-import { User } from '@supabase/supabase-js';
+import { useAuth } from './useAuth';
 
 type Step = 'loading' | 'onboarding' | 'front' | 'login' | 'app';
+type UserType = 'customer' | 'provider' | null;
 
-export const useMobileAppSteps = (
-  user: User | null,
-  loading: boolean,
-  role: string | null
-) => {
+export const useMobileAppSteps = () => {
   const [step, setStep] = useState<Step>('loading');
-  const [userType, setUserType] = useState<'customer' | 'provider' | null>(null);
+  const [userType, setUserType] = useState<UserType>(null);
+  const { user, loading: authLoading } = useAuth();
+  const [hasShownOnboarding, setHasShownOnboarding] = useState(false);
+
+  console.log('=== Mobile App Steps Debug ===');
+  console.log('User:', user ? user.email : 'No user');
+  console.log('Auth loading:', authLoading);
+  console.log('Current step:', step);
+  console.log('Has shown onboarding:', hasShownOnboarding);
 
   useEffect(() => {
-    console.log('=== Mobile App Steps Debug ===');
-    console.log('User:', user?.email || 'No user');
-    console.log('Auth loading:', loading);
-    console.log('Role:', role);
-    console.log('Current step:', step);
-    
-    // If still loading auth, stay on loading
-    if (loading) {
+    // Check if onboarding was already shown
+    const onboardingShown = localStorage.getItem('onboarding_shown') === 'true';
+    setHasShownOnboarding(onboardingShown);
+  }, []);
+
+  useEffect(() => {
+    if (authLoading) {
       console.log('Auth still loading - staying on loading screen');
-      if (step !== 'loading') {
-        setStep('loading');
-      }
+      setStep('loading');
       return;
     }
 
-    // If we have a user, go directly to app
     if (user) {
-      console.log('User authenticated - going to app, role:', role);
-      if (step !== 'app') {
-        setStep('app');
-      }
-      return;
-    }
-
-    // No user - check onboarding status
-    const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding') === 'true';
-    console.log('Has completed onboarding:', hasCompletedOnboarding);
-
-    if (!hasCompletedOnboarding) {
-      console.log('Setting step to onboarding');
-      if (step !== 'onboarding') {
+      console.log('User authenticated - going to app');
+      setStep('app');
+      setUserType(null); // Reset user type when authenticated
+    } else {
+      console.log('No user - determining next step');
+      if (!hasShownOnboarding) {
+        console.log('Showing onboarding');
         setStep('onboarding');
+      } else {
+        console.log('Showing front page');
+        setStep('front');
       }
-      return;
     }
-    
-    // ---- FIXED: Prevent resetting from 'login' to 'front' when a userType is selected ----
-    // Only show front if we are NOT already in login step with a userType
-    if (step === 'login') return; // allow staying in login until successful login!
-
-    console.log('Setting step to front');
-    if (step !== 'front') {
-      setStep('front');
-    }
-  }, [user, loading, role, step, userType]);
+  }, [user, authLoading, hasShownOnboarding]);
 
   const handleOnboardingComplete = () => {
     console.log('Onboarding completed');
-    localStorage.setItem('hasCompletedOnboarding', 'true');
+    localStorage.setItem('onboarding_shown', 'true');
+    setHasShownOnboarding(true);
     setStep('front');
   };
 
@@ -71,8 +60,9 @@ export const useMobileAppSteps = (
   };
 
   const handleLoginSuccess = () => {
-    console.log('Login successful - going to app');
+    console.log('Login successful');
     setStep('app');
+    setUserType(null);
   };
 
   return {

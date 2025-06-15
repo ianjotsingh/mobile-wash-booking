@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -28,16 +29,34 @@ const MobileAppStepFlow = ({
   console.log('Current step:', step);
   console.log('User type:', userType);
 
-  // Add navigation for role-based redirects AFTER login success
   const { user, role, loading } = useAuth();
   const navigate = useNavigate();
-
-  // Ref to prevent repeated redirects
   const hasRedirected = useRef(false);
+  const loadingTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Add a timeout to prevent infinite loading
+  useEffect(() => {
+    if (step === 'loading') {
+      loadingTimeout.current = setTimeout(() => {
+        console.log('Loading timeout reached, forcing step progression');
+        // Force progression if stuck loading for too long
+        if (!user && !loading) {
+          console.log('No user detected, should show onboarding or front page');
+        } else if (user && !role && !loading) {
+          console.log('User exists but no role, should show app');
+        }
+      }, 5000); // 5 second timeout
+    }
+
+    return () => {
+      if (loadingTimeout.current) {
+        clearTimeout(loadingTimeout.current);
+      }
+    };
+  }, [step, user, role, loading]);
 
   useEffect(() => {
     // Only redirect when loading is done, user exists, and step is 'app'
-    // Only navigate once, using a ref flag to avoid infinite loops
     if (!loading && user && step === 'app' && role && !hasRedirected.current) {
       hasRedirected.current = true;
       if (role === 'company') {
@@ -60,16 +79,23 @@ const MobileAppStepFlow = ({
           console.log('Redirecting customer/other to home');
           navigate('/', { replace: true });
         }
-        // else: already on home
       }
     }
-    // If role changes (e.g., on logout/login), reset redirect state
+    
+    // Reset redirect state when user changes
     if (!user || loading || step !== 'app') {
       hasRedirected.current = false;
     }
   }, [user, role, loading, step, navigate]);
 
+  // Improved loading condition - don't get stuck if auth is done but no role
   if (step === 'loading') {
+    // If auth loading is false and we have a clear state, don't stay stuck
+    if (!loading) {
+      console.log('Auth loading complete, step should progress');
+      // This will be handled by the parent component's useEffect
+    }
+    
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-100 to-white flex items-center justify-center">
         <div className="text-center">
@@ -77,7 +103,14 @@ const MobileAppStepFlow = ({
             <span className="text-4xl font-bold text-white tracking-wide drop-shadow select-none">WC</span>
           </div>
           <p className="text-gray-600 text-lg">Loading...</p>
-          <p className="text-gray-400 text-sm mt-2">Step: {step}</p>
+          <p className="text-gray-400 text-sm mt-2">
+            Step: {step} | Auth Loading: {loading ? 'Yes' : 'No'} | User: {user ? 'Yes' : 'No'}
+          </p>
+          {!loading && (
+            <p className="text-orange-500 text-xs mt-2">
+              Auth complete, waiting for step progression...
+            </p>
+          )}
         </div>
       </div>
     );
@@ -103,15 +136,21 @@ const MobileAppStepFlow = ({
     return <>{children}</>;
   }
 
-  console.log('No matching step found, staying on loading');
+  console.log('No matching step found, showing error state');
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-100 to-white flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-b from-red-100 to-white flex items-center justify-center">
       <div className="text-center">
         <div className="w-20 h-20 bg-gradient-to-br from-red-700 to-red-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
           <span className="text-4xl font-bold text-white tracking-wide drop-shadow select-none">!</span>
         </div>
-        <p className="text-gray-600 text-lg">Unknown State</p>
+        <p className="text-gray-600 text-lg">Something went wrong</p>
         <p className="text-gray-400 text-sm mt-2">Step: {step}, UserType: {userType}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Reload App
+        </button>
       </div>
     </div>
   );
