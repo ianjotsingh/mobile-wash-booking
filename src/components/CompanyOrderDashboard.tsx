@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -306,8 +305,10 @@ const CompanyOrderDashboard = () => {
     );
   }
 
-  // --- Fix type hell: Add explicit type here ---
-  const unreadNotifications: NotificationData[] = notifications.filter((n: NotificationData) => !n.is_read);
+  // --- Fix type instantiation infinite issue ---
+  // Explicitly annotate both notifications and unreadNotifications
+  const notificationsArray: NotificationData[] = Array.isArray(notifications) ? notifications : [];
+  const unreadNotifications: NotificationData[] = notificationsArray.filter((n: NotificationData) => !n.is_read);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -317,8 +318,9 @@ const CompanyOrderDashboard = () => {
         <DashboardHeader companyName={company.company_name} />
 
         {/* Notifications Panel */}
+        {/* Explicit prop typing for NotificationsPanel */}
         <NotificationsPanel 
-          unreadNotifications={unreadNotifications}
+          unreadNotifications={unreadNotifications as NotificationData[]}
           markNotificationAsRead={markNotificationAsRead}
         />
 
@@ -334,7 +336,6 @@ const CompanyOrderDashboard = () => {
             rejectOrder={rejectOrder}
           />
         )}
-
       </div>
     </div>
   );
