@@ -322,8 +322,8 @@ const CompanyOrderDashboard = () => {
     );
   }
 
-  // Remove explicit type to avoid TS2589 error
-  const unreadNotifications = notifications.filter(n => !n.is_read);
+  // Explicitly type to avoid TS2589 error
+  const unreadNotifications: NotificationData[] = notifications.filter((n) => !n.is_read);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
