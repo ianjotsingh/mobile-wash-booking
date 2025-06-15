@@ -1,5 +1,6 @@
-
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth'; // import useAuth
+import { useNavigate } from 'react-router-dom';
 import OnboardingFlow from '../onboarding/OnboardingFlow';
 import MobileFrontPage from './MobileFrontPage';
 import MobileLogin from '../auth/MobileLogin';
@@ -22,10 +23,42 @@ const MobileAppStepFlow = ({
   onUserTypeSelect,
   onLoginSuccess,
   children
-}: MobileAppStepFlowProps) => {
+}: any) => {
   console.log('=== MobileAppStepFlow Render ===');
   console.log('Current step:', step);
   console.log('User type:', userType);
+
+  // Add navigation for role-based redirects AFTER login success
+  const { user, role, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Only redirect after loading is done and user exists
+    if (!loading && user && step === 'app' && role) {
+      if (role === 'company') {
+        if (!window.location.pathname.startsWith('/company-dashboard')) {
+          console.log('Redirecting company to company-dashboard');
+          navigate('/company-dashboard', { replace: true });
+        }
+      } else if (role === 'mechanic') {
+        if (!window.location.pathname.startsWith('/mechanic-dashboard')) {
+          console.log('Redirecting mechanic to mechanic-dashboard');
+          navigate('/mechanic-dashboard', { replace: true });
+        }
+      } else {
+        // Customer or unknown role - home
+        if (
+          window.location.pathname.startsWith('/company-dashboard') ||
+          window.location.pathname.startsWith('/mechanic-dashboard')
+        ) {
+          // If not meant to be on dashboard, send home
+          console.log('Redirecting customer/other to home');
+          navigate('/', { replace: true });
+        }
+        // No redirect needed if already home
+      }
+    }
+  }, [user, role, step, loading, navigate]);
 
   if (step === 'loading') {
     return (
