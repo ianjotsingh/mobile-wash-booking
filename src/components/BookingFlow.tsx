@@ -7,6 +7,8 @@ import CompanyProviderSelector from './CompanyProviderSelector';
 import { Card, CardContent } from "@/components/ui/card";
 
 const BookingFlow = () => {
+  console.log('=== BookingFlow Render ===');
+  
   const navigate = useNavigate();
   const { user } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -14,8 +16,14 @@ const BookingFlow = () => {
   const [selectedService, setSelectedService] = useState<any>(null);
   const [selectedCompany, setSelectedCompany] = useState<any>(null);
 
+  console.log('BookingFlow - User:', user ? 'Logged in' : 'Not logged in');
+  console.log('BookingFlow - Current step:', currentStep);
+
   useEffect(() => {
+    console.log('BookingFlow useEffect - checking auth and stored service');
+    
     if (!user) {
+      console.log('No user, showing auth modal');
       setShowAuthModal(true);
       return;
     }
@@ -117,11 +125,12 @@ const BookingFlow = () => {
     );
   }
 
-  // Default fallback
+  // Default fallback - show service selection prompt
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Select a Service</h2>
+        <p className="text-gray-600 mb-6">Choose from our available services to get started</p>
         <button
           onClick={handleBackToServices}
           className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"

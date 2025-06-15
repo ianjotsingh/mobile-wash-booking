@@ -25,10 +25,15 @@ import { AuthProvider } from '@/hooks/useAuth';
 const queryClient = new QueryClient();
 
 function App() {
-  // Enable mobile mode by default for preview
-  const isMobileApp = true; // Changed from window.location.search.includes('mobile=true')
+  // Temporarily disable mobile mode to debug routing issues
+  const isMobileApp = false; // Changed to false for debugging
+  
+  console.log('=== App.tsx Render ===');
+  console.log('Mobile mode:', isMobileApp);
+  console.log('Current URL:', window.location.href);
 
   if (isMobileApp) {
+    console.log('Rendering mobile app');
     return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
@@ -44,6 +49,7 @@ function App() {
     );
   }
 
+  console.log('Rendering desktop app with router');
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
