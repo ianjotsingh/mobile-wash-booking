@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -25,7 +24,18 @@ const CompanyRegistration = () => {
   // Helper to detect if running as mobile app (copied from Navigation.tsx logic)
   const isMobileApp = typeof window !== "undefined" && window.location.search.includes('mobile=true');
 
-  // Note: You can remove the waitForCompanyRole and its usage entirely now!
+  // Poll for updated role after registration
+  const waitForCompanyRole = async (userId: string, retries = 15, delay = 400) => {
+    const { fetchUserRole } = await import('@/hooks/useRoleFetcher');
+    for (let i = 0; i < retries; i++) {
+      const currentRole = await fetchUserRole(userId);
+      if (currentRole === 'company') {
+        return true;
+      }
+      await new Promise(res => setTimeout(res, delay));
+    }
+    return false;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,16 +79,28 @@ const CompanyRegistration = () => {
         });
       } else {
         toast({
-          title: 'Success!',
-          description: 'Company registered successfully! Redirecting to your dashboard...',
+          title: 'Almost done...',
+          description: 'Finalizing your registration (this can take a few seconds)...',
           variant: 'default',
+          duration: 4000,
         });
 
-        // Immediately redirect to company dashboard (don't wait for role change)
-        if (isMobileApp) {
-          window.location.href = "/company/dashboard";
+        // Wait for role to become "company" before redirecting!
+        const success = await waitForCompanyRole(user.id);
+
+        if (success) {
+          // Now redirect to dashboard according to platform
+          if (isMobileApp) {
+            window.location.href = "/company/dashboard";
+          } else {
+            window.location.href = "/company-dashboard";
+          }
         } else {
-          window.location.href = "/company-dashboard";
+          toast({
+            title: 'Notice',
+            description: 'Company registered but could not verify your role. Please refresh or login again.',
+            variant: 'destructive',
+          });
         }
       }
     } catch (error) {
