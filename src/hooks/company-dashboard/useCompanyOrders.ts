@@ -3,19 +3,11 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderData } from '@/types/companyDashboard';
 
-// Explicit return type (no deep type recursion)
-interface UseCompanyOrdersResult {
-  orders: OrderData[];
-  loading: boolean;
-  fetchCompanyOrders: () => Promise<void>;
-}
-
-export function useCompanyOrders(companyId: string | undefined): UseCompanyOrdersResult {
-  // Explicit array type, no dispatch generic in state for simplicity
+export function useCompanyOrders(companyId: string | undefined) {
   const [orders, setOrders] = useState<OrderData[]>([]);
-  const [loading, setLoading] = useState<boolean>(!!companyId);
+  const [loading, setLoading] = useState(!!companyId);
 
-  const fetchCompanyOrders = useCallback(async (): Promise<void> => {
+  const fetchCompanyOrders = useCallback(async () => {
     if (!companyId) return;
     setLoading(true);
     try {
@@ -31,6 +23,5 @@ export function useCompanyOrders(companyId: string | undefined): UseCompanyOrder
     }
   }, [companyId]);
 
-  // Explicit return, with setter included
   return { orders, loading, fetchCompanyOrders };
 }
