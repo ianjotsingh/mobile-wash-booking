@@ -16,9 +16,9 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
     onUserTypeSelect('provider');
   };
 
-  // Changed here: navigate to the correct mobile route
+  // Instead of navigating, trigger registration flow for mechanic
   const handleMechanicRegister = () => {
-    window.location.href = '/mechanic/signup';
+    onUserTypeSelect('provider');
   };
 
   const handleEmailLogin = () => {
