@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 
 type Step = 'loading' | 'onboarding' | 'front' | 'login' | 'app';
@@ -9,8 +10,8 @@ export const useMobileAppSteps = () => {
   const [userType, setUserType] = useState<UserType>(null);
   const { user, loading: authLoading } = useAuth();
   const [hasShownOnboarding, setHasShownOnboarding] = useState(false);
-  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Debug logs
   console.log('=== Mobile App Steps Debug ===');
   console.log('User:', user ? user.email : 'No user');
   console.log('Auth loading:', authLoading);
@@ -24,24 +25,8 @@ export const useMobileAppSteps = () => {
   }, []);
 
   useEffect(() => {
-    // Add a timeout to prevent loading being stuck forever.
-    if (step === 'loading') {
-      if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
-      loadingTimeoutRef.current = setTimeout(() => {
-        if (step === 'loading') {
-          // Force transition based on onboarding
-          setStep(hasShownOnboarding ? 'front' : 'onboarding');
-        }
-      }, 6000); // 6 seconds
-    }
-    return () => {
-      if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
-    };
-  }, [step, hasShownOnboarding]);
-
-  useEffect(() => {
+    // As soon as auth is NOT loading, move to the appropriate step right away
     if (authLoading) {
-      // Only set loading if not already
       if (step !== 'loading') setStep('loading');
       return;
     }
@@ -56,23 +41,20 @@ export const useMobileAppSteps = () => {
         setStep('front');
       }
     }
-  }, [user, authLoading, hasShownOnboarding]);
+  }, [user, authLoading, hasShownOnboarding, step]);
 
   const handleOnboardingComplete = () => {
-    console.log('Onboarding completed');
     localStorage.setItem('onboarding_shown', 'true');
     setHasShownOnboarding(true);
     setStep('front');
   };
 
   const handleUserTypeSelect = (type: 'customer' | 'provider') => {
-    console.log('User type selected:', type);
     setUserType(type);
     setStep('login');
   };
 
   const handleLoginSuccess = () => {
-    console.log('Login successful');
     setStep('app');
     setUserType(null);
   };
