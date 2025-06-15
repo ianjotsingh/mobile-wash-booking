@@ -322,7 +322,7 @@ const CompanyOrderDashboard = () => {
     );
   }
 
-  const unreadNotifications: NotificationData[] = notifications.filter((n): n is NotificationData => !n.is_read);
+  const unreadNotifications = notifications.filter(n => !n.is_read);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
