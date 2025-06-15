@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Home, Calendar, History, User } from 'lucide-react';
@@ -6,6 +5,7 @@ import MobileHome from './MobileHome';
 import MobileBooking from './MobileBooking';
 import MobileHistory from './MobileHistory';
 import MobileProfile from './MobileProfile';
+import MobileTopBar from "./MobileTopBar";
 
 interface MobileAppMainProps {
   userLocation: { lat: number; lng: number } | null;
@@ -17,6 +17,7 @@ const MobileAppMain = ({ userLocation, userAddress }: MobileAppMainProps) => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      <MobileTopBar />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
         {/* Main Content */}
         <div className="flex-1 overflow-auto">
