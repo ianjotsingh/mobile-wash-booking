@@ -25,18 +25,7 @@ const CompanyRegistration = () => {
   // Helper to detect if running as mobile app (copied from Navigation.tsx logic)
   const isMobileApp = typeof window !== "undefined" && window.location.search.includes('mobile=true');
 
-  // Poll for updated role after registration
-  const waitForCompanyRole = async (userId: string, retries = 15, delay = 400) => {
-    const { fetchUserRole } = await import('@/hooks/useRoleFetcher');
-    for (let i = 0; i < retries; i++) {
-      const currentRole = await fetchUserRole(userId);
-      if (currentRole === 'company') {
-        return true;
-      }
-      await new Promise(res => setTimeout(res, delay));
-    }
-    return false;
-  };
+  // Note: You can remove the waitForCompanyRole and its usage entirely now!
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,22 +74,11 @@ const CompanyRegistration = () => {
           variant: 'default',
         });
 
-        // NEW: Poll for role to become 'company' before redirecting
-        const success = await waitForCompanyRole(user.id);
-
-        if (success) {
-          // Now redirect to dashboard according to platform
-          if (isMobileApp) {
-            window.location.href = "/company/dashboard";
-          } else {
-            window.location.href = "/company-dashboard";
-          }
+        // Immediately redirect to company dashboard (don't wait for role change)
+        if (isMobileApp) {
+          window.location.href = "/company/dashboard";
         } else {
-          toast({
-            title: 'Notice',
-            description: 'Company registered but could not verify your role. Please refresh or login again.',
-            variant: 'destructive',
-          });
+          window.location.href = "/company-dashboard";
         }
       }
     } catch (error) {
@@ -210,4 +188,3 @@ const CompanyRegistration = () => {
 };
 
 export default CompanyRegistration;
-
