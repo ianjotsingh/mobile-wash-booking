@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 
@@ -24,13 +23,26 @@ export const useMobileAppSteps = () => {
   }, []);
 
   useEffect(() => {
-    console.log('Step effect triggered:', { authLoading, user: !!user, hasShownOnboarding, step, userType });
-    
+    // Step effect triggered on auth state change, onboarding, etc
+
     // If auth is still loading, stay on loading
     if (authLoading) {
       if (step !== 'loading') {
-        console.log('Setting step to loading');
         setStep('loading');
+      }
+      return;
+    }
+
+    // ***** FIX FOR LOGOUT *****
+    // If user is logged out (user == null), always set appropriate step
+    if (!user) {
+      if (!hasShownOnboarding) {
+        if (step !== 'onboarding') setStep('onboarding');
+      } else {
+        if (step !== 'front' && step !== 'onboarding' && step !== 'login') {
+          setStep('front');
+          setUserType(null);
+        }
       }
       return;
     }
@@ -38,23 +50,10 @@ export const useMobileAppSteps = () => {
     // Auth is done, user exists -> go to app
     if (user) {
       if (step !== 'app') {
-        console.log('User found, setting step to app');
         setStep('app');
         setUserType(null);
       }
       return;
-    }
-
-    // No user - only set initial step if we're still on loading
-    // Don't override user selections (login step)
-    if (step === 'loading') {
-      if (!hasShownOnboarding) {
-        console.log('No onboarding shown, setting step to onboarding');
-        setStep('onboarding');
-      } else {
-        console.log('Onboarding shown, setting step to front');
-        setStep('front');
-      }
     }
   }, [user, authLoading, hasShownOnboarding, step]);
 
