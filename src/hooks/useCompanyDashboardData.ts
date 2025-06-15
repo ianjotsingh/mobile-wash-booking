@@ -10,12 +10,14 @@ import {
   CompanyData
 } from '@/types/companyDashboard';
 
+// There is no "Anthropic" database integration. All data is from Supabase only.
+
 export function useCompanyDashboardData() {
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [quotes, setQuotes] = useState<QuoteData[]>([]);
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [company, setCompany] = useState<CompanyData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -30,8 +32,10 @@ export function useCompanyDashboardData() {
           .eq('user_id', user.id)
           .single();
         if (error) throw error;
-        setCompany(data);
-      } catch { setCompany(null); }
+        setCompany(data as CompanyData);
+      } catch {
+        setCompany(null);
+      }
     })();
   }, [user]);
 
@@ -67,7 +71,8 @@ export function useCompanyDashboardData() {
     // eslint-disable-next-line
   }, [company?.id, toast]);
 
-  const fetchCompanyOrders = useCallback(async (id: string) => {
+  // Added explicit async types
+  const fetchCompanyOrders = useCallback(async (id: string): Promise<void> => {
     setLoading(true);
     try {
       const { data: companyOrders, error } = await supabase
@@ -76,24 +81,24 @@ export function useCompanyDashboardData() {
         .eq('selected_company_id', id)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      setOrders(companyOrders || []);
+      setOrders((companyOrders || []) as OrderData[]);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const fetchMyQuotes = useCallback(async (id: string) => {
+  const fetchMyQuotes = useCallback(async (id: string): Promise<void> => {
     try {
       const { data, error } = await supabase
         .from('order_quotes')
         .select('*')
         .eq('company_id', id);
       if (error) throw error;
-      setQuotes(data || []);
+      setQuotes((data || []) as QuoteData[]);
     } catch {}
   }, []);
 
-  const fetchNotifications = useCallback(async (id: string) => {
+  const fetchNotifications = useCallback(async (id: string): Promise<void> => {
     try {
       const { data, error } = await supabase
         .from('notifications')
@@ -102,11 +107,11 @@ export function useCompanyDashboardData() {
         .order('created_at', { ascending: false })
         .limit(10);
       if (error) throw error;
-      setNotifications(data || []);
+      setNotifications((data || []) as NotificationData[]);
     } catch {}
   }, []);
 
-  const markNotificationAsRead = async (notificationId: string) => {
+  const markNotificationAsRead = async (notificationId: string): Promise<void> => {
     try {
       const { error } = await supabase
         .from('notifications')
@@ -122,7 +127,7 @@ export function useCompanyDashboardData() {
     price: number,
     duration: number,
     notes: string
-  ) => {
+  ): Promise<void> => {
     if (!company) return;
     try {
       const { error } = await supabase
@@ -147,7 +152,7 @@ export function useCompanyDashboardData() {
     }
   };
 
-  const updateOrderStatus = async (orderId: string, status: string) => {
+  const updateOrderStatus = async (orderId: string, status: string): Promise<void> => {
     try {
       const { error } = await supabase
         .from('orders')
@@ -173,6 +178,7 @@ export function useCompanyDashboardData() {
     }
   };
 
+  // Explicitly type the returned object to prevent infinite type expansion.
   return {
     loading,
     company,
@@ -182,5 +188,14 @@ export function useCompanyDashboardData() {
     markNotificationAsRead,
     submitQuote,
     updateOrderStatus
+  } as {
+    loading: boolean,
+    company: CompanyData | null,
+    orders: OrderData[],
+    quotes: QuoteData[],
+    notifications: NotificationData[],
+    markNotificationAsRead: (notificationId: string) => Promise<void>,
+    submitQuote: (orderId: string, price: number, duration: number, notes: string) => Promise<void>,
+    updateOrderStatus: (orderId: string, status: string) => Promise<void>,
   };
 }
