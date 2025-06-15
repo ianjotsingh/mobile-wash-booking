@@ -322,7 +322,8 @@ const CompanyOrderDashboard = () => {
     );
   }
 
-  const unreadNotifications = notifications.filter(n => !n.is_read);
+  // Add explicit type annotation to prevent TS2589 deep type error
+  const unreadNotifications: NotificationData[] = notifications.filter(n => !n.is_read);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
