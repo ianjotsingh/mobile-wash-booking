@@ -26,7 +26,13 @@ interface MobileAppRouterProps {
 const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) => {
   const { user, role, loading } = useAuth();
 
-  // If still loading user, show a spinner to prevent premature redirect
+  console.log('=== MobileAppRouter Debug ===');
+  console.log('User:', user?.email || 'None');
+  console.log('Role:', role || 'None');
+  console.log('Loading:', loading);
+  console.log('Current path:', window.location.pathname);
+
+  // Show loading only if auth is actually loading
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-100 to-white">
@@ -44,19 +50,23 @@ const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) =>
   const getDefaultRoute = () => {
     if (!user) {
       // Not logged in - show customer home
+      console.log('No user, showing customer home');
       return <MobileAppMain userLocation={userLocation} userAddress={userAddress} />;
     }
 
-    // --- FIX: If user is logged in but role is null, treat as customer ---
-    // Only treat as company or mechanic if explicit role, else customer
-    if (role === 'company') {
+    // User is logged in - route based on role
+    // Treat null role as customer to prevent infinite loading
+    const userRole = role || 'customer';
+    console.log('User logged in with role:', userRole);
+
+    if (userRole === 'company') {
       return <Navigate to="/company-dashboard" replace />;
     }
-    if (role === 'mechanic') {
+    if (userRole === 'mechanic') {
       return <Navigate to="/mechanic-dashboard" replace />;
     }
 
-    // role is null or 'customer' or unknown → show customer home!
+    // Default to customer home for customers and unknown roles
     return <MobileAppMain userLocation={userLocation} userAddress={userAddress} />;
   };
 
@@ -78,11 +88,11 @@ const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) =>
       {/* Dashboard Routes */}
       <Route
         path="/company/dashboard"
-        element={user && role === 'company' ? <CompanyMobileDashboard /> : <Navigate to="/" />}
+        element={user && (role === 'company' || role === null) ? <CompanyMobileDashboard /> : <Navigate to="/" />}
       />
       <Route
         path="/company-dashboard"
-        element={user && role === 'company' ? <CompanyMobileDashboard /> : <Navigate to="/" />}
+        element={user && (role === 'company' || role === null) ? <CompanyMobileDashboard /> : <Navigate to="/" />}
       />
       <Route
         path="/admin/dashboard"
@@ -90,7 +100,7 @@ const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) =>
       />
       <Route
         path="/mechanic-dashboard"
-        element={user && role === 'mechanic' ? <MechanicDashboard /> : <Navigate to="/" />}
+        element={user && (role === 'mechanic' || role === null) ? <MechanicDashboard /> : <Navigate to="/" />}
       />
 
       {/* Booking and Service Routes */}
@@ -106,4 +116,3 @@ const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) =>
 };
 
 export default MobileAppRouter;
-

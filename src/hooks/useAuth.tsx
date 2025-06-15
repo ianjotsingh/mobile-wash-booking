@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,67 +21,68 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  console.log('=== Auth Provider Initializing ===');
+  console.log('=== Auth Provider State ===');
+  console.log('User:', user?.email || 'None');
+  console.log('Role:', role || 'None');
+  console.log('Loading:', loading);
 
   useEffect(() => {
-    // Add a timeout to prevent infinite loading
-    const loadingTimeout = setTimeout(() => {
-      console.log('Auth loading timeout reached, forcing loading to false');
-      if (loading) setLoading(false);
-    }, 10000); // 10 second timeout
+    let mounted = true;
 
     const initializeAuth = async () => {
       try {
-        console.log('Getting initial session...');
+        console.log('Initializing auth...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
+        if (!mounted) return;
+
         if (error) {
           console.error('Session error:', error);
           setLoading(false);
-          clearTimeout(loadingTimeout);
           return;
         }
 
         if (session?.user) {
-          console.log('Initial session found for user:', session.user.email);
+          console.log('Session found for:', session.user.email);
           setUser(session.user);
-          await fetchUserRole(session.user.id, session.user);
+          // Start role fetch but don't wait for it to complete
+          fetchUserRole(session.user.id, session.user);
         } else {
-          console.log('No initial session found');
+          console.log('No session found');
           setUser(null);
           setRole(null);
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error('Auth initialization error:', error);
       } finally {
-        console.log('Initial session check completed - setting loading to false');
-        setLoading(false);
-        clearTimeout(loadingTimeout);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+
       console.log('Auth state changed:', event, session?.user?.email || 'No user');
       
       if (session?.user) {
         setUser(session.user);
-        await fetchUserRole(session.user.id, session.user);
+        // Fetch role but don't block the UI
+        fetchUserRole(session.user.id, session.user);
       } else {
         setUser(null);
         setRole(null);
       }
       
-      if (loading) {
-        setLoading(false);
-        clearTimeout(loadingTimeout);
-      }
+      setLoading(false);
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
-      clearTimeout(loadingTimeout);
     };
   }, []);
 
@@ -88,9 +90,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const userRole = await fetcher(userId, userObj);
       setRole(userRole);
+      console.log('Role fetched:', userRole);
     } catch (error) {
-      console.error('Error in fetchUserRole wrapper:', error);
-      setRole('customer'); // Default fallback
+      console.error('Error fetching role:', error);
+      // Default to customer if role fetch fails
+      setRole('customer');
     }
   };
 
@@ -124,7 +128,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const resetPasswordWithPhone = async (phone: string, newPassword: string) => {
     try {
-      // Find user by phone number
       const { data: profiles, error: profileError } = await supabase
         .from('user_profiles')
         .select('user_id')
@@ -135,8 +138,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: { message: 'Phone number not found' } };
       }
 
-      // For demo purposes, we'll simulate a password reset
-      // In a real app, you'd need a proper phone verification flow
       return { error: null };
     } catch (error) {
       return { error };

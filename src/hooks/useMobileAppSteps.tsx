@@ -11,7 +11,6 @@ export const useMobileAppSteps = () => {
   const { user, loading: authLoading } = useAuth();
   const [hasShownOnboarding, setHasShownOnboarding] = useState(false);
 
-  // Debug logs
   console.log('=== Mobile App Steps Debug ===');
   console.log('User:', user ? user.email : 'No user');
   console.log('Auth loading:', authLoading);
@@ -19,42 +18,61 @@ export const useMobileAppSteps = () => {
   console.log('Has shown onboarding:', hasShownOnboarding);
 
   useEffect(() => {
-    // Check if onboarding was already shown
     const onboardingShown = localStorage.getItem('onboarding_shown') === 'true';
     setHasShownOnboarding(onboardingShown);
   }, []);
 
   useEffect(() => {
-    // Move to the next step IMMEDIATELY when auth is done, regardless of role status
+    console.log('Step effect triggered:', { authLoading, user: !!user, hasShownOnboarding, step });
+    
+    // If auth is still loading, stay on loading
     if (authLoading) {
-      if (step !== 'loading') setStep('loading');
+      if (step !== 'loading') {
+        console.log('Setting step to loading');
+        setStep('loading');
+      }
       return;
     }
+
+    // Auth is done, user exists -> go to app
     if (user) {
-      setStep('app');
-      setUserType(null);
+      if (step !== 'app') {
+        console.log('User found, setting step to app');
+        setStep('app');
+        setUserType(null);
+      }
       return;
     }
+
+    // No user, decide between onboarding and front
     if (!hasShownOnboarding) {
-      setStep('onboarding');
+      if (step !== 'onboarding') {
+        console.log('No onboarding shown, setting step to onboarding');
+        setStep('onboarding');
+      }
     } else {
-      setStep('front');
+      if (step !== 'front') {
+        console.log('Onboarding shown, setting step to front');
+        setStep('front');
+      }
     }
-  // The dependencies are precisely what drive transitions
   }, [user, authLoading, hasShownOnboarding, step]);
 
   const handleOnboardingComplete = () => {
+    console.log('Onboarding completed');
     localStorage.setItem('onboarding_shown', 'true');
     setHasShownOnboarding(true);
     setStep('front');
   };
 
   const handleUserTypeSelect = (type: 'customer' | 'provider') => {
+    console.log('User type selected:', type);
     setUserType(type);
     setStep('login');
   };
 
   const handleLoginSuccess = () => {
+    console.log('Login successful');
     setStep('app');
     setUserType(null);
   };
