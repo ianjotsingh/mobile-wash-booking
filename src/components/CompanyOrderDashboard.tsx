@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -323,7 +322,7 @@ const CompanyOrderDashboard = () => {
     );
   }
 
-  const unreadNotifications = notifications.filter(n => !n.is_read);
+  const unreadNotifications: NotificationData[] = notifications.filter((n): n is NotificationData => !n.is_read);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
