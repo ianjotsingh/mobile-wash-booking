@@ -5,36 +5,32 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import ServiceOnboarding from './ServiceOnboarding';
-import BasicInfoStep from './registration/BasicInfoStep';
-import LocationStep from './registration/LocationStep';
-import FinalDetailsStep from './registration/FinalDetailsStep';
 import BenefitsSidebar from './registration/BenefitsSidebar';
-import ProgressBar from './registration/ProgressBar';
-import { 
-  ServicePricing, 
-  waitForCompanyRole, 
-  submitCompanyRegistration, 
-  validateStep 
-} from '@/utils/registrationUtils';
+import { ServicePricing, waitForCompanyRole, submitCompanyRegistration } from '@/utils/registrationUtils';
 
 const CompanyRegistration = () => {
-  const [step, setStep] = useState(1);
+  // Basic Info state
   const [companyName, setCompanyName] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [companyType, setCompanyType] = useState('');
   const [companyDescription, setCompanyDescription] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
+
+  // Location state
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [zipCode, setZipCode] = useState('');
   const [latitude, setLatitude] = useState<number | undefined>();
   const [longitude, setLongitude] = useState<number | undefined>();
+
+  // Service state
   const [experience, setExperience] = useState('');
   const [hasMechanic, setHasMechanic] = useState(false);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [servicePricing, setServicePricing] = useState<ServicePricing[]>([]);
+
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -42,37 +38,36 @@ const CompanyRegistration = () => {
   // Helper to detect if running as mobile app
   const isMobileApp = typeof window !== "undefined" && window.location.search.includes('mobile=true');
 
-  const handleNextStep = () => {
-    const validation = validateStep(step, {
-      companyName,
-      ownerName,
-      contactEmail,
-      contactPhone,
-      address,
-      city,
-      zipCode,
-      selectedServices,
-      servicePricing
-    });
+  // VALIDATION for one-page form
+  const validateForm = () => {
+    if (!companyName || !ownerName || !contactEmail || !contactPhone) {
+      return "Please fill in all required basic info fields.";
+    }
+    if (!address || !city) {
+      return "Address and city are required.";
+    }
+    if (!selectedServices.length || !servicePricing.length) {
+      return "Please select at least one service and set pricing.";
+    }
+    // Ensure at least one selected service has a non-zero price
+    if (!servicePricing.some(sp => sp.isAvailable && sp.basePrice > 0)) {
+      return "Please add pricing for at least one selected service.";
+    }
+    return "";
+  };
 
-    if (!validation.isValid) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const errorMsg = validateForm();
+    if (errorMsg) {
       toast({
         title: 'Error',
-        description: validation.message,
+        description: errorMsg,
         variant: 'destructive',
       });
       return;
     }
-
-    setStep(step + 1);
-  };
-
-  const handlePrevStep = () => {
-    setStep(step - 1);
-  };
-
-  const handleSubmit = async () => {
-    setLoading(true);
 
     if (!user) {
       toast({
@@ -80,9 +75,10 @@ const CompanyRegistration = () => {
         description: 'You must be logged in to register a company.',
         variant: 'destructive',
       });
-      setLoading(false);
       return;
     }
+
+    setLoading(true);
 
     try {
       await submitCompanyRegistration({
@@ -139,128 +135,170 @@ const CompanyRegistration = () => {
     }
   };
 
-  const getStepTitle = () => {
-    switch (step) {
-      case 1: return "Basic Information";
-      case 2: return "Business Location";
-      case 3: return "Services & Pricing";
-      case 4: return "Final Details";
-      default: return "";
-    }
-  };
-
-  const renderCurrentStep = () => {
-    switch (step) {
-      case 1:
-        return (
-          <BasicInfoStep
-            companyName={companyName}
-            setCompanyName={setCompanyName}
-            ownerName={ownerName}
-            setOwnerName={setOwnerName}
-            companyType={companyType}
-            setCompanyType={setCompanyType}
-            contactEmail={contactEmail}
-            setContactEmail={setContactEmail}
-            contactPhone={contactPhone}
-            setContactPhone={setContactPhone}
-          />
-        );
-      case 2:
-        return (
-          <LocationStep
-            address={address}
-            setAddress={setAddress}
-            city={city}
-            setCity={setCity}
-            state={state}
-            setState={setState}
-            zipCode={zipCode}
-            setZipCode={setZipCode}
-            experience={experience}
-            setExperience={setExperience}
-            hasMechanic={hasMechanic}
-            setHasMechanic={setHasMechanic}
-            latitude={latitude}
-            setLatitude={setLatitude}
-            longitude={longitude}
-            setLongitude={setLongitude}
-          />
-        );
-      case 3:
-        return (
-          <ServiceOnboarding
-            selectedServices={selectedServices}
-            onServicesChange={setSelectedServices}
-            onPricingChange={setServicePricing}
-          />
-        );
-      case 4:
-        return (
-          <FinalDetailsStep
-            companyDescription={companyDescription}
-            setCompanyDescription={setCompanyDescription}
-            companyName={companyName}
-            ownerName={ownerName}
-            city={city}
-            state={state}
-            selectedServices={selectedServices}
-            experience={experience}
-          />
-        );
-      default:
-        return null;
-    }
-  };
-
   return (
     <div className="container py-12">
       <div className="max-w-4xl mx-auto">
-        <ProgressBar currentStep={step} totalSteps={4} />
-
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>{getStepTitle()}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {renderCurrentStep()}
-
-                <div className="flex justify-between mt-6 pt-6 border-t">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handlePrevStep}
-                    disabled={step === 1}
-                  >
-                    Previous
-                  </Button>
-                  {step < 4 ? (
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Main Form */}
+            <div className="lg:col-span-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Company Registration</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {/* --- BASIC INFO --- */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Basic Information</h3>
+                    <div>
+                      <label className="block font-medium mb-1" htmlFor="companyName">Company Name *</label>
+                      <input
+                        type="text"
+                        className="w-full border rounded p-2"
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        id="companyName"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium mb-1" htmlFor="ownerName">Owner Name *</label>
+                      <input
+                        type="text"
+                        className="w-full border rounded p-2"
+                        value={ownerName}
+                        onChange={(e) => setOwnerName(e.target.value)}
+                        id="ownerName"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium mb-1" htmlFor="companyType">Company Type</label>
+                      <select
+                        className="w-full border rounded p-2"
+                        value={companyType}
+                        onChange={(e) => setCompanyType(e.target.value)}
+                        id="companyType"
+                      >
+                        <option value="">Select a type</option>
+                        <option value="Sole Proprietorship">Sole Proprietorship</option>
+                        <option value="Partnership">Partnership</option>
+                        <option value="Private Limited Company">Private Limited Company</option>
+                        <option value="Public Limited Company">Public Limited Company</option>
+                        <option value="Limited Liability Partnership (LLP)">Limited Liability Partnership (LLP)</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-medium mb-1" htmlFor="contactEmail">Contact Email *</label>
+                      <input
+                        type="email"
+                        className="w-full border rounded p-2"
+                        value={contactEmail}
+                        onChange={(e) => setContactEmail(e.target.value)}
+                        id="contactEmail"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium mb-1" htmlFor="contactPhone">Contact Phone *</label>
+                      <input
+                        type="tel"
+                        className="w-full border rounded p-2"
+                        value={contactPhone}
+                        onChange={(e) => setContactPhone(e.target.value)}
+                        id="contactPhone"
+                        required
+                      />
+                    </div>
+                  </div>
+                  {/* --- LOCATION --- */}
+                  <div className="mt-8 space-y-4">
+                    <h3 className="text-lg font-semibold">Business Location</h3>
+                    <div>
+                      <label className="block font-medium mb-1" htmlFor="address">Address *</label>
+                      <input
+                        type="text"
+                        className="w-full border rounded p-2"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        id="address"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium mb-1" htmlFor="city">City *</label>
+                      <input
+                        type="text"
+                        className="w-full border rounded p-2"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        id="city"
+                        required
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block font-medium mb-1" htmlFor="state">State</label>
+                        <input
+                          type="text"
+                          className="w-full border rounded p-2"
+                          value={state}
+                          onChange={(e) => setState(e.target.value)}
+                          id="state"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-medium mb-1" htmlFor="zipCode">ZIP Code</label>
+                        <input
+                          type="text"
+                          className="w-full border rounded p-2"
+                          value={zipCode}
+                          onChange={(e) => setZipCode(e.target.value)}
+                          id="zipCode"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block font-medium mb-1" htmlFor="experience">Experience (years)</label>
+                      <input
+                        type="text"
+                        className="w-full border rounded p-2"
+                        value={experience}
+                        onChange={(e) => setExperience(e.target.value)}
+                        id="experience"
+                        placeholder="Optional"
+                      />
+                    </div>
+                  </div>
+                  {/* --- SERVICES & PRICING --- */}
+                  <div className="mt-8 space-y-4">
+                    <h3 className="text-lg font-semibold">Services &amp; Pricing *</h3>
+                    <ServiceOnboarding
+                      selectedServices={selectedServices}
+                      onServicesChange={setSelectedServices}
+                      onPricingChange={setServicePricing}
+                    />
+                  </div>
+                  {/* --- SUBMIT --- */}
+                  <div className="mt-8 pt-6 border-t flex justify-end">
                     <Button
-                      type="button"
-                      onClick={handleNextStep}
-                    >
-                      Next
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      onClick={handleSubmit}
+                      type="submit"
                       disabled={loading}
+                      className="w-full sm:w-auto"
                     >
                       {loading ? 'Registering...' : 'Complete Registration'}
                     </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            {/* Sidebar */}
+            <div>
+              <BenefitsSidebar />
+            </div>
           </div>
-
-          <div>
-            <BenefitsSidebar />
-          </div>
-        </div>
+        </form>
       </div>
     </div>
   );
