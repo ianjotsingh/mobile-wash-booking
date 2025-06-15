@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -17,6 +16,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import DashboardTopBar from '../DashboardTopBar';
 
 interface Order {
   id: string;
@@ -333,6 +333,8 @@ const CompanyMobileDashboard = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 text-white p-4">
+        {/* NEW: Add the DashboardTopBar on mobile even during loading */}
+        <DashboardTopBar />
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-gray-800 rounded w-1/3"></div>
           <div className="grid grid-cols-2 gap-4">
@@ -346,6 +348,8 @@ const CompanyMobileDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
+      {/* NEW: Add the DashboardTopBar to the mobile dashboard */}
+      <DashboardTopBar />
       {/* Header */}
       <div className="bg-gray-800 border-b border-gray-700 p-4">
         <div className="flex justify-between items-center">
