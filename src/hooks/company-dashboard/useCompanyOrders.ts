@@ -1,9 +1,16 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, Dispatch, SetStateAction } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderData } from '@/types/companyDashboard';
 
-export function useCompanyOrders(companyId: string | undefined) {
+interface UseCompanyOrdersResult {
+  orders: OrderData[];
+  loading: boolean;
+  fetchCompanyOrders: () => Promise<void>;
+  setOrders: Dispatch<SetStateAction<OrderData[]>>;
+}
+
+export function useCompanyOrders(companyId: string | undefined): UseCompanyOrdersResult {
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [loading, setLoading] = useState<boolean>(!!companyId);
 
@@ -23,6 +30,6 @@ export function useCompanyOrders(companyId: string | undefined) {
     }
   }, [companyId]);
 
-  // Expose the function for manual refresh (do not auto-fetch in constructor; handled by parent)
+  // Explicit return type for hook to avoid deep type recursion
   return { orders, loading, fetchCompanyOrders, setOrders };
 }
