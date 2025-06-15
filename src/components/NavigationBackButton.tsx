@@ -1,23 +1,22 @@
 
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
 const NavigationBackButton = () => {
-  const location = useLocation();
   const navigate = useNavigate();
 
-  // Always show back button now
+  // Always show back button, styled as black
   return (
     <Button
       variant="ghost"
       size="icon"
       onClick={() => navigate(-1)}
-      className="mr-2 text-emerald-400 hover:text-white"
+      className="mr-2 text-black hover:text-gray-700"
       aria-label="Go back"
     >
-      <ArrowLeft className="h-6 w-6" />
+      <ArrowLeft className="h-6 w-6" color="black" />
     </Button>
   );
 };
