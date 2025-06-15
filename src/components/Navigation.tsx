@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -96,7 +95,6 @@ const Navigation = () => {
               style={{ minHeight: '4rem', minWidth: 40 }}
             >
               <Car className="h-8 w-8 text-emerald-400" />
-              {/* Removed: WashCart text */}
             </Link>
             
             {/* Navigation Bar Right Section */}
@@ -140,6 +138,7 @@ const Navigation = () => {
                   align="end" 
                   className="w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-50"
                 >
+                  {/* Home Option - always visible at top! */}
                   <DropdownMenuItem asChild>
                     <Link
                       to="/"
