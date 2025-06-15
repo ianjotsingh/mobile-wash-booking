@@ -24,7 +24,7 @@ const MobileApp = () => {
     if (user && !userLocation) {
       const savedLocation = localStorage.getItem('userLocation');
       const savedAddress = localStorage.getItem('userAddress');
-      
+
       if (savedLocation && savedAddress) {
         setUserLocation(JSON.parse(savedLocation));
         setUserAddress(savedAddress);
@@ -32,13 +32,20 @@ const MobileApp = () => {
     }
   }, [user, userLocation]);
 
-  // Debug current state
+  // Debug current state and role fetching
   useEffect(() => {
     console.log('=== MobileApp State ===');
     console.log('Step:', step);
-    console.log('User:', user?.email);
+    console.log('User:', user ? user.email : 'No user');
     console.log('Role:', role);
     console.log('Loading:', loading);
+    if (!loading && user && !role) {
+      console.warn('User is logged in, but role is not found! This will block routing.');
+      console.warn('Check user_profiles table for this user and their role.');
+    }
+    if (!user && !loading) {
+      console.warn('No user is logged in.');
+    }
   }, [step, user, role, loading]);
 
   return (
@@ -60,3 +67,4 @@ const MobileApp = () => {
 };
 
 export default MobileApp;
+
