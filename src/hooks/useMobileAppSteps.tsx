@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 
@@ -46,13 +45,18 @@ export const useMobileAppSteps = (
       if (step !== 'onboarding') {
         setStep('onboarding');
       }
-    } else {
-      console.log('Setting step to front');
-      if (step !== 'front') {
-        setStep('front');
-      }
+      return;
     }
-  }, [user, loading, role, step]);
+    
+    // ---- FIXED: Prevent resetting from 'login' to 'front' when a userType is selected ----
+    // Only show front if we are NOT already in login step with a userType
+    if (step === 'login') return; // allow staying in login until successful login!
+
+    console.log('Setting step to front');
+    if (step !== 'front') {
+      setStep('front');
+    }
+  }, [user, loading, role, step, userType]);
 
   const handleOnboardingComplete = () => {
     console.log('Onboarding completed');
