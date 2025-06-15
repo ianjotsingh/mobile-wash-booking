@@ -24,7 +24,21 @@ interface MobileAppRouterProps {
 }
 
 const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) => {
-  const { user, role } = useAuth();
+  const { user, role, loading } = useAuth();
+
+  // If still loading user or role, show a spinner to prevent premature redirect
+  if ((user && !role) || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-100 to-white">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-700 to-blue-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg animate-pulse">
+            <span className="text-3xl font-bold text-white tracking-wide drop-shadow select-none">WC</span>
+          </div>
+          <p className="text-gray-600 text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Role-based default route logic
   const getDefaultRoute = () => {
@@ -97,4 +111,3 @@ const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) =>
 };
 
 export default MobileAppRouter;
-

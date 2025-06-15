@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -20,7 +19,7 @@ const CompanyRegistration = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
 
   // Helper to detect if running as mobile app (copied from Navigation.tsx logic)
   const isMobileApp = typeof window !== "undefined" && window.location.search.includes('mobile=true');
@@ -66,13 +65,19 @@ const CompanyRegistration = () => {
           variant: 'destructive',
         });
       } else {
+        // Immediately refresh the user's role before redirect!
+        if (user) {
+          // Import fetchUserRole directly to force refresh
+          const { fetchUserRole } = await import('@/hooks/useRoleFetcher');
+          await fetchUserRole(user.id);
+        }
+
         toast({
           title: 'Success!',
           description: 'Company registered successfully! Redirecting to your dashboard...',
           variant: 'default',
         });
 
-        // Force immediate redirect to company dashboard
         setTimeout(() => {
           if (isMobileApp) {
             window.location.href = "/company/dashboard";
