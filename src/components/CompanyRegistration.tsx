@@ -21,6 +21,9 @@ const CompanyRegistration = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // Helper to detect if running as mobile app (copied from Navigation.tsx logic)
+  const isMobileApp = typeof window !== "undefined" && window.location.search.includes('mobile=true');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -42,18 +45,15 @@ const CompanyRegistration = () => {
           {
             user_id: user.id,
             company_name: companyName,
-            owner_name: '', // Could add an Owner Name input if needed
+            owner_name: '', // Update if you add an input
             email: contactEmail,
             phone: contactPhone,
-            address: '',    // Could add an Address input if needed
-            city: '',       // Could add a City input if needed
-            zip_code: '',   // Could add a Zip/Pin Code input if needed
+            address: '',
+            city: '',
+            zip_code: '',
             description: companyDescription,
             status: 'pending',
-            // Optionally: type: companyType, registration_number: registrationNumber,
-            // Add these once you update the table or if these fields exist in your schema
             // type: companyType,
-            // registration_number: registrationNumber,
           },
         ]);
 
@@ -72,7 +72,11 @@ const CompanyRegistration = () => {
         });
 
         setTimeout(() => {
-          navigate("/company-dashboard");
+          if (isMobileApp) {
+            navigate("/company/dashboard");
+          } else {
+            navigate("/company-dashboard");
+          }
         }, 1200);
       }
     } catch (error) {
