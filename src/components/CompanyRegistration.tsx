@@ -1,625 +1,185 @@
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
-import EnhancedLocationSelector from '@/components/EnhancedLocationSelector';
-import ServicePricingForm from '@/components/ServicePricingForm';
-
-interface ServicePricing {
-  service: string;
-  price: number;
-}
 
 const CompanyRegistration = () => {
+  const [companyName, setCompanyName] = useState('');
+  const [companyType, setCompanyType] = useState('');
+  const [companyDescription, setCompanyDescription] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [registrationNumber, setRegistrationNumber] = useState('');
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(1);
-  const [locationStepCompleted, setLocationStepCompleted] = useState(false);
   const { toast } = useToast();
-  const { signUp } = useAuth();
-  const navigate = useNavigate();
-  
-  const [authFormData, setAuthFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    phone: ''
-  });
-
-  const [formData, setFormData] = useState({
-    companyName: '',
-    ownerName: '',
-    email: '',
-    phone: '',
-    description: '',
-    experience: '',
-    hasMechanic: false,
-    services: [] as string[],
-    servicePricing: [] as ServicePricing[],
-    address: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    lat: 0,
-    lng: 0
-  });
-
-  const availableServices = [
-    'Basic Wash',
-    'Premium Wash',
-    'Full Detail',
-    'Interior Cleaning',
-    'Exterior Wash',
-    'Wax & Polish',
-    'Engine Cleaning',
-    'Tire Service'
-  ];
-
-  const handleAuthSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (authFormData.password !== authFormData.confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (authFormData.password.length < 6) {
-      toast({
-        title: "Error", 
-        description: "Password must be at least 6 characters long",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (authFormData.phone && authFormData.phone.length !== 10) {
-      toast({
-        title: "Error",
-        description: "Phone number must be 10 digits",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setFormData(prev => ({ 
-      ...prev, 
-      email: authFormData.email,
-      phone: authFormData.phone 
-    }));
-    setStep(2);
-  };
-
-  const handleLocationSelect = (selectedLocation: { 
-    lat: number; 
-    lng: number; 
-    address: string; 
-    city: string; 
-    zipCode: string; 
-  }) => {
-    console.log('Location selected:', selectedLocation);
-    setFormData(prev => ({
-      ...prev,
-      address: selectedLocation.address,
-      city: selectedLocation.city,
-      zipCode: selectedLocation.zipCode,
-      lat: selectedLocation.lat,
-      lng: selectedLocation.lng
-    }));
-  };
-
-  const handleLocationStep = (selectedLocation: { 
-    lat: number; 
-    lng: number; 
-    address: string; 
-    city: string; 
-    zipCode: string; 
-  }) => {
-    setFormData(prev => ({
-      ...prev,
-      address: selectedLocation.address,
-      city: selectedLocation.city,
-      zipCode: selectedLocation.zipCode,
-      lat: selectedLocation.lat,
-      lng: selectedLocation.lng
-    }));
-    setLocationStepCompleted(true);
-    setStep(2); // Continue to full registration form
-  };
-
-  const handleServiceToggle = (service: string) => {
-    const newServices = formData.services.includes(service)
-      ? formData.services.filter(s => s !== service)
-      : [...formData.services, service];
-    
-    setFormData(prev => ({
-      ...prev,
-      services: newServices,
-      // Remove pricing for deselected services
-      servicePricing: prev.servicePricing.filter(p => newServices.includes(p.service))
-    }));
-  };
-
-  const handlePricingChange = (pricing: ServicePricing[]) => {
-    setFormData(prev => ({
-      ...prev,
-      servicePricing: pricing
-    }));
-  };
-
-  const isFormValid = () => {
-    const requiredFields = [
-      formData.companyName,
-      formData.ownerName,
-      formData.description,
-      formData.experience,
-      formData.state,
-      formData.address
-    ];
-    
-    const hasAllRequiredFields = requiredFields.every(field => field.trim() !== '');
-    const hasServices = formData.services.length > 0;
-    const hasAllPricing = formData.services.every(service => 
-      formData.servicePricing.some(p => p.service === service && p.price > 0)
-    );
-    
-    return hasAllRequiredFields && hasServices && hasAllPricing;
-  };
+  const navigate = useNavigate(); // Initialize useNavigate
+  const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submission started...');
-    
-    if (!isFormValid()) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields, select services, and set prices for each service",
-        variant: "destructive"
-      });
-      return;
-    }
-    
     setLoading(true);
 
+    if (!user) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to register a company.',
+        variant: 'destructive',
+      });
+      setLoading(false);
+      return;
+    }
+
     try {
-      console.log('Starting company registration process...');
-      
-      // First create the user account with phone number
-      const userData = {
-        full_name: formData.ownerName,
-        role: 'provider',
-        ...(authFormData.phone && { phone: authFormData.phone })
-      };
+      const { data, error } = await supabase
+        .from('companies')
+        .insert([
+          {
+            user_id: user.id,
+            name: companyName,
+            type: companyType,
+            description: companyDescription,
+            contact_email: contactEmail,
+            contact_phone: contactPhone,
+            registration_number: registrationNumber,
+            status: 'pending', // Set initial status to pending
+          },
+        ]);
 
-      console.log('Creating user account with data:', userData);
-
-      const { data: authResult, error: authError } = await signUp(
-        formData.email, 
-        authFormData.password, 
-        userData
-      );
-
-      if (authError) {
-        console.error('Auth error:', authError);
+      if (error) {
+        console.error('Company registration error:', error);
         toast({
-          title: "Registration Failed",
-          description: authError.message || "Failed to create account",
-          variant: "destructive"
+          title: 'Error',
+          description: 'Failed to register company. Please try again.',
+          variant: 'destructive',
         });
-        return;
-      }
-
-      if (!authResult?.user) {
+      } else {
         toast({
-          title: "Registration Failed", 
-          description: "Failed to create user account",
-          variant: "destructive"
+          title: 'Success!',
+          description: 'Company registered successfully! Redirecting to your dashboard...',
+          variant: 'success',
         });
-        return;
+
+        // Add this (using React Router's 'useNavigate' hook):
+        setTimeout(() => {
+          navigate("/company-dashboard");
+        }, 1200); // Wait for toast (1.2 seconds), feel free to adjust this value as needed
       }
-
-      console.log('User account created successfully, now registering company...');
-
-      // Register the company with pricing data
-      const companyData = {
-        company_name: formData.companyName,
-        owner_name: formData.ownerName,
-        email: formData.email,
-        phone: authFormData.phone || formData.phone,
-        description: formData.description,
-        experience: formData.experience,
-        has_mechanic: formData.hasMechanic,
-        services: formData.services,
-        service_pricing: formData.servicePricing,
-        address: formData.address,
-        city: formData.city,
-        state: formData.state,
-        zip_code: formData.zipCode,
-        latitude: formData.lat,
-        longitude: formData.lng,
-        user_id: authResult.user.id
-      };
-
-      console.log('Calling register-company function with data:', companyData);
-
-      const { data: functionData, error: functionError } = await supabase.functions.invoke('register-company', {
-        body: companyData
-      });
-
-      if (functionError) {
-        console.error('Company registration error:', functionError);
-        toast({
-          title: "Registration Failed",
-          description: functionError.message || "Failed to register company",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log('Company registration successful:', functionData);
-      
-      toast({
-        title: "Success!",
-        description: "Company registered successfully! Redirecting to your dashboard...",
-      });
-
-      // Wait a moment for the toast to show, then redirect
-      setTimeout(() => {
-        // Check if we're in mobile app context
-        const isMobile = window.location.pathname.includes('mobile') || window.innerWidth < 768;
-        if (isMobile) {
-          navigate('/company/dashboard');
-        } else {
-          navigate('/company-dashboard');
-        }
-      }, 1500);
-      
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('Company registration error:', error);
       toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'An unexpected error occurred. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
   };
 
-  if (step === 1) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
-        <div className="max-w-md mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl font-bold text-center">Create Account</CardTitle>
-              <CardDescription className="text-center">
-                Step 1: Set up your login credentials
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleAuthSubmit} className="space-y-4">
-                <div>
-                  <Input
-                    type="email"
-                    placeholder="Email Address"
-                    value={authFormData.email}
-                    onChange={(e) => setAuthFormData(prev => ({ ...prev, email: e.target.value }))}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm text-gray-600 mb-2 block">Phone Number (Optional - for password recovery)</label>
-                  <div className="flex">
-                    <div className="flex items-center px-3 py-2 border border-r-0 border-gray-200 rounded-l-md bg-gray-50">
-                      <span className="text-sm font-medium">🇮🇳 +91</span>
-                    </div>
-                    <Input
-                      type="tel"
-                      placeholder="10-digit phone number"
-                      value={authFormData.phone}
-                      onChange={(e) => setAuthFormData(prev => ({ 
-                        ...prev, 
-                        phone: e.target.value.replace(/\D/g, '').slice(0, 10) 
-                      }))}
-                      className="rounded-l-none"
-                      maxLength={10}
-                      disabled={loading}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Adding a phone number allows you to reset your password using SMS
-                  </p>
-                </div>
-                
-                <div>
-                  <Input
-                    type="password"
-                    placeholder="Password (min 6 characters)"
-                    value={authFormData.password}
-                    onChange={(e) => setAuthFormData(prev => ({ ...prev, password: e.target.value }))}
-                    required
-                    minLength={6}
-                    disabled={loading}
-                  />
-                </div>
-                
-                <div>
-                  <Input
-                    type="password"
-                    placeholder="Confirm Password"
-                    value={authFormData.confirmPassword}
-                    onChange={(e) => setAuthFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Processing...' : 'Continue to Company Details'}
-                </Button>
-
-                <div className="text-center">
-                  <Button 
-                    type="button" 
-                    variant="link" 
-                    onClick={() => navigate('/mechanic-signup')}
-                    className="text-sm"
-                  >
-                    Register as Individual Mechanic Instead
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  if (!locationStepCompleted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-center">Set Your Business Location</CardTitle>
-            <CardDescription className="text-center">
-              Step 2: Select your location so customers and orders are matched to you.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-4 text-gray-600 text-center">
-              Use the map or search to select your business location. This is required so you can receive orders from your area.
-            </div>
-            <EnhancedLocationSelector
-              onLocationSelect={handleLocationStep}
-              buttonLabel="Save Location & Continue"
-              showCurrentLocationButton={true}
-            />
-            <div className="text-xs text-gray-400 text-center mt-6">
-              Location helps us match you with the right customers.<br />
-              You may adjust this later in your company profile.
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
-      <div className="max-w-2xl mx-auto">
+    <div className="container py-12">
+      <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-center">Register Your Washing Company</CardTitle>
-            <CardDescription className="text-center">
-              Step 3: Complete your company profile to start receiving bookings
-            </CardDescription>
+            <CardTitle>Company Registration</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Company Name *</label>
-                  <Input
-                    value={formData.companyName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
-                    placeholder="Your Company Name"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-2">Owner Name *</label>
-                  <Input
-                    value={formData.ownerName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, ownerName: e.target.value }))}
-                    placeholder="Owner's Full Name"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Phone Number *</label>
-                  <Input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                    placeholder="Your Phone Number"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">State *</label>
-                  <Select 
-                    value={formData.state}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, state: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select State" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="AP">Andhra Pradesh</SelectItem>
-                      <SelectItem value="AR">Arunachal Pradesh</SelectItem>
-                      <SelectItem value="AS">Assam</SelectItem>
-                      <SelectItem value="BR">Bihar</SelectItem>
-                      <SelectItem value="CT">Chhattisgarh</SelectItem>
-                      <SelectItem value="GA">Goa</SelectItem>
-                      <SelectItem value="GJ">Gujarat</SelectItem>
-                      <SelectItem value="HR">Haryana</SelectItem>
-                      <SelectItem value="HP">Himachal Pradesh</SelectItem>
-                      <SelectItem value="JH">Jharkhand</SelectItem>
-                      <SelectItem value="KA">Karnataka</SelectItem>
-                      <SelectItem value="KL">Kerala</SelectItem>
-                      <SelectItem value="MP">Madhya Pradesh</SelectItem>
-                      <SelectItem value="MH">Maharashtra</SelectItem>
-                      <SelectItem value="MN">Manipur</SelectItem>
-                      <SelectItem value="ML">Meghalaya</SelectItem>
-                      <SelectItem value="MZ">Mizoram</SelectItem>
-                      <SelectItem value="NL">Nagaland</SelectItem>
-                      <SelectItem value="OR">Odisha</SelectItem>
-                      <SelectItem value="PB">Punjab</SelectItem>
-                      <SelectItem value="RJ">Rajasthan</SelectItem>
-                      <SelectItem value="SK">Sikkim</SelectItem>
-                      <SelectItem value="TN">Tamil Nadu</SelectItem>
-                      <SelectItem value="TG">Telangana</SelectItem>
-                      <SelectItem value="TR">Tripura</SelectItem>
-                      <SelectItem value="UP">Uttar Pradesh</SelectItem>
-                      <SelectItem value="UT">Uttarakhand</SelectItem>
-                      <SelectItem value="WB">West Bengal</SelectItem>
-                      <SelectItem value="AN">Andaman and Nicobar Islands</SelectItem>
-                      <SelectItem value="CH">Chandigarh</SelectItem>
-                      <SelectItem value="DN">Dadra and Nagar Haveli</SelectItem>
-                      <SelectItem value="DD">Daman and Diu</SelectItem>
-                      <SelectItem value="DL">Delhi</SelectItem>
-                      <SelectItem value="JK">Jammu and Kashmir</SelectItem>
-                      <SelectItem value="LA">Ladakh</SelectItem>
-                      <SelectItem value="LD">Lakshadweep</SelectItem>
-                      <SelectItem value="PY">Puducherry</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Company Address *</label>
-                <EnhancedLocationSelector
-                  onLocationSelect={handleLocationSelect}
-                />
-                {formData.address && (
-                  <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
-                    <strong>Selected:</strong> {formData.address}, {formData.city} - {formData.zipCode}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Services Offered *</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {availableServices.map((service) => (
-                    <div key={service} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={service}
-                        checked={formData.services.includes(service)}
-                        onCheckedChange={() => handleServiceToggle(service)}
-                      />
-                      <label htmlFor={service} className="text-sm font-medium">
-                        {service}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Selected: {formData.services.length} service(s)
-                </p>
-              </div>
-
-              {/* Service Pricing Section */}
-              <ServicePricingForm
-                selectedServices={formData.services}
-                servicePricing={formData.servicePricing}
-                onPricingChange={handlePricingChange}
-              />
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Company Description *</label>
-                <Textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Describe your company, services offered, and what makes you unique..."
-                  rows={4}
+                <Label htmlFor="companyName">Company Name</Label>
+                <Input
+                  type="text"
+                  id="companyName"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
                   required
-                  disabled={loading}
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium mb-2">Years of Experience *</label>
-                <Select 
-                  value={formData.experience}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, experience: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Experience" />
+                <Label htmlFor="companyType">Company Type</Label>
+                <Select onValueChange={setCompanyType}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1-2">1-2 years</SelectItem>
-                    <SelectItem value="3-5">3-5 years</SelectItem>
-                    <SelectItem value="6-10">6-10 years</SelectItem>
-                    <SelectItem value="10+">10+ years</SelectItem>
+                    <SelectItem value="Sole Proprietorship">Sole Proprietorship</SelectItem>
+                    <SelectItem value="Partnership">Partnership</SelectItem>
+                    <SelectItem value="Private Limited Company">Private Limited Company</SelectItem>
+                    <SelectItem value="Public Limited Company">Public Limited Company</SelectItem>
+                    <SelectItem value="Limited Liability Partnership (LLP)">Limited Liability Partnership (LLP)</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="hasMechanic"
-                  checked={formData.hasMechanic}
-                  onCheckedChange={(checked) => 
-                    setFormData(prev => ({ ...prev, hasMechanic: checked as boolean }))
-                  }
+              <div>
+                <Label htmlFor="companyDescription">Company Description</Label>
+                <Textarea
+                  id="companyDescription"
+                  value={companyDescription}
+                  onChange={(e) => setCompanyDescription(e.target.value)}
+                  rows={4}
                 />
-                <label htmlFor="hasMechanic" className="text-sm font-medium">
-                  We also provide vehicle mechanic services
-                </label>
               </div>
-
-              <div className="flex gap-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setStep(1)}
-                  disabled={loading}
-                  className="flex-1"
-                >
-                  Back
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={loading || !isFormValid()}
-                  className="flex-1"
-                >
-                  {loading ? 'Registering...' : 'Complete Registration'}
-                </Button>
+              <div>
+                <Label htmlFor="contactEmail">Contact Email</Label>
+                <Input
+                  type="email"
+                  id="contactEmail"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  required
+                />
               </div>
+              <div>
+                <Label htmlFor="contactPhone">Contact Phone</Label>
+                <Input
+                  type="tel"
+                  id="contactPhone"
+                  value={contactPhone}
+                  onChange={(e) => setContactPhone(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="registrationNumber">Registration Number</Label>
+                <Input
+                  type="text"
+                  id="registrationNumber"
+                  value={registrationNumber}
+                  onChange={(e) => setRegistrationNumber(e.target.value)}
+                />
+              </div>
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? 'Registering...' : 'Register Company'}
+              </Button>
             </form>
+          </CardContent>
+        </Card>
+
+        {/* Additional Information Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Why Register Your Company?</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="text-sm text-gray-600">
+              Registering your company allows you to:
+            </div>
+            <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
+              <li>Gain access to our platform's full suite of tools and services.</li>
+              <li>Showcase your services to a wider audience.</li>
+              <li>Manage your bookings and services efficiently.</li>
+              <li>Build trust and credibility with customers.</li>
+            </ul>
+            <div className="text-sm text-gray-600">
+              Start your journey with us today!
+            </div>
           </CardContent>
         </Card>
       </div>
