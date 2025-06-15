@@ -357,6 +357,7 @@ export type Database = {
           id: string
           latitude: number | null
           longitude: number | null
+          payment_status: string
           service_type: string
           special_instructions: string | null
           status: string
@@ -376,6 +377,7 @@ export type Database = {
           id?: string
           latitude?: number | null
           longitude?: number | null
+          payment_status?: string
           service_type: string
           special_instructions?: string | null
           status?: string
@@ -395,6 +397,7 @@ export type Database = {
           id?: string
           latitude?: number | null
           longitude?: number | null
+          payment_status?: string
           service_type?: string
           special_instructions?: string | null
           status?: string
