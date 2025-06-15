@@ -6,6 +6,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { MapPin, Phone, User, Car, Calendar, Clock, Bell } from 'lucide-react';
+import NotificationsPanel from './NotificationsPanel';
+import OrderCard from './OrderCard';
 
 interface OrderData {
   id: string;
@@ -322,8 +324,7 @@ const CompanyOrderDashboard = () => {
     );
   }
 
-  // Explicitly type to avoid TS2589 error
-  const unreadNotifications: NotificationData[] = notifications.filter((n) => !n.is_read);
+  const unreadNotifications = notifications.filter(n => !n.is_read);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -338,38 +339,10 @@ const CompanyOrderDashboard = () => {
         </div>
 
         {/* Notifications Panel */}
-        {unreadNotifications.length > 0 && (
-          <Card className="mb-6 bg-blue-50 border-blue-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-blue-800">
-                <Bell className="h-5 w-5" />
-                New Notifications ({unreadNotifications.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {unreadNotifications.slice(0, 3).map((notification) => (
-                  <div key={notification.id} className="flex justify-between items-start p-3 bg-white rounded border border-blue-200">
-                    <div>
-                      <h4 className="font-medium text-blue-900">{notification.title}</h4>
-                      <p className="text-sm text-blue-700">{notification.message}</p>
-                      <p className="text-xs text-blue-600 mt-1">
-                        {new Date(notification.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => markNotificationAsRead(notification.id)}
-                    >
-                      Mark Read
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <NotificationsPanel 
+          unreadNotifications={unreadNotifications}
+          markNotificationAsRead={markNotificationAsRead}
+        />
 
         <div className="grid gap-6">
           {orders.length === 0 ? (
@@ -386,196 +359,20 @@ const CompanyOrderDashboard = () => {
           ) : (
             orders.map((order) => {
               const existingQuote = quotes.find(quote => quote.order_id === order.id);
-              
               return (
-                <Card key={order.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="flex items-center gap-2">
-                          <Car className="h-5 w-5" />
-                          {order.service_type}
-                          {order.status === 'pending' && (
-                            <Badge className="bg-orange-500 text-white ml-2">Needs Response</Badge>
-                          )}
-                        </CardTitle>
-                        <CardDescription>
-                          Order #{order.id.slice(0, 8)}
-                        </CardDescription>
-                      </div>
-                      <Badge variant={
-                        order.status === 'pending' ? 'default' : 
-                        order.status === 'accepted' ? 'default' :
-                        order.status === 'rejected' ? 'destructive' : 'secondary'
-                      }>
-                        {order.status}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid md:grid-cols-2 gap-4 mb-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm">
-                          <MapPin className="h-4 w-4 text-gray-500" />
-                          <span>{order.address}, {order.city}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4 text-gray-500" />
-                          <span>{new Date(order.booking_date).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <Clock className="h-4 w-4 text-gray-500" />
-                          <span>{order.booking_time}</span>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="text-sm">
-                          <strong>Vehicle:</strong> {order.car_color} {order.car_model} ({order.car_type})
-                        </div>
-                        {order.special_instructions && (
-                          <div className="text-sm">
-                            <strong>Instructions:</strong> {order.special_instructions}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {order.status === 'pending' && !existingQuote && (
-                      <div className="space-y-4">
-                        <QuoteForm
-                          orderId={order.id}
-                          onSubmit={submitQuote}
-                        />
-                        <div className="flex gap-3">
-                          <Button 
-                            onClick={() => acceptOrder(order.id)}
-                            className="flex-1 bg-green-600 hover:bg-green-700"
-                          >
-                            Accept Order
-                          </Button>
-                          <Button 
-                            onClick={() => rejectOrder(order.id)}
-                            variant="destructive"
-                            className="flex-1"
-                          >
-                            Reject Order
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
-                    {existingQuote && (
-                      <div className="bg-green-50 p-4 rounded-lg">
-                        <h4 className="font-semibold text-green-800 mb-2">Your Quote</h4>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-green-700">Price:</span> ₹{Math.floor(existingQuote.quoted_price / 100)}
-                          </div>
-                          <div>
-                            <span className="text-green-700">Duration:</span> {existingQuote.estimated_duration} hours
-                          </div>
-                        </div>
-                        {existingQuote.additional_notes && (
-                          <div className="mt-2 text-sm">
-                            <span className="text-green-700">Notes:</span> {existingQuote.additional_notes}
-                          </div>
-                        )}
-                        <Badge className="mt-2" variant={
-                          existingQuote.status === 'accepted' ? 'default' : 
-                          existingQuote.status === 'rejected' ? 'destructive' : 'secondary'
-                        }>
-                          {existingQuote.status}
-                        </Badge>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                <OrderCard
+                  key={order.id}
+                  order={order}
+                  existingQuote={existingQuote}
+                  submitQuote={submitQuote}
+                  acceptOrder={acceptOrder}
+                  rejectOrder={rejectOrder}
+                />
               );
             })
           )}
         </div>
       </div>
-    </div>
-  );
-};
-
-interface QuoteFormProps {
-  orderId: string;
-  onSubmit: (orderId: string, price: number, duration: number, notes: string) => void;
-}
-
-const QuoteForm: React.FC<QuoteFormProps> = ({ orderId, onSubmit }) => {
-  const [price, setPrice] = useState('');
-  const [duration, setDuration] = useState('');
-  const [notes, setNotes] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!price || !duration) return;
-
-    setSubmitting(true);
-    await onSubmit(orderId, parseInt(price), parseInt(duration), notes);
-    setSubmitting(false);
-    
-    // Reset form
-    setPrice('');
-    setDuration('');
-    setNotes('');
-  };
-
-  return (
-    <div className="bg-blue-50 p-4 rounded-lg">
-      <h4 className="font-semibold text-blue-800 mb-3">Submit Your Quote</h4>
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-blue-700 mb-1">
-              Price (₹)
-            </label>
-            <input
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              className="w-full px-3 py-2 border border-blue-200 rounded-md"
-              placeholder="Enter price"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-blue-700 mb-1">
-              Duration (hours)
-            </label>
-            <input
-              type="number"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              className="w-full px-3 py-2 border border-blue-200 rounded-md"
-              placeholder="Estimated hours"
-              required
-            />
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-blue-700 mb-1">
-            Additional Notes (Optional)
-          </label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            className="w-full px-3 py-2 border border-blue-200 rounded-md"
-            rows={2}
-            placeholder="Any additional information..."
-          />
-        </div>
-        <Button 
-          type="submit" 
-          disabled={submitting || !price || !duration}
-          className="w-full"
-        >
-          {submitting ? 'Submitting...' : 'Submit Quote'}
-        </Button>
-      </form>
     </div>
   );
 };
