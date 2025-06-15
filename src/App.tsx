@@ -14,13 +14,14 @@ import WashBookingFlow from './pages/WashBookingFlow';
 import MechanicRequestForm from './pages/MechanicRequestForm';
 import OrderHistory from './pages/OrderHistory';
 import CompanySignup from './pages/CompanySignup';
-import CompanyDashboard from './pages/CompanyDashboard';
+// Removed import for CompanyDashboard and CompanyOrderDashboard (no longer exist!)
 import AdminDashboard from './pages/AdminDashboard';
 import MechanicRequest from './pages/MechanicRequest';
 import MechanicSignup from './pages/MechanicSignup';
 import ResetPassword from './pages/ResetPassword';
 import NotFound from './pages/NotFound';
 import { AuthProvider } from '@/hooks/useAuth';
+import CompanyMobileDashboard from './components/dashboard/CompanyMobileDashboard'; // canonical dashboard now
 
 const queryClient = new QueryClient();
 
@@ -58,7 +59,9 @@ function App() {
                 <Route path="/mechanic-request-form" element={<MechanicRequestForm />} />
                 <Route path="/order-history" element={<OrderHistory />} />
                 <Route path="/company-signup" element={<CompanySignup />} />
-                <Route path="/company-dashboard" element={<CompanyDashboard />} />
+                {/* Use only the new mobile dashboard! */}
+                <Route path="/company-dashboard" element={<CompanyMobileDashboard />} />
+                <Route path="/company/dashboard" element={<CompanyMobileDashboard />} />
                 <Route path="/admin-dashboard" element={<AdminDashboard />} />
                 <Route path="/mechanic-request" element={<MechanicRequest />} />
                 <Route path="/mechanic-signup" element={<MechanicSignup />} />
@@ -76,3 +79,4 @@ function App() {
 }
 
 export default App;
+
