@@ -17,7 +17,7 @@ const MobileApp = () => {
     handleOnboardingComplete,
     handleUserTypeSelect,
     handleLoginSuccess,
-  } = useMobileAppSteps(user, loading, role);
+  } = useMobileAppSteps();
 
   // Get user location when authenticated
   useEffect(() => {
@@ -67,4 +67,3 @@ const MobileApp = () => {
 };
 
 export default MobileApp;
-

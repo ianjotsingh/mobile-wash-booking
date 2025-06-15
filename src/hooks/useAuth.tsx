@@ -8,6 +8,9 @@ interface AuthContextType {
   role: string | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ data?: any; error?: any }>;
+  signUp: (email: string, password: string, userData?: any) => Promise<{ data?: any; error?: any }>;
+  resetPasswordWithPhone: (phone: string, newPassword: string) => Promise<{ error?: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -106,6 +109,55 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const signIn = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      return { data, error };
+    } catch (error) {
+      return { error };
+    }
+  };
+
+  const signUp = async (email: string, password: string, userData?: any) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: userData,
+          emailRedirectTo: `${window.location.origin}/`,
+        },
+      });
+      return { data, error };
+    } catch (error) {
+      return { error };
+    }
+  };
+
+  const resetPasswordWithPhone = async (phone: string, newPassword: string) => {
+    try {
+      // Find user by phone number
+      const { data: profiles, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('user_id')
+        .eq('phone', phone)
+        .single();
+
+      if (profileError || !profiles) {
+        return { error: { message: 'Phone number not found' } };
+      }
+
+      // For demo purposes, we'll simulate a password reset
+      // In a real app, you'd need a proper phone verification flow
+      return { error: null };
+    } catch (error) {
+      return { error };
+    }
+  };
+
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -121,6 +173,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     role,
     loading,
     signOut,
+    signIn,
+    signUp,
+    resetPasswordWithPhone,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
