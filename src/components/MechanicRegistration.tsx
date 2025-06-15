@@ -11,6 +11,7 @@ import { Wrench, MapPin, Phone, User, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import ErrorBoundary from './ErrorBoundary';
 
 const mechanicRegistrationSchema = z.object({
   full_name: z.string().min(2, 'Full name must be at least 2 characters'),
@@ -26,32 +27,6 @@ const mechanicRegistrationSchema = z.object({
 });
 
 type MechanicRegistrationForm = z.infer<typeof mechanicRegistrationSchema>;
-
-// Debug boundary
-const MechanicRegistrationDebugBoundary: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  const [error, setError] = useState<string | null>(null);
-
-  if (error) {
-    return (
-      <div className="max-w-xl mx-auto mt-10 bg-red-100 border border-red-400 text-red-700 p-4 rounded">
-        <h2 className="text-lg font-bold mb-2">Registration Form Error</h2>
-        <pre className="whitespace-pre-wrap">{error}</pre>
-        <p className="mt-2 text-sm">Please check the console for details, and contact support if this persists.</p>
-      </div>
-    );
-  }
-
-  return (
-    <React.ErrorBoundary
-      fallbackRender={({error}) => {
-        setError(error.message || 'Unknown error');
-        return null;
-      }}
-    >
-      {children}
-    </React.ErrorBoundary>
-  );
-};
 
 const MechanicRegistration = () => {
   // DEBUG: Show that this component is rendering!
@@ -185,7 +160,7 @@ const MechanicRegistration = () => {
   };
 
   return (
-    <MechanicRegistrationDebugBoundary>
+    <ErrorBoundary>
       <div className="max-w-2xl mx-auto p-6">
         <div className="mb-4 text-green-800 font-semibold">
           [DEBUG] MechanicRegistration rendered
@@ -421,7 +396,7 @@ const MechanicRegistration = () => {
           </CardContent>
         </Card>
       </div>
-    </MechanicRegistrationDebugBoundary>
+    </ErrorBoundary>
   );
 };
 
