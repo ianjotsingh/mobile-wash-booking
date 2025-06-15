@@ -15,6 +15,7 @@ export const useMobileAppSteps = () => {
   console.log('User:', user ? user.email : 'No user');
   console.log('Auth loading:', authLoading);
   console.log('Current step:', step);
+  console.log('User type:', userType);
   console.log('Has shown onboarding:', hasShownOnboarding);
 
   useEffect(() => {
@@ -23,7 +24,7 @@ export const useMobileAppSteps = () => {
   }, []);
 
   useEffect(() => {
-    console.log('Step effect triggered:', { authLoading, user: !!user, hasShownOnboarding, step });
+    console.log('Step effect triggered:', { authLoading, user: !!user, hasShownOnboarding, step, userType });
     
     // If auth is still loading, stay on loading
     if (authLoading) {
@@ -44,14 +45,13 @@ export const useMobileAppSteps = () => {
       return;
     }
 
-    // No user, decide between onboarding and front
-    if (!hasShownOnboarding) {
-      if (step !== 'onboarding') {
+    // No user - only set initial step if we're still on loading
+    // Don't override user selections (login step)
+    if (step === 'loading') {
+      if (!hasShownOnboarding) {
         console.log('No onboarding shown, setting step to onboarding');
         setStep('onboarding');
-      }
-    } else {
-      if (step !== 'front') {
+      } else {
         console.log('Onboarding shown, setting step to front');
         setStep('front');
       }
