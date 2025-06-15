@@ -26,8 +26,8 @@ interface MobileAppRouterProps {
 const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) => {
   const { user, role, loading } = useAuth();
 
-  // If still loading user or role, show a spinner to prevent premature redirect
-  if ((user && !role) || loading) {
+  // If still loading user, show a spinner to prevent premature redirect
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-100 to-white">
         <div className="text-center">
@@ -47,21 +47,16 @@ const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) =>
       return <MobileAppMain userLocation={userLocation} userAddress={userAddress} />;
     }
 
-    // User is logged in - redirect based on role
-    console.log('Routing user with role:', role);
-
+    // --- FIX: If user is logged in but role is null, treat as customer ---
+    // Only treat as company or mechanic if explicit role, else customer
     if (role === 'company') {
-      console.log('Redirecting company to company-dashboard');
       return <Navigate to="/company-dashboard" replace />;
     }
-
     if (role === 'mechanic') {
-      console.log('Redirecting mechanic to mechanic-dashboard');
       return <Navigate to="/mechanic-dashboard" replace />;
     }
 
-    // Default to customer home for customers and unknown roles
-    console.log('Showing customer home for role:', role);
+    // role is null or 'customer' or unknown → show customer home!
     return <MobileAppMain userLocation={userLocation} userAddress={userAddress} />;
   };
 
@@ -111,3 +106,4 @@ const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) =>
 };
 
 export default MobileAppRouter;
+
