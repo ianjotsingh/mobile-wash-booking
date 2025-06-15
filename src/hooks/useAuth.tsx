@@ -10,6 +10,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<any>;
   signOut: () => Promise<void>;
   resetPasswordWithPhone: (phone: string, newPassword: string) => Promise<any>;
+  role: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,6 +19,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
     console.log('Setting up auth listeners...');
@@ -51,6 +53,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
 
     getInitialSession();
+
+    // After setting user, fetch role from user_profiles/companies/mechanics
+    const fetchRole = async (uid: string | undefined) => {
+      if (!uid) {
+        setRole(null);
+        return;
+      }
+      // Try company
+      let { data: companyData } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('user_id', uid)
+        .maybeSingle();
+      if (companyData) {
+        setRole('company');
+        return;
+      }
+      // Try mechanic
+      let { data: mechData } = await supabase
+        .from('mechanics')
+        .select('id')
+        .eq('user_id', uid)
+        .maybeSingle();
+      if (mechData) {
+        setRole('mechanic');
+        return;
+      }
+      // Else, default to 'customer'
+      setRole('customer');
+    };
+    if (user) fetchRole(user.id);
+    else setRole(null);
 
     return () => {
       console.log('Cleaning up auth subscription');
@@ -284,7 +318,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       signUp,
       signIn,
       signOut,
-      resetPasswordWithPhone
+      resetPasswordWithPhone,
+      role
     }}>
       {children}
     </AuthContext.Provider>

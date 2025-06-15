@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,11 +19,12 @@ import WashBookingFlow from '@/pages/WashBookingFlow';
 import MechanicRequestForm from '@/pages/MechanicRequestForm';
 import OrderHistory from '@/pages/OrderHistory';
 import CompanyMobileDashboard from './dashboard/CompanyMobileDashboard';
+import MechanicDashboard from '@/pages/MechanicDashboard';
 
 type Step = 'loading' | 'onboarding' | 'front' | 'login' | 'app';
 
 const MobileApp = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, role } = useAuth();
   const [step, setStep] = useState<Step>('loading');
   const [userType, setUserType] = useState<'customer' | 'provider' | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -147,6 +147,19 @@ const MobileApp = () => {
     );
   }
 
+  const appRoutes = (
+    <>
+      {role === 'company' && <CompanyMobileDashboard />}
+      {role === 'mechanic' && <Navigate to="/mechanic-dashboard" />}
+      {(role === 'customer' || !role) && (
+        <MobileAppMain 
+          userLocation={userLocation}
+          userAddress={userAddress}
+        />
+      )}
+    </>
+  );
+
   return (
     <Router>
       <Routes>
@@ -184,6 +197,7 @@ const MobileApp = () => {
         <Route path="/order-history" element={<OrderHistory />} />
         
         {/* Main App Routes */}
+        <Route path="/mechanic-dashboard" element={<MechanicDashboard />} />
         <Route path="/*" element={
           <>
             {step === 'onboarding' && (
@@ -198,18 +212,7 @@ const MobileApp = () => {
                 userType={userType}
               />
             )}
-            {step === 'app' && user && (
-              <>
-                {isCompany ? (
-                  <CompanyMobileDashboard />
-                ) : (
-                  <MobileAppMain 
-                    userLocation={userLocation}
-                    userAddress={userAddress}
-                  />
-                )}
-              </>
-            )}
+            {step === 'app' && user && appRoutes}
           </>
         } />
       </Routes>
