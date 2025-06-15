@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,9 +8,16 @@ import { useToast } from '@/hooks/use-toast';
 interface LocationSelectorProps {
   onLocationSelect: (location: { lat: number; lng: number; address: string; city: string; zipCode: string }) => void;
   initialLocation?: { lat: number; lng: number; address: string; city: string; zipCode: string };
+  buttonLabel?: string; // new: optional
+  showCurrentLocationButton?: boolean; // new: optional
 }
 
-const EnhancedLocationSelector = ({ onLocationSelect, initialLocation }: LocationSelectorProps) => {
+const EnhancedLocationSelector = ({
+  onLocationSelect,
+  initialLocation,
+  buttonLabel = "Use Current Location",     // default value for backward compatibility
+  showCurrentLocationButton = true,         // default value for backward compatibility
+}: LocationSelectorProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number; address: string; city: string; zipCode: string } | null>(initialLocation || null);
   const [loading, setLoading] = useState(false);
@@ -169,15 +175,17 @@ const EnhancedLocationSelector = ({ onLocationSelect, initialLocation }: Locatio
           </Button>
         </div>
 
-        <Button 
-          onClick={getCurrentLocation} 
-          disabled={loading}
-          variant="outline" 
-          className="w-full"
-        >
-          <Crosshair className="h-4 w-4 mr-2" />
-          {loading ? 'Getting Location...' : 'Use Current Location'}
-        </Button>
+        {showCurrentLocationButton && (
+          <Button 
+            onClick={getCurrentLocation} 
+            disabled={loading}
+            variant="outline" 
+            className="w-full"
+          >
+            <Crosshair className="h-4 w-4 mr-2" />
+            {loading ? 'Getting Location...' : buttonLabel}
+          </Button>
+        )}
 
         {searchResults.length > 0 && (
           <div className="border rounded-lg max-h-40 overflow-y-auto">
