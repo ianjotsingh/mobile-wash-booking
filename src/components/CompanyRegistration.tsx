@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import ServiceOnboarding from './ServiceOnboarding';
 import BenefitsSidebar from './registration/BenefitsSidebar';
 import { ServicePricing, waitForCompanyRole, submitCompanyRegistration } from '@/utils/registrationUtils';
+import { getCurrentLocation } from '@/utils/locationService';
 
 const CompanyRegistration = () => {
   // Basic Info state
@@ -32,6 +32,7 @@ const CompanyRegistration = () => {
   const [servicePricing, setServicePricing] = useState<ServicePricing[]>([]);
 
   const [loading, setLoading] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -135,6 +136,32 @@ const CompanyRegistration = () => {
     }
   };
 
+  const handleUseCurrentLocation = async () => {
+    setLocationLoading(true);
+    try {
+      const location = await getCurrentLocation();
+      setAddress(location.address || '');
+      setCity(location.city || '');
+      setState(location.state || '');
+      setZipCode(location.zipCode || '');
+      setLatitude(location.latitude);
+      setLongitude(location.longitude);
+
+      toast({
+        title: "Location detected",
+        description: "Your location fields were filled automatically.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Location Error",
+        description: error.message || "Unable to detect your location. Please fill the fields manually.",
+        variant: "destructive"
+      });
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
   return (
     <div className="container py-12">
       <div className="max-w-4xl mx-auto">
@@ -214,7 +241,27 @@ const CompanyRegistration = () => {
                   </div>
                   {/* --- LOCATION --- */}
                   <div className="mt-8 space-y-4">
-                    <h3 className="text-lg font-semibold">Business Location</h3>
+                    <h3 className="text-lg font-semibold flex items-center justify-between">
+                      Business Location
+                      <button
+                        type="button"
+                        className="ml-2 px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow disabled:opacity-50 transition-all flex items-center gap-2"
+                        onClick={handleUseCurrentLocation}
+                        disabled={locationLoading}
+                      >
+                        {locationLoading ? (
+                          <>
+                            <svg className="animate-spin h-4 w-4" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="white" strokeWidth="2" opacity="0.25"/><path d="M15 8A7 7 0 1 0 8 15" stroke="white" strokeWidth="2"/></svg>
+                            Locating...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M22 12h-4M6.28 17.2l-2.86 2.86M2 12h4M17.71 6.29l2.86-2.86" /></svg>
+                            Use Current Location
+                          </>
+                        )}
+                      </button>
+                    </h3>
                     <div>
                       <label className="block font-medium mb-1" htmlFor="address">Address *</label>
                       <input
@@ -259,6 +306,12 @@ const CompanyRegistration = () => {
                         />
                       </div>
                     </div>
+                    {/* Optional: show coordinates if available */}
+                    {(latitude && longitude) && (
+                      <div className="mt-2 text-xs text-emerald-700">
+                        Detected coordinates: <span className="font-mono">{latitude.toFixed(6)}, {longitude.toFixed(6)}</span>
+                      </div>
+                    )}
                     <div>
                       <label className="block font-medium mb-1" htmlFor="experience">Experience (years)</label>
                       <input
