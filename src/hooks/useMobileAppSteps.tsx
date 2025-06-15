@@ -21,11 +21,23 @@ export const useMobileAppSteps = (
     console.log('Checking company:', checkingCompany);
     console.log('Current step:', step);
     
-    // If still loading auth or checking company status, stay on loading
-    if (loading || checkingCompany) {
-      console.log('Still loading - staying on loading screen');
+    // If still loading auth, stay on loading (but not if just checking company for too long)
+    if (loading) {
+      console.log('Auth still loading - staying on loading screen');
       setStep('loading');
       return;
+    }
+
+    // If checking company status for a logged in user, give it a short timeout
+    if (user && checkingCompany) {
+      console.log('Checking company status - brief loading');
+      // Don't wait too long for company check
+      const timeout = setTimeout(() => {
+        console.log('Company check timeout - proceeding to app');
+        setStep('app');
+      }, 2000);
+      
+      return () => clearTimeout(timeout);
     }
 
     const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding') === 'true';
@@ -41,7 +53,7 @@ export const useMobileAppSteps = (
         setStep('front');
       }
     } else {
-      console.log('User authenticated - setting step to app');
+      console.log('User authenticated - going to app, role:', role);
       setStep('app');
     }
   }, [user, loading, role, checkingCompany]);

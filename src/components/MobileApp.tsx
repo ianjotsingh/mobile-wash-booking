@@ -34,6 +34,16 @@ const MobileApp = () => {
     }
   }, [user, userLocation]);
 
+  // Debug current state
+  useEffect(() => {
+    console.log('=== MobileApp State ===');
+    console.log('Step:', step);
+    console.log('User:', user?.email);
+    console.log('Role:', role);
+    console.log('Loading:', loading);
+    console.log('Checking company:', checkingCompany);
+  }, [step, user, role, loading, checkingCompany]);
+
   return (
     <Router>
       <MobileAppStepFlow

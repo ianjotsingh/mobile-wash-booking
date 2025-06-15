@@ -26,9 +26,28 @@ interface MobileAppRouterProps {
 const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) => {
   const { user, role } = useAuth();
 
-  const renderAppContent = () => {
-    if (role === 'company') return <CompanyMobileDashboard />;
-    if (role === 'mechanic') return <Navigate to="/mechanic-dashboard" />;
+  // Role-based default route logic
+  const getDefaultRoute = () => {
+    if (!user) {
+      // Not logged in - show customer home
+      return <MobileAppMain userLocation={userLocation} userAddress={userAddress} />;
+    }
+
+    // User is logged in - redirect based on role
+    console.log('Routing user with role:', role);
+    
+    if (role === 'company') {
+      console.log('Redirecting company to mobile dashboard');
+      return <CompanyMobileDashboard />;
+    }
+    
+    if (role === 'mechanic') {
+      console.log('Redirecting mechanic to dashboard');
+      return <Navigate to="/mechanic-dashboard" replace />;
+    }
+    
+    // Default to customer home for customers and unknown roles
+    console.log('Showing customer home for role:', role);
     return <MobileAppMain userLocation={userLocation} userAddress={userAddress} />;
   };
 
@@ -47,7 +66,7 @@ const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) =>
       <Route path="/mechanic/signup" element={<MechanicSignup />} />
       <Route path="/mechanic/request" element={<MechanicRequest />} />
       
-      {/* Dashboard Routes - Always redirect companies to mobile dashboard in mobile app */}
+      {/* Dashboard Routes */}
       <Route 
         path="/company/dashboard" 
         element={user && role === 'company' ? <CompanyMobileDashboard /> : <Navigate to="/" />} 
@@ -60,6 +79,10 @@ const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) =>
         path="/admin/dashboard" 
         element={user ? <AdminDashboard /> : <Navigate to="/" />} 
       />
+      <Route 
+        path="/mechanic-dashboard" 
+        element={user && role === 'mechanic' ? <MechanicDashboard /> : <Navigate to="/" />} 
+      />
       
       {/* Booking and Service Routes */}
       <Route path="/wash-booking" element={<WashBookingDetails />} />
@@ -67,9 +90,8 @@ const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) =>
       <Route path="/mechanic-request-form" element={<MechanicRequestForm />} />
       <Route path="/order-history" element={<OrderHistory />} />
       
-      {/* Main App Routes */}
-      <Route path="/mechanic-dashboard" element={<MechanicDashboard />} />
-      <Route path="/*" element={renderAppContent()} />
+      {/* Default Route - Role-based routing */}
+      <Route path="/*" element={getDefaultRoute()} />
     </Routes>
   );
 };
