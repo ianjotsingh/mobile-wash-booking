@@ -8,11 +8,7 @@ const NavigationBackButton = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Only show arrow if not home page
-  if (location.pathname === '/') {
-    return null;
-  }
-
+  // Always show back button now
   return (
     <Button
       variant="ghost"
