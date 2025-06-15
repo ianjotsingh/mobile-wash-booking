@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,7 +49,6 @@ interface NotificationData {
 interface CompanyData {
   id: string;
   company_name: string;
-  [key: string]: any;
 }
 
 const CompanyOrderDashboard = () => {
