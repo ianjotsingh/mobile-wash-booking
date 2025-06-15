@@ -1,18 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { MapPin, Phone, User, Car, Calendar, Clock, Bell } from 'lucide-react';
 import NotificationsPanel from './NotificationsPanel';
-import OrderCard from './OrderCard';
 import DashboardHeader from './dashboard/DashboardHeader';
 import CompanyOrdersLoading from './dashboard/CompanyOrdersLoading';
 import CompanyOrdersEmptyState from './dashboard/CompanyOrdersEmptyState';
 import CompanyOrderList from './dashboard/CompanyOrderList';
 
+// --- TYPE DEFINITIONS ---
 interface OrderData {
   id: string;
   service_type: string;
@@ -69,6 +67,7 @@ const CompanyOrderDashboard = () => {
     if (user) {
       fetchCompanyData();
     }
+    // eslint-disable-next-line
   }, [user]);
 
   useEffect(() => {
@@ -77,14 +76,13 @@ const CompanyOrderDashboard = () => {
       fetchMyQuotes();
       fetchNotifications();
     }
+    // eslint-disable-next-line
   }, [company]);
 
   // Set up real-time subscriptions
   useEffect(() => {
     if (!company?.id) return;
 
-    console.log('Setting up real-time subscriptions for company:', company.id);
-    
     const ordersChannel = supabase
       .channel('company-orders')
       .on(
@@ -96,7 +94,6 @@ const CompanyOrderDashboard = () => {
           filter: `selected_company_id=eq.${company.id}`
         },
         (payload) => {
-          console.log('New order received:', payload);
           fetchCompanyOrders();
           toast({
             title: "New Order!",
@@ -113,9 +110,7 @@ const CompanyOrderDashboard = () => {
           filter: `company_id=eq.${company.id}`
         },
         (payload) => {
-          console.log('New notification received:', payload);
           fetchNotifications();
-          // Show toast notification
           toast({
             title: payload.new.title,
             description: payload.new.message,
@@ -125,9 +120,9 @@ const CompanyOrderDashboard = () => {
       .subscribe();
 
     return () => {
-      console.log('Cleaning up real-time subscriptions');
       supabase.removeChannel(ordersChannel);
     };
+    // eslint-disable-next-line
   }, [company?.id, toast]);
 
   const fetchCompanyData = async () => {
@@ -140,9 +135,8 @@ const CompanyOrderDashboard = () => {
 
       if (error) throw error;
       setCompany(data);
-      console.log('Company data fetched:', data);
     } catch (error) {
-      console.error('Error fetching company data:', error);
+      // (Optional: error toast)
     }
   };
 
@@ -150,9 +144,6 @@ const CompanyOrderDashboard = () => {
     if (!company?.id) return;
 
     try {
-      console.log('Fetching orders for company:', company.id);
-      
-      // Fetch orders specifically assigned to this company
       const { data: companyOrders, error } = await supabase
         .from('orders')
         .select('*')
@@ -160,11 +151,9 @@ const CompanyOrderDashboard = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
-      console.log('Company orders fetched:', companyOrders);
       setOrders(companyOrders || []);
     } catch (error) {
-      console.error('Error fetching company orders:', error);
+      // (Optional: error toast)
     } finally {
       setLoading(false);
     }
@@ -172,7 +161,6 @@ const CompanyOrderDashboard = () => {
 
   const fetchMyQuotes = async () => {
     if (!company?.id) return;
-    
     try {
       const { data, error } = await supabase
         .from('order_quotes')
@@ -182,13 +170,12 @@ const CompanyOrderDashboard = () => {
       if (error) throw error;
       setQuotes(data || []);
     } catch (error) {
-      console.error('Error fetching quotes:', error);
+      // (Optional: error toast)
     }
   };
 
   const fetchNotifications = async () => {
     if (!company?.id) return;
-    
     try {
       const { data, error } = await supabase
         .from('notifications')
@@ -200,7 +187,7 @@ const CompanyOrderDashboard = () => {
       if (error) throw error;
       setNotifications(data || []);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      // (Optional: error toast)
     }
   };
 
@@ -214,7 +201,7 @@ const CompanyOrderDashboard = () => {
       if (error) throw error;
       fetchNotifications();
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      // (Optional: error toast)
     }
   };
 
@@ -242,7 +229,6 @@ const CompanyOrderDashboard = () => {
       fetchMyQuotes();
       fetchCompanyOrders();
     } catch (error) {
-      console.error('Error submitting quote:', error);
       toast({
         title: "Error",
         description: "Failed to submit quote. Please try again.",
@@ -267,7 +253,6 @@ const CompanyOrderDashboard = () => {
 
       fetchCompanyOrders();
     } catch (error) {
-      console.error('Error accepting order:', error);
       toast({
         title: "Error",
         description: "Failed to accept order. Please try again.",
@@ -292,7 +277,6 @@ const CompanyOrderDashboard = () => {
 
       fetchCompanyOrders();
     } catch (error) {
-      console.error('Error rejecting order:', error);
       toast({
         title: "Error",
         description: "Failed to reject order. Please try again.",
@@ -322,7 +306,8 @@ const CompanyOrderDashboard = () => {
     );
   }
 
-  const unreadNotifications: NotificationData[] = notifications.filter(n => !n.is_read);
+  // --- Fix type hell: Add explicit type here ---
+  const unreadNotifications: NotificationData[] = notifications.filter((n: NotificationData) => !n.is_read);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
