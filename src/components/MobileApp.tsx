@@ -2,14 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useCompanyStatus } from '@/hooks/useCompanyStatus';
 import { useMobileAppSteps } from '@/hooks/useMobileAppSteps';
 import MobileAppRouter from './mobile/MobileAppRouter';
 import MobileAppStepFlow from './mobile/MobileAppStepFlow';
 
 const MobileApp = () => {
   const { user, loading, role } = useAuth();
-  const { isCompany, checkingCompany } = useCompanyStatus(user);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [userAddress, setUserAddress] = useState<string>('');
 
@@ -19,7 +17,7 @@ const MobileApp = () => {
     handleOnboardingComplete,
     handleUserTypeSelect,
     handleLoginSuccess,
-  } = useMobileAppSteps(user, loading, role, checkingCompany);
+  } = useMobileAppSteps(user, loading, role);
 
   // Get user location when authenticated
   useEffect(() => {

@@ -40,7 +40,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     console.log('=== Auth Provider Initializing ===');
     
-    // Get initial session first
+    // Listen for auth changes first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email || 'No session');
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Fetch role if user exists
+        if (session?.user) {
+          await updateUserRole(session.user.id);
+        } else {
+          setRole(null);
+        }
+        
+        // Always set loading to false after auth state change
+        setLoading(false);
+      }
+    );
+
+    // Get initial session
     const getInitialSession = async () => {
       try {
         console.log('Getting initial session...');
@@ -64,29 +83,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setLoading(false);
       }
     };
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email || 'No session');
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        // Fetch role if user exists
-        if (session?.user) {
-          await updateUserRole(session.user.id);
-        } else {
-          setRole(null);
-        }
-        
-        if (!loading) {
-          console.log('Auth state change - loading already false');
-        } else {
-          console.log('Auth state change - setting loading to false');
-          setLoading(false);
-        }
-      }
-    );
 
     getInitialSession();
 

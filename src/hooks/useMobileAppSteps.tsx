@@ -7,8 +7,7 @@ type Step = 'loading' | 'onboarding' | 'front' | 'login' | 'app';
 export const useMobileAppSteps = (
   user: User | null,
   loading: boolean,
-  role: string | null,
-  checkingCompany: boolean
+  role: string | null
 ) => {
   const [step, setStep] = useState<Step>('loading');
   const [userType, setUserType] = useState<'customer' | 'provider' | null>(null);
@@ -27,9 +26,9 @@ export const useMobileAppSteps = (
       return;
     }
 
-    // If we have a user, go directly to app - don't wait for company check
+    // If we have a user, go directly to app
     if (user) {
-      console.log('User authenticated - going to app immediately, role:', role);
+      console.log('User authenticated - going to app, role:', role);
       setStep('app');
       return;
     }
@@ -45,7 +44,7 @@ export const useMobileAppSteps = (
       console.log('Setting step to front');
       setStep('front');
     }
-  }, [user, loading, role]); // Removed checkingCompany dependency
+  }, [user, loading, role]);
 
   const handleOnboardingComplete = () => {
     console.log('Onboarding completed');
