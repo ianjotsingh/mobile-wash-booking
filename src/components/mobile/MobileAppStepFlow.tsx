@@ -1,5 +1,4 @@
-
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import OnboardingFlow from '../onboarding/OnboardingFlow';
@@ -33,9 +32,14 @@ const MobileAppStepFlow = ({
   const { user, role, loading } = useAuth();
   const navigate = useNavigate();
 
+  // Ref to prevent repeated redirects
+  const hasRedirected = useRef(false);
+
   useEffect(() => {
-    // Only redirect once loading is done, we have a user, and step is 'app'
-    if (!loading && user && step === 'app' && role) {
+    // Only redirect when loading is done, user exists, and step is 'app'
+    // Only navigate once, using a ref flag to avoid infinite loops
+    if (!loading && user && step === 'app' && role && !hasRedirected.current) {
+      hasRedirected.current = true;
       if (role === 'company') {
         if (!window.location.pathname.startsWith('/company-dashboard')) {
           console.log('Redirecting company to company-dashboard');
@@ -47,23 +51,23 @@ const MobileAppStepFlow = ({
           navigate('/mechanic-dashboard', { replace: true });
         }
       } else {
-        // Customer and other roles - go to home ("/")
+        // Default for customers and other roles
         if (
           window.location.pathname.startsWith('/company-dashboard') ||
-          window.location.pathname.startsWith('/mechanic-dashboard')
+          window.location.pathname.startsWith('/mechanic-dashboard') ||
+          window.location.pathname !== '/'
         ) {
-          // If on dashboard by accident, go home
           console.log('Redirecting customer/other to home');
           navigate('/', { replace: true });
-        } else if (window.location.pathname !== '/') {
-          // If not on home, go home
-          console.log('Redirecting customer to home');
-          navigate('/', { replace: true });
         }
-        // No redirect needed if already home
+        // else: already on home
       }
     }
-  }, [user, role, step, loading, navigate]);
+    // If role changes (e.g., on logout/login), reset redirect state
+    if (!user || loading || step !== 'app') {
+      hasRedirected.current = false;
+    }
+  }, [user, role, loading, step, navigate]);
 
   if (step === 'loading') {
     return (
@@ -114,5 +118,3 @@ const MobileAppStepFlow = ({
 };
 
 export default MobileAppStepFlow;
-
-// ... end of file ...
