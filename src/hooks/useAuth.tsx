@@ -40,10 +40,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     console.log('=== Auth Provider Initializing ===');
     
+    let isInitialized = false;
+    
     // Listen for auth changes first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email || 'No session');
+        
+        // Update state
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -54,8 +58,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setRole(null);
         }
         
-        // Always set loading to false after auth state change
-        setLoading(false);
+        // Set loading to false after initial load
+        if (!isInitialized) {
+          console.log('Initial auth state processed - setting loading to false');
+          setLoading(false);
+          isInitialized = true;
+        }
       }
     );
 
@@ -68,19 +76,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.error('Error getting initial session:', error);
         } else {
           console.log('Initial session found:', session?.user?.email || 'No session');
-          setSession(session);
-          setUser(session?.user ?? null);
           
-          // Fetch role if user exists
-          if (session?.user) {
-            await updateUserRole(session.user.id);
+          // Only update if we haven't processed auth state change yet
+          if (!isInitialized) {
+            setSession(session);
+            setUser(session?.user ?? null);
+            
+            // Fetch role if user exists
+            if (session?.user) {
+              await updateUserRole(session.user.id);
+            }
+            
+            console.log('Initial session check completed - setting loading to false');
+            setLoading(false);
+            isInitialized = true;
           }
         }
       } catch (error) {
         console.error('Error in getInitialSession:', error);
-      } finally {
-        console.log('Initial session check completed - setting loading to false');
-        setLoading(false);
+        if (!isInitialized) {
+          setLoading(false);
+          isInitialized = true;
+        }
       }
     };
 

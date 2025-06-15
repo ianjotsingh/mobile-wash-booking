@@ -22,14 +22,18 @@ export const useMobileAppSteps = (
     // If still loading auth, stay on loading
     if (loading) {
       console.log('Auth still loading - staying on loading screen');
-      setStep('loading');
+      if (step !== 'loading') {
+        setStep('loading');
+      }
       return;
     }
 
     // If we have a user, go directly to app
     if (user) {
       console.log('User authenticated - going to app, role:', role);
-      setStep('app');
+      if (step !== 'app') {
+        setStep('app');
+      }
       return;
     }
 
@@ -39,12 +43,16 @@ export const useMobileAppSteps = (
 
     if (!hasCompletedOnboarding) {
       console.log('Setting step to onboarding');
-      setStep('onboarding');
+      if (step !== 'onboarding') {
+        setStep('onboarding');
+      }
     } else {
       console.log('Setting step to front');
-      setStep('front');
+      if (step !== 'front') {
+        setStep('front');
+      }
     }
-  }, [user, loading, role]);
+  }, [user, loading, role, step]);
 
   const handleOnboardingComplete = () => {
     console.log('Onboarding completed');
