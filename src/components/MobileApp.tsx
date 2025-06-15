@@ -44,6 +44,14 @@ const MobileApp = () => {
     console.log('Checking company:', checkingCompany);
   }, [step, user, role, loading, checkingCompany]);
 
+  // Force app step if user is authenticated and we're stuck loading
+  useEffect(() => {
+    if (user && !loading && step === 'loading') {
+      console.log('Force setting step to app - user is authenticated');
+      // This will be handled by useMobileAppSteps now
+    }
+  }, [user, loading, step]);
+
   return (
     <Router>
       <MobileAppStepFlow

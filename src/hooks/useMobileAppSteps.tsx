@@ -21,40 +21,30 @@ export const useMobileAppSteps = (
     console.log('Checking company:', checkingCompany);
     console.log('Current step:', step);
     
-    // If still loading auth, stay on loading (but not if just checking company for too long)
+    // If still loading auth, stay on loading
     if (loading) {
       console.log('Auth still loading - staying on loading screen');
       setStep('loading');
       return;
     }
 
-    // If checking company status for a logged in user, give it a short timeout
-    if (user && checkingCompany) {
-      console.log('Checking company status - brief loading');
-      // Don't wait too long for company check
-      const timeout = setTimeout(() => {
-        console.log('Company check timeout - proceeding to app');
-        setStep('app');
-      }, 2000);
-      
-      return () => clearTimeout(timeout);
+    // If we have a user, go directly to app regardless of company check status
+    if (user) {
+      console.log('User authenticated - going to app, role:', role);
+      setStep('app');
+      return;
     }
 
+    // No user - check onboarding status
     const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding') === 'true';
     console.log('Has completed onboarding:', hasCompletedOnboarding);
 
-    if (!user) {
-      console.log('No user - checking onboarding status');
-      if (!hasCompletedOnboarding) {
-        console.log('Setting step to onboarding');
-        setStep('onboarding');
-      } else {
-        console.log('Setting step to front');
-        setStep('front');
-      }
+    if (!hasCompletedOnboarding) {
+      console.log('Setting step to onboarding');
+      setStep('onboarding');
     } else {
-      console.log('User authenticated - going to app, role:', role);
-      setStep('app');
+      console.log('Setting step to front');
+      setStep('front');
     }
   }, [user, loading, role, checkingCompany]);
 
