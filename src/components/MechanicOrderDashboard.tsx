@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { MapPin, Phone, User, Wrench, Calendar, Clock } from 'lucide-react';
+import MechanicNotificationsPanel, { MechanicNotification } from './MechanicNotificationsPanel';
 
 interface MechanicRequest {
   id: string;
@@ -27,6 +28,7 @@ const MechanicOrderDashboard = () => {
   const [requests, setRequests] = useState<MechanicRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [mechanic, setMechanic] = useState<any>(null);
+  const [notifications, setNotifications] = useState<MechanicNotification[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -34,6 +36,7 @@ const MechanicOrderDashboard = () => {
     if (user) {
       fetchMechanicData();
       fetchMechanicRequests();
+      fetchMechanicNotifications();
     }
   }, [user]);
 
@@ -66,6 +69,36 @@ const MechanicOrderDashboard = () => {
       console.error('Error fetching mechanic requests:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMechanicNotifications = async () => {
+    if (!user) return;
+    try {
+      // First find this user's mechanic profile
+      const { data: mechanic, error: mechanicError } = await supabase
+        .from('mechanics')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+      if (mechanicError || !mechanic) return;
+
+      // Notifications related to mechanic requests nearby
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('is_read', false)
+        .eq('title', 'New Mechanic Request Nearby')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Note: To filter only for mechanics near this mechanic specifically, we'd need to store notified mechanic IDs
+      // For now, this shows all un-read 'New Mechanic Request Nearby' notifications to all mechanics
+
+      setNotifications(data || []);
+    } catch (error) {
+      console.error('Error fetching mechanic notifications:', error);
     }
   };
 
@@ -149,6 +182,19 @@ const MechanicOrderDashboard = () => {
     }
   };
 
+  const markNotificationAsRead = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId);
+      if (error) throw error;
+      setNotifications((prev) => prev.filter(n => n.id !== notificationId));
+    } catch (err) {
+      console.error('Error marking mechanic notification as read:', err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
@@ -189,6 +235,12 @@ const MechanicOrderDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
+        {/* New notifications for mechanics */}
+        <MechanicNotificationsPanel
+          notifications={notifications}
+          markRead={markNotificationAsRead}
+        />
+
         {/* Top Bar */}
         <div className="flex flex-col md:flex-row md:justify-between md:items-center">
           <div>
