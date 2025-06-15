@@ -17,6 +17,10 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
     onUserTypeSelect('provider');
   };
 
+  const handleMechanicRegister = () => {
+    window.location.href = '/mechanic-signup';
+  };
+
   const handleEmailLogin = () => {
     onUserTypeSelect('customer');
   };
@@ -71,6 +75,25 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
               </Button>
             </CardContent>
           </Card>
+
+          {/* Mechanic Register Option */}
+          <Card className="shadow-lg border-2 border-transparent hover:border-blue-200 transition-all">
+            <CardContent className="p-6">
+              <Button
+                onClick={handleMechanicRegister}
+                variant="outline"
+                className="w-full h-20 border-2 border-orange-600 text-orange-600 hover:bg-orange-50 rounded-xl touch-manipulation"
+              >
+                <div className="flex items-center space-x-4">
+                  <Wrench className="h-8 w-8" />
+                  <div className="text-left">
+                    <div className="text-xl font-bold">Register as Mechanic</div>
+                    <div className="text-orange-600 text-sm">Offer mechanic services individually</div>
+                  </div>
+                </div>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Sign In Options */}
@@ -101,3 +124,4 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
 };
 
 export default MobileFrontPage;
+
