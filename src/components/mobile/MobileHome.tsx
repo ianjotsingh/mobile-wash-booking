@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,7 +31,8 @@ const MobileHome = ({ userLocation, userAddress }: MobileHomeProps) => {
       <div className="bg-gradient-to-br from-blue-600 to-blue-800 text-white p-6 rounded-lg">
         <h1 className="text-2xl font-bold mb-2">Premium Car Care</h1>
         <p className="text-blue-100 mb-4">Professional services at your doorstep</p>
-        <div className="flex gap-3">
+        {/* Responsive Button Group */}
+        <div className="flex flex-col gap-3 sm:flex-row">
           <Button 
             onClick={handleBookWash}
             className="bg-white text-blue-600 hover:bg-blue-50 flex-1"
@@ -40,7 +42,7 @@ const MobileHome = ({ userLocation, userAddress }: MobileHomeProps) => {
           </Button>
           <Button 
             onClick={handleCallMechanic}
-            variant="outline" 
+            variant="outline"
             className="border-white text-white hover:bg-white hover:text-blue-600 flex-1"
           >
             <Wrench className="h-4 w-4 mr-2" />
