@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -9,6 +8,12 @@ import {
   NotificationData,
   CompanyData
 } from '@/types/companyDashboard';
+
+import { useCompanyInfo } from './company-dashboard/useCompanyInfo';
+import { useCompanyOrders } from './company-dashboard/useCompanyOrders';
+import { useCompanyQuotes } from './company-dashboard/useCompanyQuotes';
+import { useCompanyNotifications } from './company-dashboard/useCompanyNotifications';
+import { useCompanyDashboardActions } from './company-dashboard/useCompanyDashboardActions';
 
 // There is no "Anthropic" database integration. All data is from Supabase only.
 
@@ -24,48 +29,50 @@ interface UseCompanyDashboardDataResult {
 }
 
 export function useCompanyDashboardData(): UseCompanyDashboardDataResult {
-  const [orders, setOrders] = useState<OrderData[]>([]);
-  const [quotes, setQuotes] = useState<QuoteData[]>([]);
-  const [notifications, setNotifications] = useState<NotificationData[]>([]);
-  const [company, setCompany] = useState<CompanyData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const { company, loading: companyLoading } = useCompanyInfo();
+
+  const {
+    orders,
+    loading: ordersLoading,
+    fetchCompanyOrders,
+    setOrders
+  } = useCompanyOrders(company?.id);
+
+  const {
+    quotes,
+    fetchMyQuotes,
+    setQuotes
+  } = useCompanyQuotes(company?.id);
+
+  const {
+    notifications,
+    fetchNotifications,
+    setNotifications
+  } = useCompanyNotifications(company?.id);
+
+  const actions = useCompanyDashboardActions({
+    companyId: company?.id,
+    fetchMyQuotes,
+    fetchCompanyOrders,
+    fetchNotifications,
+  });
+
   const { toast } = useToast();
-  const { user } = useAuth();
 
-  // Fetch company on user
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      try {
-        const { data, error } = await supabase
-          .from('companies')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-        if (error) throw error;
-        setCompany(data as CompanyData);
-      } catch {
-        setCompany(null);
-      }
-    })();
-  }, [user]);
-
-  // Fetch dashboard data (orders, quotes, notifications) when company is set
   useEffect(() => {
     if (!company?.id) return;
 
-    fetchCompanyOrders(company.id);
-    fetchMyQuotes(company.id);
-    fetchNotifications(company.id);
+    fetchCompanyOrders();
+    fetchMyQuotes();
+    fetchNotifications();
 
-    // Realtime Subscriptions
     const channel = supabase
       .channel('company-orders')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'orders', filter: `selected_company_id=eq.${company.id}` },
         payload => {
-          fetchCompanyOrders(company.id);
+          fetchCompanyOrders();
           toast({ title: "New Order!", description: `New ${payload.new.service_type} booking received!` });
         }
       )
@@ -73,7 +80,7 @@ export function useCompanyDashboardData(): UseCompanyDashboardDataResult {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `company_id=eq.${company.id}` },
         payload => {
-          fetchNotifications(company.id);
+          fetchNotifications();
           toast({ title: payload.new.title, description: payload.new.message });
         }
       ).subscribe();
@@ -82,120 +89,12 @@ export function useCompanyDashboardData(): UseCompanyDashboardDataResult {
     // eslint-disable-next-line
   }, [company?.id, toast]);
 
-  const fetchCompanyOrders = useCallback(async (id: string): Promise<void> => {
-    setLoading(true);
-    try {
-      const { data: companyOrders, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('selected_company_id', id)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      setOrders((companyOrders || []) as OrderData[]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchMyQuotes = useCallback(async (id: string): Promise<void> => {
-    try {
-      const { data, error } = await supabase
-        .from('order_quotes')
-        .select('*')
-        .eq('company_id', id);
-      if (error) throw error;
-      setQuotes((data || []) as QuoteData[]);
-    } catch {}
-  }, []);
-
-  const fetchNotifications = useCallback(async (id: string): Promise<void> => {
-    try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('company_id', id)
-        .order('created_at', { ascending: false })
-        .limit(10);
-      if (error) throw error;
-      setNotifications((data || []) as NotificationData[]);
-    } catch {}
-  }, []);
-
-  const markNotificationAsRead = async (notificationId: string): Promise<void> => {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', notificationId);
-      if (error) throw error;
-      if (company?.id) fetchNotifications(company.id);
-    } catch {}
-  };
-
-  const submitQuote = async (
-    orderId: string,
-    price: number,
-    duration: number,
-    notes: string
-  ): Promise<void> => {
-    if (!company) return;
-    try {
-      const { error } = await supabase
-        .from('order_quotes')
-        .insert({
-          order_id: orderId,
-          company_id: company.id,
-          quoted_price: price * 100,
-          estimated_duration: duration,
-          additional_notes: notes
-        });
-      if (error) throw error;
-      toast({ title: "Quote Submitted", description: "Your quote has been sent to the customer." });
-      fetchMyQuotes(company.id);
-      fetchCompanyOrders(company.id);
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to submit quote. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const updateOrderStatus = async (orderId: string, status: string): Promise<void> => {
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status })
-        .eq('id', orderId);
-      if (error) throw error;
-      let description = "";
-      if (status === "accepted" || status === "confirmed") {
-        description = "Order has been accepted and customer will be notified.";
-      } else if (status === "rejected" || status === "cancelled") {
-        description = "Order has been rejected.";
-      } else {
-        description = "Order status updated.";
-      }
-      toast({ title: "Order Updated", description });
-      if(company?.id) fetchCompanyOrders(company.id);
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to update order. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
   return {
-    loading,
+    loading: companyLoading || ordersLoading,
     company,
     orders,
     quotes,
     notifications,
-    markNotificationAsRead,
-    submitQuote,
-    updateOrderStatus
+    ...actions,
   };
 }
