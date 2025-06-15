@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,7 +27,36 @@ const mechanicRegistrationSchema = z.object({
 
 type MechanicRegistrationForm = z.infer<typeof mechanicRegistrationSchema>;
 
+// Debug boundary
+const MechanicRegistrationDebugBoundary: React.FC<{children: React.ReactNode}> = ({ children }) => {
+  const [error, setError] = useState<string | null>(null);
+
+  if (error) {
+    return (
+      <div className="max-w-xl mx-auto mt-10 bg-red-100 border border-red-400 text-red-700 p-4 rounded">
+        <h2 className="text-lg font-bold mb-2">Registration Form Error</h2>
+        <pre className="whitespace-pre-wrap">{error}</pre>
+        <p className="mt-2 text-sm">Please check the console for details, and contact support if this persists.</p>
+      </div>
+    );
+  }
+
+  return (
+    <React.ErrorBoundary
+      fallbackRender={({error}) => {
+        setError(error.message || 'Unknown error');
+        return null;
+      }}
+    >
+      {children}
+    </React.ErrorBoundary>
+  );
+};
+
 const MechanicRegistration = () => {
+  // DEBUG: Show that this component is rendering!
+  console.log('[MechanicRegistration] Component mounted');
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const { toast } = useToast();
@@ -157,238 +185,243 @@ const MechanicRegistration = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Wrench className="h-6 w-6 text-emerald-600" />
-            <span>Mechanic Registration</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {/* Personal Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="full_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Your full name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+    <MechanicRegistrationDebugBoundary>
+      <div className="max-w-2xl mx-auto p-6">
+        <div className="mb-4 text-green-800 font-semibold">
+          [DEBUG] MechanicRegistration rendered
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Wrench className="h-6 w-6 text-emerald-600" />
+              <span>Mechanic Registration</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {/* Personal Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="full_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Your full name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="your@email.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="your@email.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input type="password" placeholder="Create password" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Create password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number (for password recovery)</FormLabel>
-                      <FormControl>
-                        <div className="flex">
-                          <div className="flex items-center px-3 py-2 border border-r-0 border-gray-200 rounded-l-md bg-gray-50">
-                            <span className="text-sm font-medium">🇮🇳 +91</span>
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number (for password recovery)</FormLabel>
+                        <FormControl>
+                          <div className="flex">
+                            <div className="flex items-center px-3 py-2 border border-r-0 border-gray-200 rounded-l-md bg-gray-50">
+                              <span className="text-sm font-medium">🇮🇳 +91</span>
+                            </div>
+                            <Input 
+                              placeholder="10-digit phone number" 
+                              {...field}
+                              className="rounded-l-none"
+                              maxLength={10}
+                              onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                            />
                           </div>
-                          <Input 
-                            placeholder="10-digit phone number" 
-                            {...field}
-                            className="rounded-l-none"
-                            maxLength={10}
-                            onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Address */}
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Address</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Complete address" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="city"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <FormControl>
+                          <Input placeholder="City" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="zip_code"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ZIP Code</FormLabel>
+                        <FormControl>
+                          <Input placeholder="ZIP Code" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Experience */}
+                <FormField
+                  control={form.control}
+                  name="experience"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Experience</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., 5 years" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Document Upload */}
+                <FormField
+                  control={form.control}
+                  name="id_document"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Upload className="h-4 w-4" />
+                        Upload Aadhaar or PAN Card
+                      </FormLabel>
+                      <FormControl>
+                        <div className="flex items-center gap-4">
+                          <Input
+                            type="file"
+                            accept="image/*,.pdf"
+                            onChange={handleFileChange}
+                            className="cursor-pointer"
                           />
+                          {documentFile && (
+                            <span className="text-sm text-green-600">
+                              ✓ {documentFile.name}
+                            </span>
+                          )}
                         </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
 
-              {/* Address */}
-              <FormField
-                control={form.control}
-                name="address"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Address</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Complete address" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Specializations */}
                 <FormField
                   control={form.control}
-                  name="city"
-                  render={({ field }) => (
+                  name="specializations"
+                  render={() => (
                     <FormItem>
-                      <FormLabel>City</FormLabel>
-                      <FormControl>
-                        <Input placeholder="City" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="zip_code"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ZIP Code</FormLabel>
-                      <FormControl>
-                        <Input placeholder="ZIP Code" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Experience */}
-              <FormField
-                control={form.control}
-                name="experience"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Experience</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., 5 years" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Document Upload */}
-              <FormField
-                control={form.control}
-                name="id_document"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      <Upload className="h-4 w-4" />
-                      Upload Aadhaar or PAN Card
-                    </FormLabel>
-                    <FormControl>
-                      <div className="flex items-center gap-4">
-                        <Input
-                          type="file"
-                          accept="image/*,.pdf"
-                          onChange={handleFileChange}
-                          className="cursor-pointer"
-                        />
-                        {documentFile && (
-                          <span className="text-sm text-green-600">
-                            ✓ {documentFile.name}
-                          </span>
-                        )}
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Specializations */}
-              <FormField
-                control={form.control}
-                name="specializations"
-                render={() => (
-                  <FormItem>
-                    <FormLabel>Specializations</FormLabel>
-                    <div className="grid grid-cols-2 gap-3">
-                      {availableSpecializations.map((specialization) => (
-                        <FormField
-                          key={specialization}
-                          control={form.control}
-                          name="specializations"
-                          render={({ field }) => {
-                            return (
-                              <FormItem
-                                key={specialization}
-                                className="flex flex-row items-start space-x-3 space-y-0"
-                              >
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value?.includes(specialization)}
-                                    onCheckedChange={(checked) => {
-                                      return checked
-                                        ? field.onChange([...field.value, specialization])
-                                        : field.onChange(
-                                            field.value?.filter(
-                                              (value) => value !== specialization
+                      <FormLabel>Specializations</FormLabel>
+                      <div className="grid grid-cols-2 gap-3">
+                        {availableSpecializations.map((specialization) => (
+                          <FormField
+                            key={specialization}
+                            control={form.control}
+                            name="specializations"
+                            render={({ field }) => {
+                              return (
+                                <FormItem
+                                  key={specialization}
+                                  className="flex flex-row items-start space-x-3 space-y-0"
+                                >
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value?.includes(specialization)}
+                                      onCheckedChange={(checked) => {
+                                        return checked
+                                          ? field.onChange([...field.value, specialization])
+                                          : field.onChange(
+                                              field.value?.filter(
+                                                (value) => value !== specialization
+                                              )
                                             )
-                                          )
-                                    }}
-                                  />
-                                </FormControl>
-                                <FormLabel className="text-sm font-normal">
-                                  {specialization}
-                                </FormLabel>
-                              </FormItem>
-                            )
-                          }}
-                        />
-                      ))}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormLabel className="text-sm font-normal">
+                                    {specialization}
+                                  </FormLabel>
+                                </FormItem>
+                              )
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Registering...' : 'Register as Mechanic'}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-    </div>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Registering...' : 'Register as Mechanic'}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
+    </MechanicRegistrationDebugBoundary>
   );
 };
 
