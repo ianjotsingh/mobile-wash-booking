@@ -35,19 +35,16 @@ export function useCompanyDashboardData(): UseCompanyDashboardDataResult {
     orders,
     loading: ordersLoading,
     fetchCompanyOrders,
-    setOrders
   } = useCompanyOrders(company?.id);
 
   const {
     quotes,
     fetchMyQuotes,
-    setQuotes
   } = useCompanyQuotes(company?.id);
 
   const {
     notifications,
     fetchNotifications,
-    setNotifications
   } = useCompanyNotifications(company?.id);
 
   const actions = useCompanyDashboardActions({

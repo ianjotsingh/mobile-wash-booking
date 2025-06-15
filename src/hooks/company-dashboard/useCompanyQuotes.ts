@@ -16,5 +16,5 @@ export function useCompanyQuotes(companyId: string | undefined) {
       setQuotes((data || []) as QuoteData[]);
     } catch {}
   }, [companyId]);
-  return { quotes, fetchMyQuotes, setQuotes };
+  return { quotes, fetchMyQuotes };
 }

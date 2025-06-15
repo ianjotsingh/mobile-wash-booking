@@ -8,7 +8,6 @@ interface UseCompanyOrdersResult {
   orders: OrderData[];
   loading: boolean;
   fetchCompanyOrders: () => Promise<void>;
-  setOrders: React.Dispatch<React.SetStateAction<OrderData[]>>;
 }
 
 export function useCompanyOrders(companyId: string | undefined): UseCompanyOrdersResult {
@@ -33,6 +32,5 @@ export function useCompanyOrders(companyId: string | undefined): UseCompanyOrder
   }, [companyId]);
 
   // Explicit return, with setter included
-  return { orders, loading, fetchCompanyOrders, setOrders };
+  return { orders, loading, fetchCompanyOrders };
 }
-

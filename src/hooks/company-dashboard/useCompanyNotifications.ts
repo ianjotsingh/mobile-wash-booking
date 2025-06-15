@@ -18,5 +18,5 @@ export function useCompanyNotifications(companyId: string | undefined) {
       setNotifications((data || []) as NotificationData[]);
     } catch {}
   }, [companyId]);
-  return { notifications, fetchNotifications, setNotifications };
+  return { notifications, fetchNotifications };
 }
