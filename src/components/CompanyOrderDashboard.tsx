@@ -8,6 +8,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { MapPin, Phone, User, Car, Calendar, Clock, Bell } from 'lucide-react';
 import NotificationsPanel from './NotificationsPanel';
 import OrderCard from './OrderCard';
+import DashboardHeader from './dashboard/DashboardHeader';
+import CompanyOrdersLoading from './dashboard/CompanyOrdersLoading';
+import CompanyOrdersEmptyState from './dashboard/CompanyOrdersEmptyState';
+import CompanyOrderList from './dashboard/CompanyOrderList';
 
 interface OrderData {
   id: string;
@@ -298,13 +302,7 @@ const CompanyOrderDashboard = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center">Loading orders...</div>
-        </div>
-      </div>
-    );
+    return <CompanyOrdersLoading />;
   }
 
   if (!company) {
@@ -324,19 +322,14 @@ const CompanyOrderDashboard = () => {
     );
   }
 
-  const unreadNotifications = notifications.filter(n => !n.is_read);
+  const unreadNotifications: NotificationData[] = notifications.filter(n => !n.is_read);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            {company.company_name} - Order Dashboard
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Manage incoming orders and provide quotes to customers
-          </p>
-        </div>
+
+        {/* Dashboard Header (company name/description) */}
+        <DashboardHeader companyName={company.company_name} />
 
         {/* Notifications Panel */}
         <NotificationsPanel 
@@ -344,34 +337,19 @@ const CompanyOrderDashboard = () => {
           markNotificationAsRead={markNotificationAsRead}
         />
 
-        <div className="grid gap-6">
-          {orders.length === 0 ? (
-            <Card>
-              <CardContent className="p-6">
-                <div className="text-center">
-                  <h3 className="text-lg font-semibold mb-2">No Orders Yet</h3>
-                  <p className="text-gray-600">
-                    Orders assigned to your company will appear here. Make sure your company profile is complete and approved.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            orders.map((order) => {
-              const existingQuote = quotes.find(quote => quote.order_id === order.id);
-              return (
-                <OrderCard
-                  key={order.id}
-                  order={order}
-                  existingQuote={existingQuote}
-                  submitQuote={submitQuote}
-                  acceptOrder={acceptOrder}
-                  rejectOrder={rejectOrder}
-                />
-              );
-            })
-          )}
-        </div>
+        {/* Order list or empty state */}
+        {orders.length === 0 ? (
+          <CompanyOrdersEmptyState />
+        ) : (
+          <CompanyOrderList
+            orders={orders}
+            quotes={quotes}
+            submitQuote={submitQuote}
+            acceptOrder={acceptOrder}
+            rejectOrder={rejectOrder}
+          />
+        )}
+
       </div>
     </div>
   );
