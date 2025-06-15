@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -75,7 +76,7 @@ const MobileApp = () => {
       return;
     }
 
-    console.log('Auth state evaluation - User:', user ? user.email : 'undefined', 'Loading:', loading, 'IsCompany:', isCompany);
+    console.log('Auth state evaluation - User:', user ? user.email : 'undefined', 'Loading:', loading, 'Role:', role);
 
     const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding') === 'true';
     const hasLocationSet = localStorage.getItem('userLocationSet');
@@ -95,7 +96,7 @@ const MobileApp = () => {
       console.log('User authenticated, going to app');
       setStep('app');
     }
-  }, [user, loading, isCompany, checkingCompany]);
+  }, [user, loading, role, checkingCompany]);
 
   // Get user location when authenticated
   useEffect(() => {
@@ -179,11 +180,11 @@ const MobileApp = () => {
         {/* Dashboard Routes - Always redirect companies to mobile dashboard in mobile app */}
         <Route 
           path="/company/dashboard" 
-          element={user && isCompany ? <CompanyMobileDashboard /> : <Navigate to="/" />} 
+          element={user && role === 'company' ? <CompanyMobileDashboard /> : <Navigate to="/" />} 
         />
         <Route 
           path="/company-dashboard" 
-          element={user && isCompany ? <CompanyMobileDashboard /> : <Navigate to="/" />} 
+          element={user && role === 'company' ? <CompanyMobileDashboard /> : <Navigate to="/" />} 
         />
         <Route 
           path="/admin/dashboard" 

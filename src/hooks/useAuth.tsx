@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,6 +22,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
 
+  // Fetch role function
+  const fetchRole = async (uid: string) => {
+    try {
+      // Try company
+      let { data: companyData } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('user_id', uid)
+        .maybeSingle();
+      if (companyData) {
+        setRole('company');
+        return 'company';
+      }
+      // Try mechanic
+      let { data: mechData } = await supabase
+        .from('mechanics')
+        .select('id')
+        .eq('user_id', uid)
+        .maybeSingle();
+      if (mechData) {
+        setRole('mechanic');
+        return 'mechanic';
+      }
+      // Else, default to 'customer'
+      setRole('customer');
+      return 'customer';
+    } catch (error) {
+      console.error('Error fetching role:', error);
+      setRole('customer');
+      return 'customer';
+    }
+  };
+
   useEffect(() => {
     console.log('Setting up auth listeners...');
     
@@ -34,6 +68,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.log('Initial session:', session?.user?.email || 'No session');
           setSession(session);
           setUser(session?.user ?? null);
+          
+          // Fetch role if user exists
+          if (session?.user) {
+            await fetchRole(session.user.id);
+          }
         }
       } catch (error) {
         console.error('Error in getInitialSession:', error);
@@ -48,43 +87,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
+        
+        // Fetch role if user exists
+        if (session?.user) {
+          await fetchRole(session.user.id);
+        } else {
+          setRole(null);
+        }
+        
         setLoading(false);
       }
     );
 
     getInitialSession();
-
-    // After setting user, fetch role from user_profiles/companies/mechanics
-    const fetchRole = async (uid: string | undefined) => {
-      if (!uid) {
-        setRole(null);
-        return;
-      }
-      // Try company
-      let { data: companyData } = await supabase
-        .from('companies')
-        .select('id')
-        .eq('user_id', uid)
-        .maybeSingle();
-      if (companyData) {
-        setRole('company');
-        return;
-      }
-      // Try mechanic
-      let { data: mechData } = await supabase
-        .from('mechanics')
-        .select('id')
-        .eq('user_id', uid)
-        .maybeSingle();
-      if (mechData) {
-        setRole('mechanic');
-        return;
-      }
-      // Else, default to 'customer'
-      setRole('customer');
-    };
-    if (user) fetchRole(user.id);
-    else setRole(null);
 
     return () => {
       console.log('Cleaning up auth subscription');
@@ -103,6 +118,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Clear any cached data
         localStorage.removeItem('userLocationSet');
         localStorage.removeItem('hasCompletedOnboarding');
+        setRole(null);
       }
     } catch (error) {
       console.error('Sign out error:', error);
@@ -255,6 +271,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
       
+      // If user created successfully, fetch role immediately
+      if (data.user) {
+        await fetchRole(data.user.id);
+      }
+      
       // If user created but no session, try to sign in
       if (data.user && !data.session) {
         console.log('User created but no session, trying to sign in...');
@@ -301,6 +322,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             error: { message: 'Invalid email or password. Please check your credentials or try resetting your password.' }
           };
         }
+      }
+      
+      // Fetch role immediately after successful sign in
+      if (data.user) {
+        await fetchRole(data.user.id);
       }
       
       return { data, error };

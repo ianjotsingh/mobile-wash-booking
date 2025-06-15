@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -71,11 +72,12 @@ const CompanyRegistration = () => {
           variant: 'default',
         });
 
+        // Force immediate redirect to company dashboard
         setTimeout(() => {
           if (isMobileApp) {
-            navigate("/company/dashboard");
+            window.location.href = "/company/dashboard";
           } else {
-            navigate("/company-dashboard");
+            window.location.href = "/company-dashboard";
           }
         }, 1200);
       }
