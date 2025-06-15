@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { MapPin, Phone, User, Car, Calendar, Clock, Bell } from 'lucide-react';
 
-interface Order {
+interface OrderData {
   id: string;
   service_type: string;
   booking_date: string;
@@ -28,7 +27,7 @@ interface Order {
   selected_company_id?: string;
 }
 
-interface Quote {
+interface QuoteData {
   id: string;
   order_id: string;
   quoted_price: number;
@@ -37,7 +36,7 @@ interface Quote {
   status: string;
 }
 
-interface Notification {
+interface NotificationData {
   id: string;
   title: string;
   message: string;
@@ -46,12 +45,18 @@ interface Notification {
   order_id?: string;
 }
 
+interface CompanyData {
+  id: string;
+  company_name: string;
+  [key: string]: any;
+}
+
 const CompanyOrderDashboard = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [quotes, setQuotes] = useState<Quote[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [orders, setOrders] = useState<OrderData[]>([]);
+  const [quotes, setQuotes] = useState<QuoteData[]>([]);
+  const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [company, setCompany] = useState<any>(null);
+  const [company, setCompany] = useState<CompanyData | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
