@@ -1,13 +1,17 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Car, Building2, Mail, Wrench } from 'lucide-react'; // Fixed: added Wrench
+import { Car, Building2, Mail, Wrench } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface MobileFrontPageProps {
   onUserTypeSelect: (userType: 'customer' | 'provider') => void;
 }
 
 const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
+  const navigate = useNavigate();
+
   const handleCustomerSelect = () => {
     onUserTypeSelect('customer');
   };
@@ -16,9 +20,9 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
     onUserTypeSelect('provider');
   };
 
-  // Instead of navigating, trigger registration flow for mechanic
+  // Navigate directly to mechanic signup page for mechanics
   const handleMechanicRegister = () => {
-    onUserTypeSelect('provider');
+    navigate('/mechanic/signup');
   };
 
   const handleEmailLogin = () => {
@@ -124,3 +128,4 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
 };
 
 export default MobileFrontPage;
+
