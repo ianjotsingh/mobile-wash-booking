@@ -29,6 +29,8 @@ const CompanyRegistration = () => {
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [zipCode, setZipCode] = useState('');
+  const [latitude, setLatitude] = useState<number | undefined>();
+  const [longitude, setLongitude] = useState<number | undefined>();
   const [experience, setExperience] = useState('');
   const [hasMechanic, setHasMechanic] = useState(false);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -93,6 +95,8 @@ const CompanyRegistration = () => {
         city,
         state,
         zipCode,
+        latitude,
+        longitude,
         companyDescription,
         experience,
         hasMechanic,
@@ -177,6 +181,10 @@ const CompanyRegistration = () => {
             setExperience={setExperience}
             hasMechanic={hasMechanic}
             setHasMechanic={setHasMechanic}
+            latitude={latitude}
+            setLatitude={setLatitude}
+            longitude={longitude}
+            setLongitude={setLongitude}
           />
         );
       case 3:

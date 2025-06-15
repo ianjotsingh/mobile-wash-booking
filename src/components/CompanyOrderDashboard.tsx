@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { MapPin, Phone, User, Car, Calendar, Clock } from 'lucide-react';
+import { MapPin, Phone, User, Car, Calendar, Clock, Bell } from 'lucide-react';
 
 interface Order {
   id: string;
@@ -25,6 +25,7 @@ interface Order {
   created_at: string;
   latitude?: number;
   longitude?: number;
+  selected_company_id?: string;
 }
 
 interface Quote {
@@ -36,66 +37,88 @@ interface Quote {
   status: string;
 }
 
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+  order_id?: string;
+}
+
 const CompanyOrderDashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [company, setCompany] = useState<any>(null);
-  const [debugInfo, setDebugInfo] = useState<any>({});
   const { toast } = useToast();
   const { user } = useAuth();
 
   useEffect(() => {
     if (user) {
       fetchCompanyData();
-      fetchNearbyOrders();
-      fetchMyQuotes();
     }
   }, [user]);
 
-  // Set up real-time subscription with better error handling
   useEffect(() => {
-    if (!user || !company?.id) return;
+    if (company?.id) {
+      fetchCompanyOrders();
+      fetchMyQuotes();
+      fetchNotifications();
+    }
+  }, [company]);
 
-    console.log('Setting up real-time subscription for company orders...');
+  // Set up real-time subscriptions
+  useEffect(() => {
+    if (!company?.id) return;
+
+    console.log('Setting up real-time subscriptions for company:', company.id);
     
-    const channel = supabase
-      .channel('company-order-updates')
+    const ordersChannel = supabase
+      .channel('company-orders')
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          event: 'INSERT',
           schema: 'public',
-          table: 'orders'
+          table: 'orders',
+          filter: `selected_company_id=eq.${company.id}`
         },
         (payload) => {
-          console.log('Real-time order event received:', payload);
-          fetchNearbyOrders(); // Refresh when any order changes
+          console.log('New order received:', payload);
+          fetchCompanyOrders();
+          toast({
+            title: "New Order!",
+            description: `New ${payload.new.service_type} booking received!`,
+          });
         }
       )
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
-          table: 'order_quotes'
+          table: 'notifications',
+          filter: `company_id=eq.${company.id}`
         },
         (payload) => {
-          console.log('Real-time quote event received:', payload);
-          fetchMyQuotes();
-          fetchNearbyOrders();
+          console.log('New notification received:', payload);
+          fetchNotifications();
+          // Show toast notification
+          toast({
+            title: payload.new.title,
+            description: payload.new.message,
+          });
         }
       )
-      .subscribe((status) => {
-        console.log('Real-time subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('Cleaning up company real-time subscription');
-      supabase.removeChannel(channel);
+      console.log('Cleaning up real-time subscriptions');
+      supabase.removeChannel(ordersChannel);
     };
-  }, [user, company?.id]);
+  }, [company?.id, toast]);
 
   const fetchCompanyData = async () => {
     try {
@@ -113,95 +136,32 @@ const CompanyOrderDashboard = () => {
     }
   };
 
-  const fetchNearbyOrders = async () => {
+  const fetchCompanyOrders = async () => {
+    if (!company?.id) return;
+
     try {
-      console.log('=== DEBUGGING ORDER FETCH ===');
-      console.log('Current user:', user?.id);
-      console.log('Company data:', company);
+      console.log('Fetching orders for company:', company.id);
       
-      // First, let's check if there are ANY orders in the database at all
-      const { data: allOrdersCheck, error: allOrdersError } = await supabase
-        .from('orders')
-        .select('*');
-
-      console.log('Total orders in database (no filters):', allOrdersCheck?.length || 0);
-      console.log('Sample orders:', allOrdersCheck?.slice(0, 3));
-
-      if (allOrdersError) {
-        console.error('Error fetching all orders:', allOrdersError);
-        setDebugInfo(prev => ({ ...prev, allOrdersError: allOrdersError.message }));
-      }
-
-      // Check if RLS is blocking us
-      const { data: ordersWithRLS, error: rlsError, count } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact' });
-
-      console.log('Orders accessible with current user (RLS applied):', count);
-      console.log('RLS Error:', rlsError);
-
-      setDebugInfo({
-        totalOrdersInDB: allOrdersCheck?.length || 0,
-        ordersAccessibleToUser: count || 0,
-        userRole: user?.email,
-        companyId: company?.id,
-        hasRLSError: !!rlsError,
-        rlsErrorMessage: rlsError?.message
-      });
-
-      // Fetch all orders that we can access
-      const { data: accessibleOrders, error: accessibleError } = await supabase
+      // Fetch orders specifically assigned to this company
+      const { data: companyOrders, error } = await supabase
         .from('orders')
         .select('*')
+        .eq('selected_company_id', company.id)
         .order('created_at', { ascending: false });
 
-      if (accessibleError) {
-        console.error('Error fetching accessible orders:', accessibleError);
-      } else {
-        console.log('Orders accessible to current user:', accessibleOrders);
-        setOrders(accessibleOrders || []);
-      }
-
-      // Fetch pending orders specifically
-      const { data: pendingOrdersData, error: pendingError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false });
-
-      if (pendingError) {
-        console.error('Error fetching pending orders:', pendingError);
-      } else {
-        console.log('Pending orders found:', pendingOrdersData);
-        
-        // Filter out orders we've already quoted on
-        if (company?.id && pendingOrdersData) {
-          const { data: existingQuotes } = await supabase
-            .from('order_quotes')
-            .select('order_id')
-            .eq('company_id', company.id);
-
-          const quotedOrderIds = existingQuotes?.map(q => q.order_id) || [];
-          const unquotedOrders = pendingOrdersData.filter(order => 
-            !quotedOrderIds.includes(order.id)
-          );
-
-          console.log('Pending orders without quotes:', unquotedOrders);
-          setPendingOrders(unquotedOrders);
-        } else {
-          setPendingOrders(pendingOrdersData || []);
-        }
-      }
+      if (error) throw error;
+      
+      console.log('Company orders fetched:', companyOrders);
+      setOrders(companyOrders || []);
     } catch (error) {
-      console.error('Error in fetchNearbyOrders:', error);
-      setDebugInfo(prev => ({ ...prev, fetchError: error.message }));
+      console.error('Error fetching company orders:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const fetchMyQuotes = async () => {
-    if (!company) return;
+    if (!company?.id) return;
     
     try {
       const { data, error } = await supabase
@@ -210,10 +170,41 @@ const CompanyOrderDashboard = () => {
         .eq('company_id', company.id);
 
       if (error) throw error;
-      console.log('Company quotes:', data);
       setQuotes(data || []);
     } catch (error) {
       console.error('Error fetching quotes:', error);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    if (!company?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('company_id', company.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      setNotifications(data || []);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
+  const markNotificationAsRead = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId);
+
+      if (error) throw error;
+      fetchNotifications();
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
     }
   };
 
@@ -238,10 +229,8 @@ const CompanyOrderDashboard = () => {
         description: "Your quote has been sent to the customer.",
       });
 
-      // Move the order from pending to quoted
-      setPendingOrders(prev => prev.filter(order => order.id !== orderId));
       fetchMyQuotes();
-      fetchNearbyOrders();
+      fetchCompanyOrders();
     } catch (error) {
       console.error('Error submitting quote:', error);
       toast({
@@ -252,33 +241,54 @@ const CompanyOrderDashboard = () => {
     }
   };
 
-  const confirmOrder = async (orderId: string) => {
+  const acceptOrder = async (orderId: string) => {
     try {
       const { error } = await supabase
         .from('orders')
-        .update({ status: 'in_progress' })
+        .update({ status: 'accepted' })
         .eq('id', orderId);
 
       if (error) throw error;
 
       toast({
-        title: "Order Confirmed",
-        description: "Order has been confirmed and is now in progress.",
+        title: "Order Accepted",
+        description: "Order has been accepted and customer will be notified.",
       });
 
-      fetchNearbyOrders();
+      fetchCompanyOrders();
     } catch (error) {
-      console.error('Error confirming order:', error);
+      console.error('Error accepting order:', error);
       toast({
         title: "Error",
-        description: "Failed to confirm order. Please try again.",
+        description: "Failed to accept order. Please try again.",
         variant: "destructive"
       });
     }
   };
 
-  const getOrderQuote = (orderId: string) => {
-    return quotes.find(quote => quote.order_id === orderId);
+  const rejectOrder = async (orderId: string) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'rejected' })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Order Rejected",
+        description: "Order has been rejected.",
+      });
+
+      fetchCompanyOrders();
+    } catch (error) {
+      console.error('Error rejecting order:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reject order. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   if (loading) {
@@ -308,7 +318,7 @@ const CompanyOrderDashboard = () => {
     );
   }
 
-  const allOrdersToShow = [...pendingOrders, ...orders];
+  const unreadNotifications = notifications.filter(n => !n.is_read);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -320,99 +330,57 @@ const CompanyOrderDashboard = () => {
           <p className="text-gray-600 mt-2">
             Manage incoming orders and provide quotes to customers
           </p>
-          
-          {/* Debug Information Card */}
-          <Card className="mt-4 bg-blue-50 border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-blue-800">Debug Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <strong>Total Orders in DB:</strong> {debugInfo.totalOrdersInDB || 0}
-                </div>
-                <div>
-                  <strong>Orders Accessible:</strong> {debugInfo.ordersAccessibleToUser || 0}
-                </div>
-                <div>
-                  <strong>User Email:</strong> {debugInfo.userRole}
-                </div>
-                <div>
-                  <strong>Company ID:</strong> {debugInfo.companyId}
-                </div>
-                <div>
-                  <strong>Pending Orders:</strong> {pendingOrders.length}
-                </div>
-                <div>
-                  <strong>Total Orders Shown:</strong> {allOrdersToShow.length}
-                </div>
-              </div>
-              {debugInfo.hasRLSError && (
-                <div className="mt-2 p-2 bg-red-100 rounded text-red-800">
-                  <strong>RLS Error:</strong> {debugInfo.rlsErrorMessage}
-                </div>
-              )}
-              {debugInfo.fetchError && (
-                <div className="mt-2 p-2 bg-red-100 rounded text-red-800">
-                  <strong>Fetch Error:</strong> {debugInfo.fetchError}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          
-          <div className="mt-4 space-x-4">
-            <Button 
-              onClick={() => {
-                fetchNearbyOrders();
-                fetchMyQuotes();
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              Refresh Orders
-            </Button>
-            <Button 
-              onClick={() => {
-                console.log('Full debug info:', {
-                  user,
-                  company,
-                  debugInfo,
-                  pendingOrders: pendingOrders.length,
-                  allOrders: orders.length,
-                  totalToShow: allOrdersToShow.length
-                });
-              }}
-              variant="outline"
-            >
-              Log Full Debug Info
-            </Button>
-          </div>
         </div>
 
+        {/* Notifications Panel */}
+        {unreadNotifications.length > 0 && (
+          <Card className="mb-6 bg-blue-50 border-blue-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-800">
+                <Bell className="h-5 w-5" />
+                New Notifications ({unreadNotifications.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {unreadNotifications.slice(0, 3).map((notification) => (
+                  <div key={notification.id} className="flex justify-between items-start p-3 bg-white rounded border border-blue-200">
+                    <div>
+                      <h4 className="font-medium text-blue-900">{notification.title}</h4>
+                      <p className="text-sm text-blue-700">{notification.message}</p>
+                      <p className="text-xs text-blue-600 mt-1">
+                        {new Date(notification.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => markNotificationAsRead(notification.id)}
+                    >
+                      Mark Read
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid gap-6">
-          {allOrdersToShow.length === 0 ? (
+          {orders.length === 0 ? (
             <Card>
               <CardContent className="p-6">
                 <div className="text-center">
-                  <h3 className="text-lg font-semibold mb-2">No Orders Available</h3>
-                  <p className="text-gray-600 mb-4">
-                    Debug info shows: {debugInfo.totalOrdersInDB || 0} total orders in database, 
-                    {debugInfo.ordersAccessibleToUser || 0} accessible to you.
+                  <h3 className="text-lg font-semibold mb-2">No Orders Yet</h3>
+                  <p className="text-gray-600">
+                    Orders assigned to your company will appear here. Make sure your company profile is complete and approved.
                   </p>
-                  <div className="text-sm text-gray-500 space-y-1">
-                    <p>• Check if customers have completed the booking process</p>
-                    <p>• Verify that orders are being created successfully</p>
-                    <p>• Ensure your company is approved and has proper permissions</p>
-                  </div>
-                  <div className="mt-4 text-xs text-gray-400">
-                    Company ID: {company.id} | User: {user?.email}
-                  </div>
                 </div>
               </CardContent>
             </Card>
           ) : (
-            allOrdersToShow.map((order) => {
-              const existingQuote = getOrderQuote(order.id);
-              const isPendingOrder = pendingOrders.some(p => p.id === order.id);
+            orders.map((order) => {
+              const existingQuote = quotes.find(quote => quote.order_id === order.id);
               
               return (
                 <Card key={order.id} className="hover:shadow-lg transition-shadow">
@@ -422,15 +390,19 @@ const CompanyOrderDashboard = () => {
                         <CardTitle className="flex items-center gap-2">
                           <Car className="h-5 w-5" />
                           {order.service_type}
-                          {isPendingOrder && (
-                            <Badge className="bg-blue-500 text-white ml-2">New Request</Badge>
+                          {order.status === 'pending' && (
+                            <Badge className="bg-orange-500 text-white ml-2">Needs Response</Badge>
                           )}
                         </CardTitle>
                         <CardDescription>
                           Order #{order.id.slice(0, 8)}
                         </CardDescription>
                       </div>
-                      <Badge variant={order.status === 'pending' ? 'default' : 'secondary'}>
+                      <Badge variant={
+                        order.status === 'pending' ? 'default' : 
+                        order.status === 'accepted' ? 'default' :
+                        order.status === 'rejected' ? 'destructive' : 'secondary'
+                      }>
                         {order.status}
                       </Badge>
                     </div>
@@ -463,7 +435,31 @@ const CompanyOrderDashboard = () => {
                       </div>
                     </div>
 
-                    {existingQuote ? (
+                    {order.status === 'pending' && !existingQuote && (
+                      <div className="space-y-4">
+                        <QuoteForm
+                          orderId={order.id}
+                          onSubmit={submitQuote}
+                        />
+                        <div className="flex gap-3">
+                          <Button 
+                            onClick={() => acceptOrder(order.id)}
+                            className="flex-1 bg-green-600 hover:bg-green-700"
+                          >
+                            Accept Order
+                          </Button>
+                          <Button 
+                            onClick={() => rejectOrder(order.id)}
+                            variant="destructive"
+                            className="flex-1"
+                          >
+                            Reject Order
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {existingQuote && (
                       <div className="bg-green-50 p-4 rounded-lg">
                         <h4 className="font-semibold text-green-800 mb-2">Your Quote</h4>
                         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -485,24 +481,8 @@ const CompanyOrderDashboard = () => {
                         }>
                           {existingQuote.status}
                         </Badge>
-                        
-                        {existingQuote.status === 'accepted' && (
-                          <div className="mt-3">
-                            <Button 
-                              onClick={() => confirmOrder(order.id)}
-                              className="w-full"
-                            >
-                              Confirm Order & Start Service
-                            </Button>
-                          </div>
-                        )}
                       </div>
-                    ) : order.status === 'pending' ? (
-                      <QuoteForm
-                        orderId={order.id}
-                        onSubmit={submitQuote}
-                      />
-                    ) : null}
+                    )}
                   </CardContent>
                 </Card>
               );
