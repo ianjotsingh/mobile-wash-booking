@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -17,8 +16,9 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
     onUserTypeSelect('provider');
   };
 
+  // Changed here: navigate to the correct mobile route
   const handleMechanicRegister = () => {
-    window.location.href = '/mechanic-signup';
+    window.location.href = '/mechanic/signup';
   };
 
   const handleEmailLogin = () => {
@@ -124,4 +124,3 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
 };
 
 export default MobileFrontPage;
-
