@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,10 +19,7 @@ const BookingFlow = () => {
   console.log('BookingFlow - Current step:', currentStep);
 
   useEffect(() => {
-    console.log('BookingFlow useEffect - checking auth and stored service');
-    
     if (!user) {
-      console.log('No user, showing auth modal');
       setShowAuthModal(true);
       return;
     }
@@ -33,11 +29,9 @@ const BookingFlow = () => {
     if (storedService) {
       try {
         const service = JSON.parse(storedService);
-        console.log('Loaded selected service:', service);
         setSelectedService(service);
         setCurrentStep('providers');
       } catch (error) {
-        console.error('Error parsing stored service:', error);
         setCurrentStep('service');
       }
     }
@@ -49,7 +43,6 @@ const BookingFlow = () => {
   };
 
   const handleCompanySelect = (company: any) => {
-    console.log('Selected company:', company);
     setSelectedCompany(company);
     setCurrentStep('details');
   };
