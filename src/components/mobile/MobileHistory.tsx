@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ interface Order {
   car_model: string;
   car_color: string;
   created_at: string;
+  payment_status: string; // <-- Added this line
 }
 
 const MobileHistory = () => {
