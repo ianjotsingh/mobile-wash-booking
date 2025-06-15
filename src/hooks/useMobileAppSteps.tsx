@@ -18,7 +18,6 @@ export const useMobileAppSteps = (
     console.log('User:', user?.email || 'No user');
     console.log('Auth loading:', loading);
     console.log('Role:', role);
-    console.log('Checking company:', checkingCompany);
     console.log('Current step:', step);
     
     // If still loading auth, stay on loading
@@ -28,9 +27,9 @@ export const useMobileAppSteps = (
       return;
     }
 
-    // If we have a user, go directly to app regardless of company check status
+    // If we have a user, go directly to app - don't wait for company check
     if (user) {
-      console.log('User authenticated - going to app, role:', role);
+      console.log('User authenticated - going to app immediately, role:', role);
       setStep('app');
       return;
     }
@@ -46,7 +45,7 @@ export const useMobileAppSteps = (
       console.log('Setting step to front');
       setStep('front');
     }
-  }, [user, loading, role, checkingCompany]);
+  }, [user, loading, role]); // Removed checkingCompany dependency
 
   const handleOnboardingComplete = () => {
     console.log('Onboarding completed');

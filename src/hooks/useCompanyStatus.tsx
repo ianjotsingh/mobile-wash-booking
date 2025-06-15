@@ -42,17 +42,7 @@ export const useCompanyStatus = (user: User | null) => {
       }
     };
 
-    // Add a timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      if (checkingCompany) {
-        console.log('Company check timeout - stopping check');
-        setCheckingCompany(false);
-      }
-    }, 3000);
-
     checkUserCompanyStatus();
-
-    return () => clearTimeout(timeoutId);
   }, [user]);
 
   return { isCompany, checkingCompany };
