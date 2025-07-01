@@ -20,16 +20,10 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
     onUserTypeSelect('provider');
   };
 
-  // For mechanic registration, we need to transition to app mode first
+  // Navigate directly to mechanic signup - bypass the step flow
   const handleMechanicRegister = () => {
-    console.log('Mechanic register clicked, transitioning to app mode');
-    // Trigger app mode by selecting customer type first
-    onUserTypeSelect('customer');
-    // Then immediately navigate to mechanic signup
-    setTimeout(() => {
-      console.log('Navigating to mechanic signup after app transition');
-      navigate('/mechanic/signup');
-    }, 100);
+    console.log('Mechanic register clicked, navigating directly to mechanic signup');
+    navigate('/mechanic/signup');
   };
 
   const handleEmailLogin = () => {
@@ -87,7 +81,7 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
             </CardContent>
           </Card>
 
-          {/* Mechanic Register Option - Fixed Navigation */}
+          {/* Mechanic Register Option - Direct Navigation */}
           <Card className="shadow-lg border-2 border-transparent hover:border-blue-200 transition-all">
             <CardContent className="p-6">
               <Button

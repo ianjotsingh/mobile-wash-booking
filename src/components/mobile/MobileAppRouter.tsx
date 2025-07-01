@@ -79,7 +79,7 @@ const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) =>
       <Route path="/company/signup" element={<CompanySignup />} />
       <Route path="/company-signup" element={<CompanySignup />} />
 
-      {/* Mechanic Registration Routes */}
+      {/* Mechanic Registration Routes - Available to everyone */}
       <Route path="/mechanic/register" element={<MechanicRegistration />} />
       <Route path="/mechanic/signup" element={<MechanicSignup />} />
       <Route path="/mechanic/request" element={<MechanicRequest />} />
