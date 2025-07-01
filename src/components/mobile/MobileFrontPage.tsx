@@ -20,16 +20,16 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
     onUserTypeSelect('provider');
   };
 
-  // Navigate directly to mechanic signup page for mechanics
+  // For mechanic registration, we need to transition to app mode first
   const handleMechanicRegister = () => {
-    console.log('Mechanic register clicked, navigating to /mechanic/signup');
-    try {
+    console.log('Mechanic register clicked, transitioning to app mode');
+    // Trigger app mode by selecting customer type first
+    onUserTypeSelect('customer');
+    // Then immediately navigate to mechanic signup
+    setTimeout(() => {
+      console.log('Navigating to mechanic signup after app transition');
       navigate('/mechanic/signup');
-    } catch (error) {
-      console.error('Navigation error:', error);
-      // Fallback: direct browser navigation
-      window.location.href = '/mechanic/signup';
-    }
+    }, 100);
   };
 
   const handleEmailLogin = () => {
@@ -87,7 +87,7 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
             </CardContent>
           </Card>
 
-          {/* Mechanic Register Option with Debug */}
+          {/* Mechanic Register Option - Fixed Navigation */}
           <Card className="shadow-lg border-2 border-transparent hover:border-blue-200 transition-all">
             <CardContent className="p-6">
               <Button
