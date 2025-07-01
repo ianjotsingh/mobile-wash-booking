@@ -4,10 +4,9 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import MobileAppMain from './MobileAppMain';
 import CompanyRegistration from '../CompanyRegistration';
-import MechanicRegistration from '../MechanicRegistration';
 import AdminDashboard from '@/pages/AdminDashboard';
 import MechanicRequest from '@/pages/MechanicRequest';
-import MechanicSignup from '@/pages/MechanicSignup';
+import MechanicRegistrationPage from '@/pages/MechanicRegistrationPage';
 import CompanySignup from '@/pages/CompanySignup';
 import ResetPassword from '@/pages/ResetPassword';
 import WashBookingDetails from '@/pages/WashBookingDetails';
@@ -80,8 +79,7 @@ const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) =>
       <Route path="/company-signup" element={<CompanySignup />} />
 
       {/* Mechanic Registration Routes - Available to everyone */}
-      <Route path="/mechanic/register" element={<MechanicRegistration />} />
-      <Route path="/mechanic/signup" element={<MechanicSignup />} />
+      <Route path="/mechanic/signup" element={<MechanicRegistrationPage />} />
       <Route path="/mechanic/request" element={<MechanicRequest />} />
 
       {/* Dashboard Routes - Only mobile dashboard now */}
