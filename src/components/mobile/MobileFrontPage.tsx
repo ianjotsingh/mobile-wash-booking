@@ -22,7 +22,14 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
 
   // Navigate directly to mechanic signup page for mechanics
   const handleMechanicRegister = () => {
-    navigate('/mechanic/signup');
+    console.log('Mechanic register clicked, navigating to /mechanic/signup');
+    try {
+      navigate('/mechanic/signup');
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // Fallback: direct browser navigation
+      window.location.href = '/mechanic/signup';
+    }
   };
 
   const handleEmailLogin = () => {
@@ -80,7 +87,7 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
             </CardContent>
           </Card>
 
-          {/* Mechanic Register Option */}
+          {/* Mechanic Register Option with Debug */}
           <Card className="shadow-lg border-2 border-transparent hover:border-blue-200 transition-all">
             <CardContent className="p-6">
               <Button
@@ -128,4 +135,3 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
 };
 
 export default MobileFrontPage;
-
