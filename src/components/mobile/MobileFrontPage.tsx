@@ -22,8 +22,9 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
 
   // Navigate directly to mechanic signup - bypass the step flow
   const handleMechanicRegister = () => {
-    console.log('Mechanic register clicked, navigating directly to mechanic signup');
-    navigate('/mechanic/signup');
+    console.log('Mechanic register clicked, navigating to mechanic registration');
+    // Use replace to ensure we don't stay in the step flow
+    navigate('/mechanic/signup', { replace: true });
   };
 
   const handleEmailLogin = () => {

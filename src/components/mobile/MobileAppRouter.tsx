@@ -80,6 +80,7 @@ const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) =>
 
       {/* Mechanic Registration Routes - Available to everyone */}
       <Route path="/mechanic/signup" element={<MechanicRegistrationPage />} />
+      <Route path="/mechanic-signup" element={<MechanicRegistrationPage />} />
       <Route path="/mechanic/request" element={<MechanicRequest />} />
 
       {/* Dashboard Routes - Only mobile dashboard now */}
