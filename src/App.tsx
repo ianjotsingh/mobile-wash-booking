@@ -17,7 +17,7 @@ import CompanySignup from './pages/CompanySignup';
 // Removed import for CompanyDashboard and CompanyOrderDashboard (no longer exist!)
 import AdminDashboard from './pages/AdminDashboard';
 import MechanicRequest from './pages/MechanicRequest';
-import MechanicSignup from './pages/MechanicSignup';
+// Removed import for MechanicSignup (deleted)
 import ResetPassword from './pages/ResetPassword';
 import NotFound from './pages/NotFound';
 import { AuthProvider } from '@/hooks/useAuth';
@@ -64,7 +64,7 @@ function App() {
                 <Route path="/company/dashboard" element={<CompanyMobileDashboard />} />
                 <Route path="/admin-dashboard" element={<AdminDashboard />} />
                 <Route path="/mechanic-request" element={<MechanicRequest />} />
-                <Route path="/mechanic-signup" element={<MechanicSignup />} />
+                {/* Removed mechanic-signup route since we deleted the component */}
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
@@ -79,4 +79,3 @@ function App() {
 }
 
 export default App;
-
