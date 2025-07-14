@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -72,6 +71,32 @@ const CompanyRegistration = () => {
     return "";
   };
 
+  const handleUseCurrentLocation = async () => {
+    setLocationLoading(true);
+    try {
+      const location = await getCurrentLocation();
+      setAddress(location.address || '');
+      setCity(location.city || '');
+      setState(location.state || '');
+      setZipCode(location.zipCode || '');
+      setLatitude(location.latitude);
+      setLongitude(location.longitude);
+
+      toast({
+        title: "Location Detected",
+        description: "Your location has been automatically filled in the form.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Location Detection Failed",
+        description: error.message || "Unable to detect your location. Please enter manually.",
+        variant: "destructive"
+      });
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -127,11 +152,8 @@ const CompanyRegistration = () => {
       const success = await waitForCompanyRole(user.id);
 
       if (success) {
-        if (isMobileApp) {
-          window.location.href = "/company/dashboard";
-        } else {
-          window.location.href = "/company-dashboard";
-        }
+        // Always redirect to company dashboard after successful registration
+        window.location.href = "/company-dashboard";
       } else {
         toast({
           title: 'Registration Complete',
@@ -148,32 +170,6 @@ const CompanyRegistration = () => {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleUseCurrentLocation = async () => {
-    setLocationLoading(true);
-    try {
-      const location = await getCurrentLocation();
-      setAddress(location.address || '');
-      setCity(location.city || '');
-      setState(location.state || '');
-      setZipCode(location.zipCode || '');
-      setLatitude(location.latitude);
-      setLongitude(location.longitude);
-
-      toast({
-        title: "Location Detected",
-        description: "Your location has been automatically filled in the form.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Location Detection Failed",
-        description: error.message || "Unable to detect your location. Please enter manually.",
-        variant: "destructive"
-      });
-    } finally {
-      setLocationLoading(false);
     }
   };
 

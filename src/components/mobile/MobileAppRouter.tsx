@@ -53,7 +53,6 @@ const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) =>
     }
 
     // User is logged in - route based on role
-    // Treat null role as customer to prevent infinite loading
     const userRole = role || 'customer';
     console.log('User logged in with role:', userRole);
 
@@ -78,27 +77,54 @@ const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) =>
       <Route path="/mechanic-signup" element={<MechanicRegistrationPage />} />
       <Route path="/mechanic/request" element={<MechanicRequest />} />
 
-      {/* Company Registration Routes - Public access */}
-      <Route path="/company/register" element={<CompanyRegistration />} />
-      <Route path="/company/signup" element={<CompanySignup />} />
-      <Route path="/company-signup" element={<CompanySignup />} />
+      {/* Company Registration Routes - Public access but redirect based on auth state */}
+      <Route 
+        path="/company/register" 
+        element={
+          user && role === null ? 
+            <CompanyRegistration /> : 
+            user && role === 'company' ? 
+              <Navigate to="/company-dashboard" replace /> :
+              <Navigate to="/" replace />
+        } 
+      />
+      <Route 
+        path="/company/signup" 
+        element={
+          user && role === null ? 
+            <CompanyRegistration /> : 
+            user && role === 'company' ? 
+              <Navigate to="/company-dashboard" replace /> :
+              <Navigate to="/" replace />
+        } 
+      />
+      <Route 
+        path="/company-signup" 
+        element={
+          user && role === null ? 
+            <CompanyRegistration /> : 
+            user && role === 'company' ? 
+              <Navigate to="/company-dashboard" replace /> :
+              <Navigate to="/" replace />
+        } 
+      />
 
       {/* Protected Dashboard Routes */}
       <Route
         path="/company/dashboard"
-        element={user && (role === 'company' || role === null) ? <CompanyMobileDashboard /> : <Navigate to="/" />}
+        element={user && role === 'company' ? <CompanyMobileDashboard /> : <Navigate to="/" replace />}
       />
       <Route
         path="/company-dashboard"
-        element={user && (role === 'company' || role === null) ? <CompanyMobileDashboard /> : <Navigate to="/" />}
+        element={user && role === 'company' ? <CompanyMobileDashboard /> : <Navigate to="/" replace />}
       />
       <Route
         path="/admin/dashboard"
-        element={user ? <AdminDashboard /> : <Navigate to="/" />}
+        element={user && role === 'admin' ? <AdminDashboard /> : <Navigate to="/" replace />}
       />
       <Route
         path="/mechanic-dashboard"
-        element={user && (role === 'mechanic' || role === null) ? <MechanicDashboard /> : <Navigate to="/" />}
+        element={user && role === 'mechanic' ? <MechanicDashboard /> : <Navigate to="/" replace />}
       />
 
       {/* Booking and Service Routes */}

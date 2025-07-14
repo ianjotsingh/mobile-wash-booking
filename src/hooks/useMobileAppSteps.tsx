@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 
@@ -7,7 +8,7 @@ type UserType = 'customer' | 'provider' | null;
 export const useMobileAppSteps = () => {
   const [step, setStep] = useState<Step>('loading');
   const [userType, setUserType] = useState<UserType>(null);
-  const { user, loading: authLoading } = useAuth();
+  const { user, role, loading: authLoading } = useAuth();
   const [hasShownOnboarding, setHasShownOnboarding] = useState(false);
 
   console.log('=== Mobile App Steps Debug ===');
@@ -15,6 +16,7 @@ export const useMobileAppSteps = () => {
   console.log('Auth loading:', authLoading);
   console.log('Current step:', step);
   console.log('User type:', userType);
+  console.log('Role:', role);
   console.log('Has shown onboarding:', hasShownOnboarding);
 
   useEffect(() => {
@@ -23,8 +25,6 @@ export const useMobileAppSteps = () => {
   }, []);
 
   useEffect(() => {
-    // Step effect triggered on auth state change, onboarding, etc
-
     // If auth is still loading, stay on loading
     if (authLoading) {
       if (step !== 'loading') {
@@ -33,8 +33,7 @@ export const useMobileAppSteps = () => {
       return;
     }
 
-    // ***** FIX FOR LOGOUT *****
-    // If user is logged out (user == null), always set appropriate step
+    // If user is logged out
     if (!user) {
       if (!hasShownOnboarding) {
         if (step !== 'onboarding') setStep('onboarding');
@@ -47,15 +46,25 @@ export const useMobileAppSteps = () => {
       return;
     }
 
-    // Auth is done, user exists -> go to app
+    // User is logged in
     if (user) {
+      // Check if user needs to complete registration as service provider
+      if (role === null && userType === 'provider') {
+        // User is logged in but has no role and was trying to be a provider
+        // Redirect to company registration
+        console.log('User logged in as provider but no role, redirecting to registration');
+        window.location.href = '/company/register';
+        return;
+      }
+
+      // User has a role or is a customer, go to main app
       if (step !== 'app') {
         setStep('app');
         setUserType(null);
       }
       return;
     }
-  }, [user, authLoading, hasShownOnboarding, step]);
+  }, [user, authLoading, hasShownOnboarding, step, role, userType]);
 
   const handleOnboardingComplete = () => {
     console.log('Onboarding completed');
@@ -71,9 +80,9 @@ export const useMobileAppSteps = () => {
   };
 
   const handleLoginSuccess = () => {
-    console.log('Login successful');
-    setStep('app');
-    setUserType(null);
+    console.log('Login successful, user type was:', userType);
+    // Don't immediately set to 'app' - let the useEffect handle the routing
+    // based on user role and type
   };
 
   return {
