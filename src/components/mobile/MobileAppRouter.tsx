@@ -70,20 +70,20 @@ const MobileAppRouter = ({ userLocation, userAddress }: MobileAppRouterProps) =>
 
   return (
     <Routes>
-      {/* Password Reset Route - Available to everyone */}
+      {/* Public Routes - Available to everyone */}
       <Route path="/reset-password" element={<ResetPassword />} />
 
-      {/* Company Registration Routes */}
-      <Route path="/company/register" element={<CompanyRegistration />} />
-      <Route path="/company/signup" element={<CompanySignup />} />
-      <Route path="/company-signup" element={<CompanySignup />} />
-
-      {/* Mechanic Registration Routes - Available to everyone */}
+      {/* Mechanic Registration Routes - Public access */}
       <Route path="/mechanic/signup" element={<MechanicRegistrationPage />} />
       <Route path="/mechanic-signup" element={<MechanicRegistrationPage />} />
       <Route path="/mechanic/request" element={<MechanicRequest />} />
 
-      {/* Dashboard Routes - Only mobile dashboard now */}
+      {/* Company Registration Routes - Public access */}
+      <Route path="/company/register" element={<CompanyRegistration />} />
+      <Route path="/company/signup" element={<CompanySignup />} />
+      <Route path="/company-signup" element={<CompanySignup />} />
+
+      {/* Protected Dashboard Routes */}
       <Route
         path="/company/dashboard"
         element={user && (role === 'company' || role === null) ? <CompanyMobileDashboard /> : <Navigate to="/" />}

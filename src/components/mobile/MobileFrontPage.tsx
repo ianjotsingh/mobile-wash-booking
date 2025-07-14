@@ -20,11 +20,10 @@ const MobileFrontPage = ({ onUserTypeSelect }: MobileFrontPageProps) => {
     onUserTypeSelect('provider');
   };
 
-  // Navigate directly to mechanic signup - bypass the step flow
+  // Navigate directly to mechanic signup - bypass the step flow completely
   const handleMechanicRegister = () => {
-    console.log('Mechanic register clicked, navigating to mechanic registration');
-    // Use replace to ensure we don't stay in the step flow
-    navigate('/mechanic/signup', { replace: true });
+    console.log('Navigating to mechanic registration page');
+    window.location.href = '/mechanic/signup';
   };
 
   const handleEmailLogin = () => {
